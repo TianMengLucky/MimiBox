@@ -1,7 +1,7 @@
 <!-- 美美工具箱 README — 粉色治愈系主题（横幅为图片：GitHub 不支持在 Markdown/HTML 中使用内联 CSS 上色） -->
 
 <p align="center">
-  <img src="./docs/readme-header.svg" alt="美美工具箱 — 粉色治愈系桌面工具箱横幅" width="720" />
+  <img src="./docs/readme-header.png" alt="美美工具箱 — 粉色治愈系桌面工具箱横幅" width="720" />
 </p>
 
 > 💡 「美美」是《与你相恋到生命尽头》中一名粉色可爱小女孩。
