@@ -501,6 +501,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cordis-rs"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ddc1877fc0c015a47a4e780bf6366fcb9f77a136f7dbdb6d125ca371f5bda7ed"
+
+[[package]]
 name = "core-foundation"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2050,6 +2056,7 @@ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 name = "mimibox"
 version = "0.1.0"
 dependencies = [
+ "cordis-rs",
  "serde",
  "serde_json",
  "tauri",

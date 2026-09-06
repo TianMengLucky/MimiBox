@@ -1,5 +1,6 @@
 import { ErrorFallback } from "@components/ErrorFallback";
 import { CornerDock } from "@components/CornerDock";
+import { TitleBar } from "@components/TitleBar";
 import {
   createRootRoute,
   Link,
@@ -15,6 +16,7 @@ function RootComponent() {
 
   return (
     <>
+      <TitleBar />
       <Outlet />
       {!isWelcome && (
         <div className="corner-actions">
