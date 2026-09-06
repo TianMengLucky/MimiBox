@@ -53,8 +53,247 @@ body {
 }
 
 .welcome__content {
-  max-width: 640px;
+  max-width: 860px;
   text-align: center;
+}
+
+.welcome__icon {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 20px;
+  border-radius: 22px;
+  box-shadow: 0 14px 32px rgb(245 179 201 / 42%);
+}
+
+.corner-actions {
+  position: fixed;
+  bottom: 22px;
+  left: 22px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* 左下角悬浮坞：展开条 + 主页/设置 按钮组 */
+.corner-dock {
+  position: relative;
+}
+
+/* 展开菜单：与主按钮组同款配色的按钮组（关于/反馈），浮在按钮组上方 */
+.dock-menu {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(8px) scale(0.92);
+  transform-origin: bottom left;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    visibility 0s linear 0.18s;
+}
+
+.dock-menu--open {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+.dock-menu__group {
+  border: 1px solid rgb(255 255 255 / 65%);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 45%);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: 0 6px 18px rgb(133 77 96 / 16%);
+  padding: 4px;
+}
+
+.dock-menu__item {
+  min-width: 34px;
+  min-height: 34px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #66535a;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dock-menu__item:first-child {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.dock-menu__item:last-child {
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.dock-menu__item:hover {
+  border-radius: 50%;
+  background: rgb(247 196 213 / 70%);
+}
+
+.dock-menu__item:active {
+  background: rgb(255 236 244 / 70%);
+}
+
+.dock-menu__item:focus-visible {
+  outline: 2px solid #d26d9a;
+  outline-offset: 0;
+}
+
+/* 主页 + 设置：毛玻璃胶囊按钮组（展开条在最上） */
+.nav-group {
+  border: 1px solid rgb(255 255 255 / 65%);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 45%);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: 0 6px 18px rgb(133 77 96 / 16%);
+  padding: 4px;
+}
+
+.nav-group .button {
+  min-width: 34px;
+  min-height: 34px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #66535a;
+  background: transparent;
+  box-shadow: none;
+}
+
+.nav-group .button:first-child {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.nav-group .button:last-child {
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.nav-group .button:hover {
+  border-radius: 50%;
+  background: rgb(247 196 213 / 70%);
+}
+
+.nav-group .button:active {
+  background: rgb(255 236 244 / 70%);
+}
+
+.nav-group .button:focus-visible {
+  outline: 2px solid #d26d9a;
+  outline-offset: 0;
+}
+
+/* 展开按钮：扁长条，位于胶囊顶部（保持与其他按钮同款的原本配色） */
+.nav-group .dock-more {
+  min-width: 34px;
+  width: 34px;
+  min-height: 18px;
+  height: 18px;
+  margin-bottom: 2px;
+  color: #66535a;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* 当前路径对应按钮高亮：粉色圆形 */
+.nav-group .button.dock-nav--active,
+.nav-group .button.dock-nav--active:hover,
+.nav-group .button.dock-nav--active:active {
+  border-radius: 50%;
+  background: #f5b3c9;
+  color: #5e4c53;
+}
+
+.home {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.home__icon {
+  width: 88px;
+  height: 88px;
+  border-radius: 20px;
+  box-shadow: 0 14px 32px rgb(245 179 201 / 42%);
+}
+
+.home__title {
+  margin: 22px 0 0;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #66535a;
+}
+
+.home__hint {
+  margin: 10px 0 0;
+  color: #9b8a91;
+}
+
+.error-fallback {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 48px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: linear-gradient(135deg, #ffdde9 0%, #fff8fb 52%, #fffdfd 100%);
+}
+
+.error-fallback h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #66535a;
+}
+
+.error-fallback__message {
+  max-width: 36em;
+  margin: 14px 0 0;
+  color: #7b686f;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.error-fallback__retry {
+  margin-top: 28px;
+  border: none;
+  border-radius: 999px;
+  padding: 0.6em 1.6em;
+  color: #5e4c53;
+  background: #f5b3c9;
+  box-shadow: 0 10px 24px rgb(245 179 201 / 36%);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .welcome__greeting {
@@ -72,7 +311,7 @@ body {
   font-weight: 800;
   letter-spacing: -0.06em;
   line-height: 1.16;
-  text-wrap: balance;
+  white-space: nowrap;
 }
 
 .welcome__description {
@@ -95,23 +334,6 @@ body {
 .welcome__continue:focus-visible {
   outline: 3px solid #ffffff;
   outline-offset: 4px;
-}
-
-.container {
-  box-sizing: border-box;
-  min-height: 100vh;
-  margin: 0;
-  padding: 10vh 24px 48px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.row {
-  display: flex;
-  justify-content: center;
 }
 
 a {
@@ -153,17 +375,9 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-#greet-input {
-  margin-right: 5px;
-}
-
 @media (max-width: 480px) {
   body {
     background-position: 35% center;
-  }
-
-  .container {
-    padding-inline: 16px;
   }
 
   .welcome {

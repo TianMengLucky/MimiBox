@@ -1,4 +1,5 @@
 import { Button } from "@heroui/react";
+import appIcon from "@assets/app-icon.png";
 
 type WelcomeScreenProps = {
   onContinue: () => void;
@@ -9,6 +10,7 @@ export default function WelcomeScreen({ onContinue }: WelcomeScreenProps) {
     <main className="welcome" aria-labelledby="welcome-title">
       <div className="welcome__dots" aria-hidden="true" />
       <section className="welcome__content">
+        <img src={appIcon} alt="" className="welcome__icon" aria-hidden="true" />
         <p className="welcome__greeting">初次见面</p>
         <h1 id="welcome-title">欢迎使用美美工具箱！</h1>
         <p className="welcome__description">
