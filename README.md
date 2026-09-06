@@ -170,11 +170,7 @@ pnpm dev
 
 ---
 
-<div align="center">
-  <p style="color: #9b8a91; font-size: 0.85rem;">
-    Made with 💗 by MimiBox Team
-  </p>
-  <p style="color: #cf829e; font-size: 0.8rem;">
-    MIT License
-  </p>
-</div>
+<p align="center">
+  <img src="./docs/readme-footer.png" alt="Made with ♥ by MimiBox Team · MIT License" width="720" />
+</p>
+
