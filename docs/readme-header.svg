@@ -1,0 +1,24 @@
+<svg width="720" height="300" viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">美美工具箱</title>
+  <desc id="desc">一款以「美美」命名的粉色治愈系桌面工具箱，基于 Tauri + React + HeroUI 构建</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffdde9"/>
+      <stop offset="0.55" stop-color="#fff0f5"/>
+      <stop offset="1" stop-color="#ffd3e1"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="720" height="300" rx="36" fill="url(#bg)"/>
+  <circle cx="92" cy="64" r="120" fill="#ffffff" opacity="0.28"/>
+  <circle cx="648" cy="252" r="140" fill="#ffffff" opacity="0.22"/>
+  <circle cx="648" cy="252" r="86" fill="#f5b3c9" opacity="0.16"/>
+
+  <text x="360" y="96" text-anchor="middle" font-size="30" font-family="Segoe UI Emoji, Apple Color Emoji, sans-serif">🎀</text>
+  <text x="360" y="152" text-anchor="middle" font-size="58" font-weight="800" letter-spacing="2"
+        fill="#5e4c53" font-family="'Microsoft YaHei','PingFang SC','Source Han Sans SC','Noto Sans CJK SC',sans-serif">美美工具箱</text>
+  <text x="360" y="196" text-anchor="middle" font-size="22" font-weight="700" letter-spacing="14"
+        fill="#cf829e" font-family="Arial, Helvetica, sans-serif">MIMIBOX</text>
+  <text x="360" y="242" text-anchor="middle" font-size="17" letter-spacing="1"
+        fill="#7b686f" font-family="'Microsoft YaHei','PingFang SC','Source Han Sans SC','Noto Sans CJK SC',sans-serif">一款以「美美」命名的粉色治愈系桌面工具箱 · Tauri + React + HeroUI</text>
+</svg>

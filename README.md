@@ -1,30 +1,8 @@
-<!-- 美美工具箱 README — 粉色治愈系主题 -->
+<!-- 美美工具箱 README — 粉色治愈系主题（横幅为图片：GitHub 不支持在 Markdown/HTML 中使用内联 CSS 上色） -->
 
-<div align="center" style="background-color: #ffcfe0; border-radius: 24px; padding: 40px 24px 32px;">
-
-  <!-- 项目图标 -->
-  <img src="./src-tauri/icons/icon.png" alt="美美工具箱 Logo" width="96" style="border-radius: 22px; box-shadow: 0 14px 32px rgba(245, 179, 201, 0.42);" />
-
-  <!-- 项目标题 -->
-  <h1 style="margin: 16px 0 6px; font-size: 2.4rem; font-weight: 800; letter-spacing: -0.04em; color: #66535a;">
-    美美工具箱
-  </h1>
-
-  <!-- 英文副标题 -->
-  <p style="margin: 0; color: #cf829e; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.18em;">
-    MIMIBOX
-  </p>
-
-  <!-- 简介 -->
-  <p style="margin: 18px auto 0; max-width: 420px; color: #7b686f; font-size: 1rem; line-height: 1.7;">
-    一款以「美美」命名的可爱桌面工具箱应用<br />
-    基于 Tauri + React + HeroUI 构建
-  </p>
-
-  <!-- 分隔装饰线 -->
-  <div style="margin: 28px auto; width: 120px; height: 4px; border-radius: 999px; background: linear-gradient(90deg, #ffdde9, #f5b3c9, #ffdde9);"></div>
-
-</div>
+<p align="center">
+  <img src="./docs/readme-header.svg" alt="美美工具箱 — 粉色治愈系桌面工具箱横幅" width="720" />
+</p>
 
 > 💡 「美美」是《与你相恋到生命尽头》中一名粉色可爱小女孩。
 
