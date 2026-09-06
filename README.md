@@ -1,6 +1,6 @@
 <!-- 美美工具箱 README — 粉色治愈系主题 -->
 
-<div align="center">
+<div align="center" style="background: linear-gradient(135deg, #ffdde9 0%, #fff8fb 52%, #fffdfd 100%); border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 24px; padding: 40px 24px 32px; box-shadow: 0 14px 32px rgba(245, 179, 201, 0.3);">
 
   <!-- 项目图标 -->
   <img src="./src-tauri/icons/icon.png" alt="美美工具箱 Logo" width="96" style="border-radius: 22px; box-shadow: 0 14px 32px rgba(245, 179, 201, 0.42);" />
@@ -84,7 +84,7 @@ MimiBox/
 │   ├── assets/              # 静态资源（图标、背景图）
 │   ├── components/          # React 组件
 │   │   ├── CornerDock.tsx   # 左下角悬浮操作坞
-│   │   ├── ErrorFallback.tsx# 错误降级界面
+│   │   ├── ErrorFallback.tsx   # 错误降级界面
 │   │   └── WelcomeScreen.tsx# 欢迎页
 │   ├── routes/              # 页面路由（文件路由）
 │   │   ├── __root.tsx       # 根布局
@@ -109,8 +109,8 @@ MimiBox/
 
 ### 环境要求
 
-- [Node.js](https://nodejs.org/) >= 18
-- [pnpm](https://pnpm.io/) >= 9
+- [Node.js](https://nodejs.org/) >= 20.19（推荐使用 22.x LTS，Vite 8 要求）
+- [pnpm](https://pnpm.io/) >= 9（项目锁定版本为 12，见 `package.json` 的 `packageManager`）
 - [Rust](https://www.rust-lang.org/tools/install)（Tauri 编译依赖）
 - 对应平台的编译工具链（Windows 需要 Visual Studio Build Tools）
 
