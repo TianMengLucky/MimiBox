@@ -1,6 +1,6 @@
 <!-- 美美工具箱 README — 粉色治愈系主题 -->
 
-<div align="center" style="background: linear-gradient(135deg, #ffdde9 0%, #fff8fb 52%, #fffdfd 100%); border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 24px; padding: 40px 24px 32px; box-shadow: 0 14px 32px rgba(245, 179, 201, 0.3);">
+<div align="center" style="background-color: #ffcfe0; border-radius: 24px; padding: 40px 24px 32px;">
 
   <!-- 项目图标 -->
   <img src="./src-tauri/icons/icon.png" alt="美美工具箱 Logo" width="96" style="border-radius: 22px; box-shadow: 0 14px 32px rgba(245, 179, 201, 0.42);" />
