@@ -3,6 +3,9 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 use serde_json::json;
+use tauri::image::Image;
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, State};
 
 struct AppState {
@@ -57,9 +60,50 @@ pub fn run() {
             app.manage(AppState {
                 first_launch: Mutex::new(first_launch),
             });
+            setup_tray(app)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![is_first_launch, mark_welcome_seen])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// 系统托盘：右键菜单（显示主窗口 / 退出），左键单击显示并聚焦主窗口。
+fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
+    let show = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show, &quit])?;
+
+    let icon = Image::from_bytes(include_bytes!("../icons/icon.png"))?;
+
+    TrayIconBuilder::with_id("main-tray")
+        .icon(icon)
+        .tooltip("美美工具箱")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "show" => show_main_window(app),
+            "quit" => app.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                show_main_window(tray.app_handle());
+            }
+        })
+        .build(app)?;
+    Ok(())
+}
+
+fn show_main_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
 }
