@@ -113,7 +113,7 @@ export function CornerDock() {
           variant="tertiary"
           className="dock-menu__group"
         >
-          {actions.map((action, index) => (
+          {actions.map((action) => (
             <Button
               key={action.key}
               isIconOnly
@@ -124,7 +124,6 @@ export function CornerDock() {
                 // TODO: 接入各功能
               }}
             >
-              {index > 0 && <ButtonGroup.Separator />}
               {action.icon}
             </Button>
           ))}
@@ -163,7 +162,6 @@ export function CornerDock() {
             // TODO: 打开设置页
           }}
         >
-          <ButtonGroup.Separator />
           <SettingsIcon />
         </Button>
       </ButtonGroup>
