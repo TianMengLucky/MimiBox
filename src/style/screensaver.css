@@ -1,0 +1,40 @@
+/* 屏保（闲置触发）：全屏淡遮罩 + 中央日期时间 */
+.screensaver {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #4b3540;
+  background: rgb(255 246 250 / 55%);
+  backdrop-filter: blur(12px) saturate(1.25);
+  -webkit-backdrop-filter: blur(12px) saturate(1.25);
+  user-select: none;
+  cursor: default;
+}
+
+.screensaver__date {
+  font-size: clamp(1.3rem, 4vw, 2.4rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #7b5b69;
+}
+
+.screensaver__time {
+  font-size: clamp(3.4rem, 13vw, 8rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: #4b3540;
+}
+
+.screensaver__hint {
+  margin-top: 16px;
+  color: rgb(102 83 90 / 55%);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+}

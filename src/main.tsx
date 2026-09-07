@@ -5,7 +5,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { ErrorFallback } from "@components/ErrorFallback";
 import { router } from "./router";
 import { loadCorePlugins } from "./cordis";
-import "./App.css";
+import "@style/index.css";
 
 loadCorePlugins();
 

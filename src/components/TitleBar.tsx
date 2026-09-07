@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, ButtonGroup } from "@heroui/react";
+import { useRouterState } from "@tanstack/react-router";
 import appIcon from "@assets/app-icon.png";
 
 const hasTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -79,6 +80,10 @@ export function TitleBar() {
   const [maximized, setMaximized] = useState(false);
   const [version, setVersion] = useState("v0.1.0");
 
+  // 欢迎页保持纯净：不显示左上角品牌卡片与右上角窗口控制
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isWelcome = pathname === "/";
+
   useEffect(() => {
     if (!hasTauri) return;
     void import("@tauri-apps/api/app")
@@ -129,6 +134,15 @@ export function TitleBar() {
     const win = (await import("@tauri-apps/api/window")).getCurrentWindow();
     await win.close();
   };
+
+  // 欢迎页：隐藏卡片与窗口控制按钮，但保留顶部拖拽区以便移动窗口
+  if (isWelcome) {
+    return (
+      <header className="titlebar">
+        <div className="titlebar__drag" data-tauri-drag-region />
+      </header>
+    );
+  }
 
   return (
     <header className="titlebar">

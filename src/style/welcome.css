@@ -1,0 +1,122 @@
+.welcome {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  overflow: hidden;
+  padding: 32px;
+  color: #66535a;
+  background: linear-gradient(135deg, #ffdde9 0%, #fff8fb 52%, #fffdfd 100%);
+}
+
+.welcome__dots {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: 0.68;
+  background-image: radial-gradient(circle, rgb(233 169 192 / 58%) 1.25px, transparent 1.5px);
+  background-size: 20px 20px;
+  mask-image: linear-gradient(to bottom right, #000 2%, rgb(0 0 0 / 55%) 45%, transparent 82%);
+}
+
+.welcome__content {
+  max-width: 860px;
+  text-align: center;
+}
+
+.welcome__icon {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 20px;
+  border-radius: 22px;
+  box-shadow: 0 14px 32px rgb(245 179 201 / 42%);
+}
+
+.welcome__greeting {
+  margin: 0 0 14px;
+  color: #cf829e;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.welcome h1 {
+  margin: 0;
+  font-family: "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  font-size: clamp(2.25rem, 7vw, 4.8rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 1.16;
+  white-space: nowrap;
+}
+
+.welcome__description {
+  max-width: 32em;
+  margin: 24px auto 0;
+  color: #7b686f;
+  font-size: clamp(1rem, 2vw, 1.16rem);
+  line-height: 1.85;
+}
+
+.welcome__continue {
+  margin-top: 34px;
+  min-width: 124px;
+  border-radius: 999px;
+  color: #5e4c53;
+  background: #f5b3c9;
+  box-shadow: 0 10px 24px rgb(245 179 201 / 36%);
+}
+
+.welcome__continue:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 4px;
+}
+
+.welcome__leave {
+  display: block;
+  width: fit-content;
+  margin: 10px auto 0;
+  padding: 2px 24px;
+  border: 1px solid #f0a9c2;
+  border-radius: 999px;
+  color: #e14d68;
+  background: transparent;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.6;
+  opacity: 0.6;
+  transition:
+    opacity 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.welcome__leave:hover {
+  border-color: #e2799f;
+  color: #c93a56;
+  opacity: 0.9;
+}
+
+.welcome__leave:focus-visible {
+  outline: 2px solid #d26d9a;
+  outline-offset: 2px;
+  opacity: 0.9;
+}
+
+@media (max-width: 480px) {
+  body {
+    background-position: 35% center;
+  }
+
+  .welcome {
+    padding: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome__dots {
+    opacity: 0.58;
+  }
+}

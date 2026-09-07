@@ -1,0 +1,112 @@
+.titlebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.titlebar__drag {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.titlebar__brand {
+  position: absolute;
+  top: 4px;
+  left: 12px;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 14px 4px 6px;
+  border: 1px solid rgb(255 255 255 / 65%);
+  border-radius: 13px;
+  background: rgb(255 255 255 / 50%);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: 0 6px 18px rgb(133 77 96 / 14%);
+  pointer-events: none;
+  user-select: none;
+}
+
+.titlebar__brand-icon {
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+}
+
+.titlebar__brand-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.titlebar__brand-name {
+  color: #66535a;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.titlebar__brand-version {
+  margin-top: 1px;
+  color: #9b8a91;
+  font-size: 0.66rem;
+}
+
+.titlebar__group {
+  position: absolute;
+  top: 7px;
+  right: 10px;
+  z-index: 1;
+  pointer-events: auto;
+  border: 1px solid rgb(255 255 255 / 65%);
+  border-radius: 13px;
+  background: rgb(255 255 255 / 50%);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: 0 6px 18px rgb(133 77 96 / 14%);
+  padding: 3px;
+}
+
+.titlebar__group .button {
+  min-width: 34px;
+  min-height: 26px;
+  width: 34px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #66535a;
+  background: transparent;
+  box-shadow: none;
+}
+
+.titlebar__group .button:first-child {
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+.titlebar__group .button:last-child {
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.titlebar__group .button:hover {
+  background: rgb(247 196 213 / 75%);
+}
+
+.titlebar__group .button:active {
+  background: rgb(247 196 213 / 90%);
+}
+
+.titlebar__group .button:focus-visible {
+  outline: 2px solid #d26d9a;
+  outline-offset: 0;
+}

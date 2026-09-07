@@ -90,7 +90,15 @@ function SettingsIcon() {
   );
 }
 
-export function CornerDock() {
+export function CornerDock({
+  onActivePress,
+  highlight = true,
+}: {
+  /** 点击“已高亮（当前路径）”的导航按钮时触发（进入/退出极简模式） */
+  onActivePress?: () => void;
+  /** 是否显示当前路径高亮（极简模式下为 false） */
+  highlight?: boolean;
+}) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const menuId = useId();
@@ -147,17 +155,24 @@ export function CornerDock() {
         <Button
           isIconOnly
           aria-label="主页"
-          aria-current={isHomeActive ? "page" : undefined}
-          className={isHomeActive ? "dock-nav--active" : undefined}
-          onPress={() => navigate({ to: "/home" })}
+          aria-current={highlight && isHomeActive ? "page" : undefined}
+          className={
+            highlight && isHomeActive ? "dock-nav--active" : undefined
+          }
+          onPress={() => {
+            if (isHomeActive) onActivePress?.();
+            else navigate({ to: "/home" });
+          }}
         >
           <HomeIcon />
         </Button>
         <Button
           isIconOnly
           aria-label="设置"
-          aria-current={isSettingsActive ? "page" : undefined}
-          className={isSettingsActive ? "dock-nav--active" : undefined}
+          aria-current={highlight && isSettingsActive ? "page" : undefined}
+          className={
+            highlight && isSettingsActive ? "dock-nav--active" : undefined
+          }
           onPress={() => {
             // TODO: 打开设置页
           }}

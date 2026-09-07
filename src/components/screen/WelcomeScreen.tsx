@@ -3,9 +3,13 @@ import appIcon from "@assets/app-icon.png";
 
 type WelcomeScreenProps = {
   onContinue: () => void;
+  onLeave?: () => void;
 };
 
-export default function WelcomeScreen({ onContinue }: WelcomeScreenProps) {
+export default function WelcomeScreen({
+  onContinue,
+  onLeave,
+}: WelcomeScreenProps) {
   return (
     <main className="welcome" aria-labelledby="welcome-title">
       <div className="welcome__dots" aria-hidden="true" />
@@ -19,6 +23,13 @@ export default function WelcomeScreen({ onContinue }: WelcomeScreenProps) {
         <Button className="welcome__continue" onPress={onContinue} variant="primary">
           开始使用
         </Button>
+        <button
+          type="button"
+          className="welcome__leave"
+          onClick={() => onLeave?.()}
+        >
+          狠心离开
+        </button>
       </section>
     </main>
   );

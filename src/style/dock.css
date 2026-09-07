@@ -1,0 +1,187 @@
+.corner-actions {
+  position: fixed;
+  bottom: 22px;
+  left: 22px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.corner-dock {
+  position: relative;
+}
+
+.dock-menu {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(8px) scale(0.92);
+  transform-origin: bottom left;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    visibility 0s linear 0.18s;
+}
+
+.dock-menu--open {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+.dock-menu__group {
+  border: 1px solid rgb(255 255 255 / 65%);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 45%);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: 0 6px 18px rgb(133 77 96 / 16%);
+  padding: 4px;
+}
+
+.dock-menu__item {
+  min-width: 34px;
+  min-height: 34px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #66535a;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dock-menu__item:first-child {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.dock-menu__item:last-child {
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.dock-menu__item:hover {
+  border-radius: 50%;
+  background: rgb(247 196 213 / 70%);
+}
+
+.dock-menu__item:active {
+  background: rgb(255 236 244 / 70%);
+}
+
+.dock-menu__item:focus-visible {
+  outline: 2px solid #d26d9a;
+  outline-offset: 0;
+}
+
+.nav-group {
+  border: 1px solid rgb(255 255 255 / 65%);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 45%);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: 0 6px 18px rgb(133 77 96 / 16%);
+  padding: 4px;
+}
+
+.nav-group .button {
+  min-width: 34px;
+  min-height: 34px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #66535a;
+  background: transparent;
+  box-shadow: none;
+}
+
+.nav-group .button:first-child {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.nav-group .button:last-child {
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.nav-group .button:hover {
+  border-radius: 50%;
+  background: rgb(247 196 213 / 70%);
+}
+
+.nav-group .button:active {
+  background: rgb(255 236 244 / 70%);
+}
+
+.nav-group .button:focus-visible {
+  outline: 2px solid #d26d9a;
+  outline-offset: 0;
+}
+
+.nav-group .dock-more {
+  min-width: 34px;
+  width: 34px;
+  min-height: 18px;
+  height: 18px;
+  margin-bottom: 2px;
+  color: #66535a;
+  background: transparent;
+  box-shadow: none;
+}
+
+.nav-group .button.dock-nav--active,
+.nav-group .button.dock-nav--active:hover,
+.nav-group .button.dock-nav--active:active {
+  border-radius: 50%;
+  background: #f5b3c9;
+  color: #5e4c53;
+}
+/* 鍘嬪埗 HeroUI 鎸夐挳鑷甫鐨勬柟褰㈤粯璁ら珮浜?鎸夊帇鎬侊紙涓嶅奖鍝嶅綋鍓嶈矾寰勯珮浜渾锛?*/
+.nav-group .button,
+.dock-menu__item {
+  background-color: transparent;
+  box-shadow: none !important;
+}
+
+.nav-group .button:not(.dock-nav--active)[data-hovered="true"],
+.nav-group .button:not(.dock-nav--active)[data-pressed="true"],
+.nav-group .button:not(.dock-nav--active):hover,
+.dock-menu__item[data-hovered="true"],
+.dock-menu__item[data-pressed="true"],
+.dock-menu__item:hover {
+  border-radius: 50%;
+  background-color: rgb(247 196 213 / 70%);
+}
+/* 压制 HeroUI 按钮自带的方形默认高亮/按压态（不影响当前路径高亮圆） */
+.nav-group .button:not(.dock-nav--active),
+.dock-menu__item {
+  border-radius: 50%;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+
+.nav-group .button:not(.dock-nav--active)[data-hovered="true"],
+.nav-group .button:not(.dock-nav--active)[data-pressed="true"],
+.nav-group .button:not(.dock-nav--active):hover,
+.dock-menu__item[data-hovered="true"],
+.dock-menu__item[data-pressed="true"],
+.dock-menu__item:hover {
+  background: rgb(247 196 213 / 70%) !important;
+}

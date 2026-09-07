@@ -1,0 +1,30 @@
+.home {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.home__icon {
+  width: 88px;
+  height: 88px;
+  border-radius: 20px;
+  box-shadow: 0 14px 32px rgb(245 179 201 / 42%);
+}
+
+.home__title {
+  margin: 22px 0 0;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #66535a;
+}
+
+.home__hint {
+  margin: 10px 0 0;
+  color: #9b8a91;
+}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
-import WelcomeScreen from "@components/WelcomeScreen";
+import WelcomeScreen from "@components/screen/WelcomeScreen";
 
 export const Route = createFileRoute("/")({
   component: WelcomeRoute,
@@ -42,6 +42,13 @@ function WelcomeRoute() {
           console.error("写入启动配置失败", err),
         );
         navigate({ to: "/home" });
+      }}
+      onLeave={() => {
+        if ("__TAURI_INTERNALS__" in window) {
+          import("@tauri-apps/api/window")
+            .then(({ getCurrentWindow }) => getCurrentWindow().close())
+            .catch((err) => console.error("关闭窗口失败", err));
+        }
       }}
     />
   );

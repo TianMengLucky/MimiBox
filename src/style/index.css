@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+@import "./base.css";
+@import "./welcome.css";
+@import "./dock.css";
+@import "./titlebar.css";
+@import "./home.css";
+@import "./error.css";
+@import "./screensaver.css";
