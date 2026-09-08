@@ -1,70 +1,74 @@
 @import "tailwindcss";
 @import "@heroui/styles";
 
-:root {
-  font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
-  color: #513844;
-  background: #f6e3e1;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* 全局元素级默认样式放在 @layer base 中：
+   工具类（utilities 层）和页面级 class 可以按层级正常覆盖它们 */
+@layer base {
+  :root {
+    font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+    color: #513844;
+    background: #f6e3e1;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-html,
-body,
-#root {
-  min-width: 320px;
-  min-height: 100%;
-  margin: 0;
-}
+  html,
+  body,
+  #root {
+    min-width: 320px;
+    min-height: 100%;
+    margin: 0;
+  }
 
-body {
-  min-height: 100vh;
-  background: #f6e3e1 url("../assets/app-background.png") center / cover
-    no-repeat fixed;
-}
+  body {
+    min-height: 100vh;
+    background: #f6e3e1 url("../assets/app-background.png") center / cover
+      no-repeat fixed;
+  }
 
-#root {
-  min-height: 100vh;
-  background: rgb(255 246 246 / 22%);
-}
+  #root {
+    min-height: 100vh;
+    background: rgb(255 246 246 / 22%);
+  }
 
-a {
-  color: #9d4973;
-  font-weight: 600;
-}
+  a {
+    color: #9d4973;
+    font-weight: 600;
+  }
 
-h1 {
-  text-align: center;
-}
+  h1 {
+    text-align: center;
+  }
 
-input,
-button {
-  border: 1px solid rgb(255 255 255 / 70%);
-  border-radius: 8px;
-  padding: 0.6em 1.2em;
-  color: #513844;
-  background: rgb(255 255 255 / 82%);
-  box-shadow: 0 2px 12px rgb(133 77 96 / 14%);
-  font: inherit;
-}
+  input,
+  button {
+    border: 1px solid rgb(255 255 255 / 70%);
+    border-radius: 8px;
+    padding: 0.6em 1.2em;
+    color: #513844;
+    background: rgb(255 255 255 / 82%);
+    box-shadow: 0 2px 12px rgb(133 77 96 / 14%);
+    font: inherit;
+  }
 
-button {
-  cursor: pointer;
-}
+  button {
+    cursor: pointer;
+  }
 
-button:hover,
-button:focus-visible {
-  border-color: #d26d9a;
-}
+  button:hover,
+  button:focus-visible {
+    border-color: #d26d9a;
+  }
 
-button:active {
-  background: rgb(255 236 244 / 94%);
-}
+  button:active {
+    background: rgb(255 236 244 / 94%);
+  }
 
-input:focus-visible,
-button:focus-visible {
-  outline: 2px solid #d26d9a;
-  outline-offset: 2px;
+  input:focus-visible,
+  button:focus-visible {
+    outline: 2px solid #d26d9a;
+    outline-offset: 2px;
+  }
 }

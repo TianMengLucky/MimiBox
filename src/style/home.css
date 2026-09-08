@@ -119,6 +119,22 @@
     background 0.18s ease;
 }
 
+.home-card--placeholder {
+  cursor: default;
+  user-select: none;
+  background: rgb(255 255 255 / 48%);
+  border: 1px solid rgb(255 255 255 / 55%);
+  box-shadow: 0 4px 18px rgb(133 77 96 / 8%);
+  backdrop-filter: blur(12px) saturate(1.2);
+}
+
+.home-card--placeholder:hover,
+.home-card--placeholder:active {
+  transform: none;
+  background: rgb(255 255 255 / 48%);
+  border-color: rgb(255 255 255 / 55%);
+}
+
 .home-card:hover {
   transform: translateY(-3px);
   background: rgb(255 246 250 / 92%);

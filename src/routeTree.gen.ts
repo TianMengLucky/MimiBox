@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as FeatureRouteRouteImport } from './routes/feature/route'
 import { Route as FeedbackRouteImport } from './routes/feedback'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as FeatureIndexRouteImport } from './routes/feature/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,6 +31,11 @@ const AboutRoute = AboutRouteImport.update({
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeatureRouteRoute = FeatureRouteRouteImport.update({
+  id: '/feature',
+  path: '/feature',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeedbackRoute = FeedbackRouteImport.update({
@@ -46,14 +53,21 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FeatureIndexRoute = FeatureIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FeatureRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/feature': typeof FeatureRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/feedback': typeof FeedbackRoute
   '/home': typeof HomeRoute
   '/settings': typeof SettingsRoute
+  '/feature/': typeof FeatureIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,33 +76,54 @@ export interface FileRoutesByTo {
   '/feedback': typeof FeedbackRoute
   '/home': typeof HomeRoute
   '/settings': typeof SettingsRoute
+  '/feature': typeof FeatureIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/feature': typeof FeatureRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/feedback': typeof FeedbackRoute
   '/home': typeof HomeRoute
   '/settings': typeof SettingsRoute
+  '/feature/': typeof FeatureIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/account' | '/feedback' | '/home' | '/settings'
+  fullPaths:
+    | '/'
+    | '/feature'
+    | '/about'
+    | '/account'
+    | '/feedback'
+    | '/home'
+    | '/settings'
+    | '/feature/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/account' | '/feedback' | '/home' | '/settings'
-  id:
-    | '__root__'
+  to:
     | '/'
     | '/about'
     | '/account'
     | '/feedback'
     | '/home'
     | '/settings'
+    | '/feature'
+  id:
+    | '__root__'
+    | '/'
+    | '/feature'
+    | '/about'
+    | '/account'
+    | '/feedback'
+    | '/home'
+    | '/settings'
+    | '/feature/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FeatureRouteRoute: typeof FeatureRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
   FeedbackRoute: typeof FeedbackRoute
@@ -119,6 +154,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/feature': {
+      id: '/feature'
+      path: '/feature'
+      fullPath: '/feature'
+      preLoaderRoute: typeof FeatureRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/feedback': {
       id: '/feedback'
       path: '/feedback'
@@ -140,11 +182,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/feature/': {
+      id: '/feature/'
+      path: '/'
+      fullPath: '/feature/'
+      preLoaderRoute: typeof FeatureIndexRouteImport
+      parentRoute: typeof FeatureRouteRoute
+    }
   }
 }
 
+interface FeatureRouteRouteChildren {
+  FeatureIndexRoute: typeof FeatureIndexRoute
+}
+
+const FeatureRouteRouteChildren: FeatureRouteRouteChildren = {
+  FeatureIndexRoute: FeatureIndexRoute,
+}
+
+const FeatureRouteRouteWithChildren = FeatureRouteRoute._addFileChildren(
+  FeatureRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FeatureRouteRoute: FeatureRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
   FeedbackRoute: FeedbackRoute,

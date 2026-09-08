@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Tooltip } from "@heroui/react";
 import { invoke } from "@tauri-apps/api/core";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -11,6 +12,14 @@ interface AccountStatus {
   mid: number | null;
   uname: string | null;
   face: string | null;
+}
+
+interface AccountEntry {
+  dedeUserId: string;
+  uname: string | null;
+  face: string | null;
+  active: boolean;
+  credentialStatus: "valid" | "expired" | "unknown";
 }
 
 interface QrStart {
@@ -104,18 +113,62 @@ function loadGeetestScript() {
 
 function AccountRoute() {
   const [status, setStatus] = useState<AccountStatus | null>(null);
+  const [accounts, setAccounts] = useState<AccountEntry[] | null>(null);
+  // manage：账号管理卡片；add：内嵌登录面板添加新账号
+  const [mode, setMode] = useState<"manage" | "add">("manage");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
-  const refreshStatus = useCallback(() => {
+  const refresh = useCallback(() => {
     setError("");
-    invoke<AccountStatus>("account_get_status")
-      .then(setStatus)
+    Promise.all([
+      invoke<AccountStatus>("account_get_status"),
+      invoke<AccountEntry[]>("account_list"),
+    ])
+      .then(([nextStatus, list]) => {
+        setStatus(nextStatus);
+        setAccounts(list);
+      })
       .catch((e) => setError(String(e)));
   }, []);
 
-  useEffect(refreshStatus, [refreshStatus]);
+  useEffect(refresh, [refresh]);
 
-  if (status === null) {
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [contextMenu]);
+
+  const runAction = async (action: () => Promise<unknown>) => {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await action();
+      refresh();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (status === null || accounts === null) {
     return (
       <main className="account-page">
         <p className="account-loading">{error || "正在加载…"}</p>
@@ -123,49 +176,226 @@ function AccountRoute() {
     );
   }
 
+  // 未保存任何账号且未登录：直接展示登录面板
+  if (!status.loggedIn && accounts.length === 0) {
+    return (
+      <main className="account-page">
+        <LoginPanel onLoggedIn={refresh} />
+        {error && <p className="account-error">{error}</p>}
+      </main>
+    );
+  }
+
+  if (mode === "add") {
+    return (
+      <main className="account-page">
+        <LoginPanel
+          onLoggedIn={() => {
+            setMode("manage");
+            refresh();
+          }}
+          onCancel={() => setMode("manage")}
+        />
+        {error && <p className="account-error">{error}</p>}
+      </main>
+    );
+  }
+
   return (
     <main className="account-page">
-      {status.loggedIn ? (
-        <section className="account-card account-card--profile">
-          <img
-            className="account-avatar"
-            src={status.face ?? undefined}
-            alt=""
-            aria-hidden="true"
-            onError={(event) => {
-              event.currentTarget.style.visibility = "hidden";
-            }}
-          />
-          <h1 className="account-name">{status.uname}</h1>
-          <p className="account-mid">UID：{status.mid}</p>
+      <section className="account-card !w-[min(460px,100%)]">
+        <h1 className="account-title">账号管理</h1>
+        <div className="mt-5 flex max-w-full flex-wrap items-start justify-center gap-4">
+          {accounts.map((entry) => (
+            <Tooltip key={entry.dedeUserId} delay={250}>
+              <Tooltip.Trigger>
+                <button
+                  type="button"
+                  className="group flex w-18 flex-col items-center gap-2 border-0 bg-transparent p-0 shadow-none disabled:cursor-default disabled:opacity-55"
+                  disabled={busy}
+                  aria-current={entry.active ? "true" : undefined}
+                  aria-label={`${entry.uname ?? "哔哩哔哩用户"}，UID ${entry.dedeUserId}${entry.active ? "，当前账号；右键打开账号菜单" : ""}`}
+                  onClick={() => {
+                    if (!entry.active) {
+                      runAction(() =>
+                        invoke("account_switch", { mid: entry.dedeUserId }),
+                      );
+                    }
+                  }}
+                  onContextMenu={(event) => {
+                    if (!entry.active) return;
+                    event.preventDefault();
+                    setContextMenu({
+                      x: Math.min(event.clientX, window.innerWidth - 144),
+                      y: Math.min(event.clientY, window.innerHeight - 52),
+                    });
+                  }}
+                  onKeyDown={(event) => {
+                    if (
+                      !entry.active ||
+                      (event.key !== "ContextMenu" &&
+                        !(event.shiftKey && event.key === "F10"))
+                    ) {
+                      return;
+                    }
+                    event.preventDefault();
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    setContextMenu({
+                      x: Math.min(rect.left, window.innerWidth - 144),
+                      y: Math.min(rect.bottom + 4, window.innerHeight - 52),
+                    });
+                  }}
+                >
+                  <span
+                    className={`relative rounded-full p-0.5 ${
+                      entry.active
+                        ? "ring-2 ring-pink-300 ring-offset-2 ring-offset-white"
+                        : "ring-2 ring-transparent ring-offset-2"
+                    }`}
+                  >
+                    <img
+                      className="size-16 rounded-full bg-pink-50 object-cover shadow-[0_6px_18px_rgb(245_179_201_/_35%)] transition-transform group-hover:scale-[1.03]"
+                      src={entry.face ?? undefined}
+                      alt=""
+                      aria-hidden="true"
+                      onError={(event) => {
+                        event.currentTarget.style.visibility = "hidden";
+                      }}
+                    />
+                    <AccountStatusDot status={entry.credentialStatus} />
+                  </span>
+                  <span className="w-full truncate text-center text-xs font-semibold text-[#66535a]">
+                    {entry.uname ?? "哔哩哔哩用户"}
+                  </span>
+                </button>
+              </Tooltip.Trigger>
+              <Tooltip.Content placement="bottom" className="text-xs">
+                UID：{entry.dedeUserId}
+              </Tooltip.Content>
+            </Tooltip>
+          ))}
+          <AddAvatarButton busy={busy} onAdd={() => setMode("add")} />
+        </div>
+        {error && <p className="account-error">{error}</p>}
+      </section>
+      {contextMenu && status.loggedIn && (
+        <div
+          className="fixed z-50 min-w-36 rounded-lg border border-pink-100 bg-white p-1.5 shadow-[0_8px_24px_rgb(102_83_90_/_18%)]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          role="menu"
+          aria-label="账号菜单"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
           <button
             type="button"
-            className="account-button account-button--ghost"
-            onClick={async () => {
-              try {
-                await invoke("account_logout");
-                refreshStatus();
-              } catch (e) {
-                setError(String(e));
-              }
+            className="w-full rounded-md border-0 bg-transparent px-3 py-2 text-left text-sm font-medium text-[#66535a] shadow-none hover:bg-pink-50 focus-visible:outline-2 focus-visible:outline-pink-400"
+            role="menuitem"
+            disabled={busy}
+            autoFocus
+            onClick={() => {
+              setContextMenu(null);
+              runAction(() => invoke("account_open_web"));
+            }}
+          >
+            在网页中打开
+          </button>
+          <div className="my-1 h-px bg-pink-100" role="separator" />
+          <button
+            type="button"
+            className="w-full rounded-md border-0 bg-transparent px-3 py-2 text-left text-sm font-medium text-rose-500 shadow-none hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-rose-400"
+            role="menuitem"
+            disabled={busy}
+            onClick={() => {
+              setContextMenu(null);
+              runAction(() => invoke("account_logout"));
             }}
           >
             退出登录
           </button>
-        </section>
-      ) : (
-        <LoginPanel onLoggedIn={refreshStatus} />
+        </div>
       )}
     </main>
   );
 }
 
-function LoginPanel({ onLoggedIn }: { onLoggedIn: () => void }) {
+function AccountStatusDot({
+  status,
+}: {
+  status: AccountEntry["credentialStatus"];
+}) {
+  const label = {
+    valid: "在线，登录凭证有效",
+    expired: "登录凭证已过期",
+    unknown: "暂时无法确认登录状态",
+  }[status];
+  const color = {
+    valid: "bg-emerald-500",
+    expired: "bg-rose-400",
+    unknown: "bg-zinc-400",
+  }[status];
+
+  return (
+    <span
+      className={`absolute right-0 bottom-0 size-3 rounded-full border-2 border-white ${color}`}
+      role="img"
+      aria-label={label}
+      title={label}
+    />
+  );
+}
+
+function AddAvatarButton({ busy, onAdd }: { busy: boolean; onAdd: () => void }) {
+  return (
+    <div className="flex w-18 flex-col items-center gap-2">
+      <button
+        type="button"
+        className="relative flex size-16 shrink-0 items-center justify-center rounded-full border border-dashed border-pink-300 bg-pink-50 text-pink-300 shadow-none transition-colors hover:border-pink-400 hover:bg-pink-100 hover:text-pink-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500 disabled:cursor-default disabled:opacity-55"
+        disabled={busy}
+        aria-label="添加账号"
+        onClick={onAdd}
+      >
+        <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M19 21v-1.5a4.5 4.5 0 0 0-4.5-4.5h-5A4.5 4.5 0 0 0 5 19.5V21" />
+          <circle cx="12" cy="7.5" r="4" />
+        </svg>
+        <span className="absolute right-0 bottom-0 flex size-5 items-center justify-center rounded-full border-2 border-white bg-pink-400 text-white">
+          <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </span>
+      </button>
+      <span className="w-full truncate text-center text-xs font-semibold text-[#9b8a91]">
+        添加账号
+      </span>
+    </div>
+  );
+}
+
+function LoginPanel({
+  onLoggedIn,
+  onCancel,
+}: {
+  onLoggedIn: () => void;
+  onCancel?: () => void;
+}) {
   const [tab, setTab] = useState<LoginTab>("qr");
   return (
     <section className="account-card account-card--login">
-      <h1 className="account-title">登录账号</h1>
-      <p className="account-hint">你还没有登录，登录后才能使用账号相关功能。</p>
+      <h1 className="account-title">{onCancel ? "添加账号" : "登录账号"}</h1>
+      <p className="account-hint">
+        {onCancel
+          ? "登录成功后会保存到账号列表，可随时切换。"
+          : "你还没有登录，登录后才能使用账号相关功能。"}
+      </p>
+      {onCancel && (
+        <button
+          type="button"
+          className="account-button account-button--ghost"
+          onClick={onCancel}
+        >
+          返回账号列表
+        </button>
+      )}
 
       <nav className="account-tabs" aria-label="登录方式">
         {(["qr", "sms", "password"] as const).map((value) => (

@@ -3,7 +3,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 40px;
+  height: 48px;
   z-index: 200;
   pointer-events: none;
 }
@@ -16,15 +16,15 @@
 
 .titlebar__brand {
   position: absolute;
-  top: 4px;
-  left: 12px;
+  top: 6px;
+  left: 14px;
   z-index: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 4px 14px 4px 6px;
+  gap: 12px;
+  padding: 6px 18px 6px 8px;
   border: 1px solid rgb(255 255 255 / 65%);
-  border-radius: 13px;
+  border-radius: 15px;
   background: rgb(255 255 255 / 50%);
   backdrop-filter: blur(12px) saturate(1.4);
   -webkit-backdrop-filter: blur(12px) saturate(1.4);
@@ -35,9 +35,9 @@
 
 .titlebar__brand-icon {
   display: block;
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
 }
 
 .titlebar__brand-text {
@@ -49,7 +49,7 @@
 
 .titlebar__brand-name {
   color: #66535a;
-  font-size: 0.86rem;
+  font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.02em;
 }
@@ -57,29 +57,29 @@
 .titlebar__brand-version {
   margin-top: 1px;
   color: #9b8a91;
-  font-size: 0.66rem;
+  font-size: 0.72rem;
 }
 
 .titlebar__group {
   position: absolute;
-  top: 7px;
-  right: 10px;
+  top: 8px;
+  right: 12px;
   z-index: 1;
   pointer-events: auto;
   border: 1px solid rgb(255 255 255 / 65%);
-  border-radius: 13px;
+  border-radius: 15px;
   background: rgb(255 255 255 / 50%);
   backdrop-filter: blur(12px) saturate(1.4);
   -webkit-backdrop-filter: blur(12px) saturate(1.4);
   box-shadow: 0 6px 18px rgb(133 77 96 / 14%);
-  padding: 3px;
+  padding: 4px;
 }
 
 .titlebar__group .button {
-  min-width: 34px;
-  min-height: 26px;
-  width: 34px;
-  height: 26px;
+  min-width: 38px;
+  min-height: 32px;
+  width: 38px;
+  height: 32px;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -109,4 +109,25 @@
 .titlebar__group .button:focus-visible {
   outline: 2px solid #d26d9a;
   outline-offset: 0;
+}
+
+@media (max-width: 560px) {
+  .titlebar__brand {
+    left: 8px;
+    gap: 8px;
+    padding-right: 12px;
+  }
+
+  .titlebar__brand-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .titlebar__brand-name {
+    font-size: 0.9rem;
+  }
+
+  .titlebar__group {
+    right: 6px;
+  }
 }

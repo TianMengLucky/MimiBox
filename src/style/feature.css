@@ -1,0 +1,9 @@
+/* ---------- 功能模块：仅保留无法用工具类表达的跨组件覆盖 ---------- */
+
+/* ComingSoon 的 .home 由未分层的 home.css 定义，
+   需用更高优先级的未分层规则覆盖其在面板内的高度与内边距 */
+.feature-content .home {
+  flex: 1;
+  min-height: 100%;
+  padding: 0;
+}

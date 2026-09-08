@@ -1,12 +1,12 @@
 .corner-actions {
   position: fixed;
-  bottom: 22px;
-  left: 22px;
+  bottom: 26px;
+  left: 26px;
   z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
 }
 
 .corner-dock {
@@ -41,19 +41,19 @@
 
 .dock-menu__group {
   border: 1px solid rgb(255 255 255 / 65%);
-  border-radius: 14px;
+  border-radius: 16px;
   background: rgb(255 255 255 / 45%);
   backdrop-filter: blur(12px) saturate(1.4);
   -webkit-backdrop-filter: blur(12px) saturate(1.4);
   box-shadow: 0 6px 18px rgb(133 77 96 / 16%);
-  padding: 4px;
+  padding: 6px;
 }
 
 .dock-menu__item {
-  min-width: 34px;
-  min-height: 34px;
-  width: 34px;
-  height: 34px;
+  min-width: 42px;
+  min-height: 42px;
+  width: 42px;
+  height: 42px;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -88,19 +88,19 @@
 
 .nav-group {
   border: 1px solid rgb(255 255 255 / 65%);
-  border-radius: 14px;
+  border-radius: 16px;
   background: rgb(255 255 255 / 45%);
   backdrop-filter: blur(12px) saturate(1.4);
   -webkit-backdrop-filter: blur(12px) saturate(1.4);
   box-shadow: 0 6px 18px rgb(133 77 96 / 16%);
-  padding: 4px;
+  padding: 6px;
 }
 
 .nav-group .button {
-  min-width: 34px;
-  min-height: 34px;
-  width: 34px;
-  height: 34px;
+  min-width: 42px;
+  min-height: 42px;
+  width: 42px;
+  height: 42px;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -134,10 +134,10 @@
 }
 
 .nav-group .dock-more {
-  min-width: 34px;
-  width: 34px;
-  min-height: 18px;
-  height: 18px;
+  min-width: 42px;
+  width: 42px;
+  min-height: 22px;
+  height: 22px;
   margin-bottom: 2px;
   color: #66535a;
   background: transparent;
@@ -193,4 +193,26 @@
   border-radius: 50%;
   background: #f5b3c9 !important;
   color: #5e4c53 !important;
+}
+
+@media (max-width: 560px) {
+  .corner-actions {
+    bottom: 16px;
+    left: 16px;
+  }
+
+  .nav-group .button,
+  .dock-menu__item {
+    min-width: 38px;
+    width: 38px;
+    min-height: 38px;
+    height: 38px;
+  }
+
+  .nav-group .dock-more {
+    min-width: 38px;
+    width: 38px;
+    min-height: 20px;
+    height: 20px;
+  }
 }

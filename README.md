@@ -1,7 +1,7 @@
 <!-- 美美工具箱 README — 粉色治愈系主题（横幅为图片：GitHub 不支持在 Markdown/HTML 中使用内联 CSS 上色） -->
 
 <p align="center">
-  <img src="./docs/readme-header.png" alt="美美工具箱 — 粉色治愈系桌面工具箱横幅" width="720" />
+  <img src="./docs/readme-header.png" alt="美美工具箱 — 粉色治愈系桌面工具箱横幅" width="1000" />
 </p>
 
 > 💡 「美美」是《与你相恋到生命尽头》中一名粉色可爱小女孩。
@@ -35,8 +35,8 @@
       </td>
       <td align="center" width="25%">
         <div style="font-size: 2rem; margin-bottom: 6px;">🔐</div>
-        <strong style="color: #66535a;">Bilibili 账号登录</strong>
-        <p style="margin: 4px 0 0; color: #9b8a91; font-size: 0.85rem;">扫码、短信与密码登录<br />Geetest 人机验证</p>
+        <strong style="color: #66535a;">Bilibili 多账号</strong>
+        <p style="margin: 4px 0 0; color: #9b8a91; font-size: 0.85rem;">多种登录方式与快速切换<br />凭证状态自动检查</p>
       </td>
     </tr>
   </table>
@@ -67,12 +67,14 @@ MimiBox/
 │   ├── assets/              # 静态资源（图标、背景图）
 │   ├── components/          # React 组件
 │   │   ├── CornerDock.tsx   # 左下角悬浮操作坞
-│   │   ├── ErrorFallback.tsx   # 错误降级界面
-│   │   └── WelcomeScreen.tsx# 欢迎页
+│   │   ├── ErrorFallback.tsx # 错误降级界面
+│   │   ├── TitleBar.tsx     # 无边框窗口标题栏
+│   │   └── screen/          # 欢迎页、闲置屏保与空状态
 │   ├── routes/              # 页面路由（文件路由）
 │   │   ├── __root.tsx       # 根布局
-│   │   ├── home.tsx         # 主页
-│   │   ├── account.tsx      # Bilibili 账号登录与账号信息
+│   │   ├── home.tsx         # 功能搜索与入口主页
+│   │   ├── account.tsx      # Bilibili 多账号登录与管理
+│   │   ├── feature/         # 功能内容面板及子路由
 │   │   ├── settings.tsx     # 设置页
 │   │   ├── about.tsx        # 关于页
 │   │   ├── feedback.tsx     # 反馈页
@@ -82,7 +84,10 @@ MimiBox/
 │   └── style/               # 页面与组件样式
 ├── src-tauri/               # Tauri Rust 后端
 │   ├── src/                 # Rust 源代码
-│   │   ├── account.rs       # 登录、Cookie 与账号状态命令
+│   │   ├── account.rs       # 多账号、Cookie、状态与网页登录命令
+│   │   ├── lib.rs           # Tauri 应用初始化与命令注册
+│   │   └── main.rs          # 桌面应用入口
+│   ├── capabilities/        # Tauri 权限声明
 │   ├── icons/               # 应用图标（多平台）
 │   ├── Cargo.toml           # Rust 依赖配置
 │   └── tauri.conf.json      # Tauri 配置
@@ -136,11 +141,17 @@ pnpm dev
 
 ### Bilibili 登录说明
 
-账号页支持扫码登录、短信登录和账号密码登录。短信与密码登录会在应用页面内加载 Bilibili Geetest 人机验证，完成验证后才能发送短信或提交登录。
+账号页支持扫码登录、短信登录和账号密码登录。短信与密码登录会在应用页面内加载 Bilibili Geetest 人机验证，完成验证后才能发送短信或提交登录。登录成功的账号会进入头像账号栏，可直接点击头像切换。
 
-登录成功后，应用会在 Tauri 应用数据目录保存必要的 Cookie 凭据，并在下次启动时恢复。头像由后端代理为内嵌图片，避免 Bilibili 图片 CDN 的防盗链影响显示。
+登录成功后，应用会将多账号所需的 Cookie 凭据保存在 Tauri 应用数据目录的 `accounts.json`，并在下次启动时恢复当前账号。每次进入账号页，Rust 后端都会重新检查各账号的登录状态；头像状态点分别表示凭证有效、已过期或网络异常。头像由后端代理为内嵌图片，避免 Bilibili 图片 CDN 的防盗链影响显示。
+
+右键点击当前账号头像可以退出登录，或在独立的 Bilibili 网页窗口中打开当前账号。网页登录凭证由 Rust 直接写入隔离的 WebView Cookie Store，不会拼接到 URL，也不会返回给前端脚本。不同账号使用独立的 WebView 配置目录，避免登录状态互相覆盖。
 
 登录功能依赖网络连接，并受 Bilibili 的登录风控、验证码和服务条款约束。应用不会绕过人机验证。
+
+### 闲置屏保
+
+应用在长时间无操作后会进入日期与时间屏保。点击任意位置或按下任意按键即可返回，不影响当前页面状态。
 
 ---
 
@@ -209,5 +220,5 @@ pnpm dev
 ---
 
 <p align="center">
-  <img src="./docs/readme-footer.png" alt="Made with ♥ by MimiBox Team · GNU GPL v3.0" width="720" />
+  <img src="./docs/readme-footer.png" alt="Made with ♥ by MimiBox Team · GNU GPL v3.0" width="1000" />
 </p>
