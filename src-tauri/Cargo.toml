@@ -23,8 +23,13 @@ tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-# Cordis 插件框架（Rust 移植，同 DeepSeek Harness 的 cordis 生态）
-cordis-rs = "0.6.2"
+bpi-rs = "0.3.0"
+reqwest = { version = "0.12", default-features = false, features = ["json", "cookies"] }
+qrcode = "0.14.1"
+image = "0.25.10"
+base64 = "0.23.1"
+rsa = "0.9.10"
+rand = "0.8"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

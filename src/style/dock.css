@@ -185,3 +185,12 @@
 .dock-menu__item:hover {
   background: rgb(247 196 213 / 70%) !important;
 }
+
+/* 当前菜单项：匹配当前路由 */
+.dock-menu__item--active,
+.dock-menu__item--active[data-hovered="true"],
+.dock-menu__item--active:hover {
+  border-radius: 50%;
+  background: #f5b3c9 !important;
+  color: #5e4c53 !important;
+}

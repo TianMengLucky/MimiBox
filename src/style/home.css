@@ -28,3 +28,137 @@
   margin: 10px 0 0;
   color: #9b8a91;
 }
+
+/* ---------- 主页：搜索框 + 功能卡片 ---------- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.home-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  /* 左右留 96px，避开左下角悬浮坞的按钮组 */
+  padding: 14vh 96px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.home-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(560px, 100%);
+  padding: 0 20px;
+  border-radius: 999px;
+  color: #9b8a91;
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgb(133 77 96 / 16%);
+  transition: box-shadow 0.2s ease;
+}
+
+.home-search:focus-within {
+  box-shadow:
+    0 6px 24px rgb(133 77 96 / 16%),
+    0 0 0 2px #d26d9a;
+}
+
+.home-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  padding: 14px 0;
+  background: transparent;
+  box-shadow: none;
+  color: #513844;
+}
+
+.home-search input:focus-visible {
+  outline: none;
+}
+
+.home-search input::placeholder {
+  color: #b7a4ac;
+}
+
+.home-grid {
+  box-sizing: border-box;
+  width: min(880px, 100%);
+  margin: 40px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 18px;
+}
+
+.home-card {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 26px 18px 22px;
+  border-radius: 18px;
+  text-align: center;
+  background: rgb(255 255 255 / 78%);
+  box-shadow: 0 4px 18px rgb(133 77 96 / 12%);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.home-card:hover {
+  transform: translateY(-3px);
+  background: rgb(255 246 250 / 92%);
+  border-color: #d26d9a;
+}
+
+.home-card:active {
+  transform: translateY(0);
+}
+
+.home-card__emoji {
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.home-card__title {
+  margin-top: 8px;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #66535a;
+}
+
+.home-card__desc {
+  font-size: 0.85rem;
+  color: #9b8a91;
+}
+
+.home-empty {
+  margin: 40px 0 0;
+  color: #9b8a91;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-card,
+  .home-search {
+    transition: none;
+  }
+
+  .home-card:hover {
+    transform: none;
+  }
+}

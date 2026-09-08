@@ -11,8 +11,8 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 
-/** 闲置超过该毫秒数后进入屏保；生产为 15 分钟，开发模式缩短便于测试 */
-const IDLE_TIMEOUT_MS = import.meta.env.DEV ? 20_000 : 15 * 60 * 1000;
+/** 闲置超过 15 分钟后进入屏保 */
+const IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
 function RootComponent() {
   // 欢迎页（首次启动引导）保持纯净：不显示左下角的悬浮坞
@@ -39,7 +39,7 @@ function RootComponent() {
       window.clearTimeout(timer);
       for (const type of events) window.removeEventListener(type, reset);
     };
-  }, []);
+  }, [IDLE_TIMEOUT_MS]);
 
   return (
     <>

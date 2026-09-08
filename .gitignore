@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 # heroui-agents-md
 .heroui-docs/
+
+# Accidental literal expansion of the Windows AppData variable
+%AppData%/

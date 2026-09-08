@@ -1,3 +1,5 @@
+pub mod account;
+
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -60,10 +62,22 @@ pub fn run() {
             app.manage(AppState {
                 first_launch: Mutex::new(first_launch),
             });
+            app.manage(account::init_state(app.handle())?);
             setup_tray(app)?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![is_first_launch, mark_welcome_seen])
+        .invoke_handler(tauri::generate_handler![
+            is_first_launch,
+            mark_welcome_seen,
+            account::account_get_status,
+            account::account_qr_start,
+            account::account_qr_poll,
+            account::account_captcha,
+            account::account_sms_send,
+            account::account_sms_login,
+            account::account_password_login,
+            account::account_logout,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

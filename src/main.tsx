@@ -4,10 +4,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { RouterProvider } from "@tanstack/react-router";
 import { ErrorFallback } from "@components/ErrorFallback";
 import { router } from "./router";
-import { loadCorePlugins } from "./cordis";
 import "@style/index.css";
-
-loadCorePlugins();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>

@@ -33,6 +33,11 @@
         <strong style="color: #66535a;">模块化设计</strong>
         <p style="margin: 4px 0 0; color: #9b8a91; font-size: 0.85rem;">基于文件路由<br />易于扩展新功能</p>
       </td>
+      <td align="center" width="25%">
+        <div style="font-size: 2rem; margin-bottom: 6px;">🔐</div>
+        <strong style="color: #66535a;">Bilibili 账号登录</strong>
+        <p style="margin: 4px 0 0; color: #9b8a91; font-size: 0.85rem;">扫码、短信与密码登录<br />Geetest 人机验证</p>
+      </td>
     </tr>
   </table>
 </div>
@@ -67,12 +72,17 @@ MimiBox/
 │   ├── routes/              # 页面路由（文件路由）
 │   │   ├── __root.tsx       # 根布局
 │   │   ├── home.tsx         # 主页
+│   │   ├── account.tsx      # Bilibili 账号登录与账号信息
+│   │   ├── settings.tsx     # 设置页
+│   │   ├── about.tsx        # 关于页
+│   │   ├── feedback.tsx     # 反馈页
 │   │   └── index.tsx        # 欢迎入口
 │   ├── main.tsx             # 应用入口
 │   ├── router.tsx           # 路由配置
-│   └── App.css              # 全局样式
+│   └── style/               # 页面与组件样式
 ├── src-tauri/               # Tauri Rust 后端
 │   ├── src/                 # Rust 源代码
+│   │   ├── account.rs       # 登录、Cookie 与账号状态命令
 │   ├── icons/               # 应用图标（多平台）
 │   ├── Cargo.toml           # Rust 依赖配置
 │   └── tauri.conf.json      # Tauri 配置
@@ -123,6 +133,14 @@ pnpm dev
 ```
 
 然后在浏览器中访问 `http://localhost:1420`。
+
+### Bilibili 登录说明
+
+账号页支持扫码登录、短信登录和账号密码登录。短信与密码登录会在应用页面内加载 Bilibili Geetest 人机验证，完成验证后才能发送短信或提交登录。
+
+登录成功后，应用会在 Tauri 应用数据目录保存必要的 Cookie 凭据，并在下次启动时恢复。头像由后端代理为内嵌图片，避免 Bilibili 图片 CDN 的防盗链影响显示。
+
+登录功能依赖网络连接，并受 Bilibili 的登录风控、验证码和服务条款约束。应用不会绕过人机验证。
 
 ---
 
@@ -193,4 +211,3 @@ pnpm dev
 <p align="center">
   <img src="./docs/readme-footer.png" alt="Made with ♥ by MimiBox Team · GNU GPL v3.0" width="720" />
 </p>
-

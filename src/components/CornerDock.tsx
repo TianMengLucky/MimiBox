@@ -2,9 +2,12 @@ import { useId, useState, type ReactNode } from "react";
 import { Button, ButtonGroup } from "@heroui/react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
+type DockPath = "/home" | "/about" | "/feedback" | "/settings" | "/account";
+
 type DockAction = {
   key: string;
   label: string;
+  to: DockPath;
   icon: ReactNode;
 };
 
@@ -12,6 +15,7 @@ const actions: DockAction[] = [
   {
     key: "about",
     label: "关于",
+    to: "/about",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true" width="20" height="20">
         <circle cx="12" cy="12" r="9" />
@@ -22,6 +26,7 @@ const actions: DockAction[] = [
   {
     key: "feedback",
     label: "反馈",
+    to: "/feedback",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="20" height="20">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -71,6 +76,25 @@ function HomeIcon() {
   );
 }
 
+function AccountIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
 function SettingsIcon() {
   return (
     <svg
@@ -102,10 +126,14 @@ export function CornerDock({
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const menuId = useId();
-  // 当前路径高亮：位于 /home 时主页按钮高亮
+  // 当前路径：用于判断哪些导航按钮处于激活态
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const isHomeActive = pathname === "/home";
-  const isSettingsActive = pathname === "/settings";
+
+  /** 统一的点击行为：已在目标页则切换（极简模式），否则导航过去 */
+  const handleNav = (target: DockPath) => {
+    if (pathname === target) onActivePress?.();
+    else navigate({ to: target });
+  };
 
   return (
     <div className="corner-dock">
@@ -126,11 +154,14 @@ export function CornerDock({
               key={action.key}
               isIconOnly
               aria-label={action.label}
+              aria-current={highlight && pathname === action.to ? "page" : undefined}
               aria-hidden={!open ? true : undefined}
-              className="dock-menu__item"
-              onPress={() => {
-                // TODO: 接入各功能
-              }}
+              className={
+                highlight && pathname === action.to
+                  ? "dock-menu__item dock-menu__item--active"
+                  : "dock-menu__item"
+              }
+              onPress={() => handleNav(action.to)}
             >
               {action.icon}
             </Button>
@@ -155,27 +186,33 @@ export function CornerDock({
         <Button
           isIconOnly
           aria-label="主页"
-          aria-current={highlight && isHomeActive ? "page" : undefined}
+          aria-current={highlight && pathname === "/home" ? "page" : undefined}
           className={
-            highlight && isHomeActive ? "dock-nav--active" : undefined
+            highlight && pathname === "/home" ? "dock-nav--active" : undefined
           }
-          onPress={() => {
-            if (isHomeActive) onActivePress?.();
-            else navigate({ to: "/home" });
-          }}
+          onPress={() => handleNav("/home")}
         >
           <HomeIcon />
         </Button>
         <Button
           isIconOnly
-          aria-label="设置"
-          aria-current={highlight && isSettingsActive ? "page" : undefined}
+          aria-label="账号"
+          aria-current={highlight && pathname === "/account" ? "page" : undefined}
           className={
-            highlight && isSettingsActive ? "dock-nav--active" : undefined
+            highlight && pathname === "/account" ? "dock-nav--active" : undefined
           }
-          onPress={() => {
-            // TODO: 打开设置页
-          }}
+          onPress={() => handleNav("/account")}
+        >
+          <AccountIcon />
+        </Button>
+        <Button
+          isIconOnly
+          aria-label="设置"
+          aria-current={highlight && pathname === "/settings" ? "page" : undefined}
+          className={
+            highlight && pathname === "/settings" ? "dock-nav--active" : undefined
+          }
+          onPress={() => handleNav("/settings")}
         >
           <SettingsIcon />
         </Button>
