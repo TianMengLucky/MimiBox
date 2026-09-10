@@ -20,16 +20,31 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-window-state = "2"
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 bpi-rs = "0.3.0"
-reqwest = { version = "0.12", default-features = false, features = ["json", "cookies"] }
+wreq = { version = "0.15.3", features = ["cookies", "cookies-preserve-order", "json", "gzip", "brotli"] }
+wreq-util = "0.1"
+tokio = { version = "1", features = ["time"] }
 qrcode = "0.14.1"
 image = "0.25.10"
 base64 = "0.23.1"
-rsa = "0.9.10"
-rand = "0.8"
+rand = "0.9"
+rand_core = "0.6"
+sha2 = "0.11"
+# 抖音 web 安全栈：QuickJS 承载官方 bdms/dtrait JS，RSA/AES/ECDH/DEFLATE 为其提供原生绑定
+rquickjs = { version = "0.13", features = ["futures"] }
+aes = "0.8"
+cbc = { version = "0.1", features = ["block-padding", "alloc"] }
+cipher = { version = "0.4", features = ["block-padding", "alloc"] }
+rsa = "0.9"
+p256 = { version = "0.13", features = ["ecdh"] }
+flate2 = "1"
+hex = "0.4"
+url = "2"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
@@ -39,3 +54,16 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
+# 开发构建:增量编译 + 较多 codegen-units 以缩短单次编译时间
+[profile.dev]
+incremental = true
+codegen-units = 16
+debug = 1  # 仅行号,无完整 debug info,首次编译显著更快
+
+# 依赖以 release 模式编译一次后缓存,后续 dev 改动只重编本项目代码
+# (clean build 略慢,但增量编译极快)
+[profile.dev.package."*"]
+opt-level = 3
+codegen-units = 16
+

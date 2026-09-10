@@ -1,0 +1,10 @@
+# Cargo 项目级配置 - 加速编译
+# 参考: https://doc.rust-lang.org/cargo/reference/config.html
+
+# MSVC target 默认使用 link.exe;lld 的 +linker 是 unstable 特性,稳定版不支持
+# 此处保留空 target 段以便后续按需扩展
+[target.x86_64-pc-windows-msvc]
+
+[build]
+# 增量编译默认开启,这里显式确保
+incremental = true

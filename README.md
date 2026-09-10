@@ -35,8 +35,8 @@
       </td>
       <td align="center" width="25%">
         <div style="font-size: 2rem; margin-bottom: 6px;">🔐</div>
-        <strong style="color: #66535a;">Bilibili 多账号</strong>
-        <p style="margin: 4px 0 0; color: #9b8a91; font-size: 0.85rem;">多种登录方式与快速切换<br />凭证状态自动检查</p>
+        <strong style="color: #66535a;">多平台多账号</strong>
+        <p style="margin: 4px 0 0; color: #9b8a91; font-size: 0.85rem;">Bilibili 扫码/短信登录<br />抖音扫码 + 短信二次验证</p>
       </td>
     </tr>
   </table>
@@ -73,7 +73,7 @@ MimiBox/
 │   ├── routes/              # 页面路由（文件路由）
 │   │   ├── __root.tsx       # 根布局
 │   │   ├── home.tsx         # 功能搜索与入口主页
-│   │   ├── account.tsx      # Bilibili 多账号登录与管理
+│   │   ├── account.tsx      # 多平台账号登录与管理
 │   │   ├── feature/         # 功能内容面板及子路由
 │   │   ├── settings.tsx     # 设置页
 │   │   ├── about.tsx        # 关于页
@@ -85,8 +85,11 @@ MimiBox/
 ├── src-tauri/               # Tauri Rust 后端
 │   ├── src/                 # Rust 源代码
 │   │   ├── account.rs       # 多账号、Cookie、状态与网页登录命令
+│   │   ├── douyin_web.rs    # 抖音 web 扫码登录（安全栈 + 短信 MFA）
+│   │   ├── douyin_signer.rs # 抖音 bdms a_bogus 签名 + DTrait 指纹（QuickJS）
 │   │   ├── lib.rs           # Tauri 应用初始化与命令注册
 │   │   └── main.rs          # 桌面应用入口
+│   ├── resources/           # 内嵌资源（抖音 JS SDK、协议参数）
 │   ├── capabilities/        # Tauri 权限声明
 │   ├── icons/               # 应用图标（多平台）
 │   ├── Cargo.toml           # Rust 依赖配置
@@ -139,15 +142,17 @@ pnpm dev
 
 然后在浏览器中访问 `http://localhost:1420`。
 
-### Bilibili 登录说明
+### 账号登录说明
 
-账号页支持扫码登录、短信登录和账号密码登录。短信与密码登录会在应用页面内加载 Bilibili Geetest 人机验证，完成验证后才能发送短信或提交登录。登录成功的账号会进入头像账号栏，可直接点击头像切换。
+账号页支持 Bilibili 与抖音两个平台。登录成功后，应用会将多账号所需的 Cookie 凭据保存在 Tauri 应用数据目录的 `accounts.json`，并在下次启动时恢复当前账号。每次进入账号页，Rust 后端都会重新检查各账号的登录状态；头像状态点分别表示凭证有效、已过期或网络异常。头像由后端代理为内嵌图片，避免图片 CDN 的防盗链影响显示。
 
-登录成功后，应用会将多账号所需的 Cookie 凭据保存在 Tauri 应用数据目录的 `accounts.json`，并在下次启动时恢复当前账号。每次进入账号页，Rust 后端都会重新检查各账号的登录状态；头像状态点分别表示凭证有效、已过期或网络异常。头像由后端代理为内嵌图片，避免 Bilibili 图片 CDN 的防盗链影响显示。
+右键点击当前账号头像可以退出登录，或在独立的网页窗口中打开当前账号。网页登录凭证由 Rust 直接写入隔离的 WebView Cookie Store，不会拼接到 URL，也不会返回给前端脚本。不同账号使用独立的 WebView 配置目录，避免登录状态互相覆盖。
 
-右键点击当前账号头像可以退出登录，或在独立的 Bilibili 网页窗口中打开当前账号。网页登录凭证由 Rust 直接写入隔离的 WebView Cookie Store，不会拼接到 URL，也不会返回给前端脚本。不同账号使用独立的 WebView 配置目录，避免登录状态互相覆盖。
+**Bilibili**：支持扫码登录、短信登录和账号密码登录。短信与密码登录会在应用页面内加载 Bilibili Geetest 人机验证，完成验证后才能发送短信或提交登录。
 
-登录功能依赖网络连接，并受 Bilibili 的登录风控、验证码和服务条款约束。应用不会绕过人机验证。
+**抖音**：支持扫码登录。后端通过 QuickJS 承载官方 bdms 1.0.1.20 与 dtrait 1.0.29 JavaScript SDK 生成 a_bogus 签名与设备指纹安全头，完成 web 协议握手与轮询。若账号触发 2046 短信二次验证，后端自动发送验证码并暂停轮询，前端弹出验证卡片供用户输入 6 位验证码；验证通过后自动续跑轮询完成登录。对于未开启手机短信验证的账号（如仅人脸验证），前端会显示引导提示，指引用户前往抖音 App 完成验证后重新扫码。
+
+登录功能依赖网络连接，并受各平台的风控、验证码和服务条款约束。应用不会绕过人机验证。
 
 ### 闲置屏保
 
@@ -196,6 +201,16 @@ pnpm dev
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
+
+---
+
+## 📚 参考
+
+本项目在开发过程中参考了以下开源项目：
+
+- [jumpbyte-bot](https://github.com/sisi0318/jumpbyte-bot)
+- [douyin-web-qr-login](https://github.com/Caviar9/douyin-web-qr-login)
+- [bpi-rs](https://github.com/Yuelioi/bpi-rs)
 
 ---
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Icon } from "@iconify/react";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/home")({
@@ -12,19 +13,7 @@ function HomeRoute() {
     <main className="home-page">
       <label className="home-search">
         <span className="sr-only">搜索功能</span>
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          aria-hidden="true"
-          width="18"
-          height="18"
-        >
-          <circle cx="11" cy="11" r="7" />
-          <path d="m20 20-3.8-3.8" />
-        </svg>
+        <Icon icon="lucide:search" width="18" height="18" aria-hidden="true" />
         <input
           type="search"
           placeholder="搜索功能…"

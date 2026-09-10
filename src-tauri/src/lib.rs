@@ -1,4 +1,6 @@
 pub mod account;
+pub mod douyin_signer;
+pub mod douyin_web;
 
 use std::fs;
 use std::path::PathBuf;
@@ -46,6 +48,10 @@ fn mark_welcome_seen(app: AppHandle, state: State<AppState>) -> Result<(), Strin
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            show_main_window(app);
+        }))
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
@@ -79,8 +85,12 @@ pub fn run() {
             account::account_captcha,
             account::account_sms_send,
             account::account_sms_login,
-            account::account_password_login,
             account::account_logout,
+            account::douyin_qr_start,
+            account::douyin_qr_poll,
+            account::douyin_qr_sms_send,
+            account::douyin_qr_sms_validate,
+            account::douyin_reset_session,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

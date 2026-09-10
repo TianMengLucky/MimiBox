@@ -1,79 +1,25 @@
 import { useEffect, useState } from "react";
 import { Button, ButtonGroup } from "@heroui/react";
+import { Icon } from "@iconify/react";
 import { useRouterState } from "@tanstack/react-router";
 import appIcon from "@assets/app-icon.png";
 
 const hasTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 function MinimizeGlyph() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <path d="M5 12h14" />
-    </svg>
-  );
+  return <Icon icon="mdi:window-minimize" width="14" height="14" aria-hidden="true" />;
 }
 
 function MaximizeGlyph() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="5" y="5" width="14" height="14" rx="2" />
-    </svg>
-  );
+  return <Icon icon="mdi:window-maximize" width="14" height="14" aria-hidden="true" />;
 }
 
 function RestoreGlyph() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="5" y="5" width="10.5" height="10.5" rx="2" />
-      <rect x="8.5" y="8.5" width="10.5" height="10.5" rx="2" />
-    </svg>
-  );
+  return <Icon icon="mdi:window-restore" width="14" height="14" aria-hidden="true" />;
 }
 
 function CloseGlyph() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <path d="M18 6 6 18M6 6l12 12" />
-    </svg>
-  );
+  return <Icon icon="mdi:window-close" width="14" height="14" aria-hidden="true" />;
 }
 
 export function TitleBar() {

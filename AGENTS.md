@@ -28,6 +28,14 @@ conventions, verification expectations, and change-safety rules.
   `@components/screen/ComingSoon` 等组件，设计令牌（粉色系阴影、圆角、
   文字色）沿用项目既有值，避免重复定义。
 
+- 页面内容必须优先通过响应式布局、弹性尺寸和合理的断点适配完整呈现，不能因内容过长或固定尺寸设计让用户必须滚动页面才能使用主要功能；新增页面完成后需检查常见窄屏和矮窗口尺寸。
+
+## Iconography (图标约定)
+
+- 项目内 UI 图标统一从 [Iconify](https://icon-sets.iconify.design/) 查找并使用。
+- React 组件使用 `@iconify/react` 的 `Icon` 组件渲染图标，不手写 SVG 或使用文字替代图标。
+- 品牌图标优先使用 Iconify 中对应的官方品牌图标集（如 `simple-icons`），并为仅图标按钮提供 `aria-label` 与 `title`。
+
 ## Preview & verification workflow (预览与验证)
 
 - 完成所有修改后再启动预览给开发者查看，不要在改动过程中反复启动；

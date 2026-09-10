@@ -1,4 +1,5 @@
 import { Button } from "@heroui/react";
+import { Icon } from "@iconify/react";
 import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/feature")({
@@ -25,19 +26,7 @@ function FeatureLayout() {
           className="self-start rounded-full bg-white/45 px-4 font-semibold text-[#9b8a91] hover:text-[#66535a] focus-visible:text-[#66535a]"
           onPress={() => navigate({ to: "/home" })}
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            width="16"
-            height="16"
-          >
-            <path d="m15 18-6-6 6-6" />
-          </svg>
+          <Icon icon="lucide:chevron-left" width="16" height="16" aria-hidden="true" />
           返回
         </Button>
         <div className="feature-content mt-3.5 box-border flex min-h-0 flex-1 flex-col overflow-y-auto">

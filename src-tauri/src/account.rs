@@ -7,15 +7,13 @@
 
 use std::io::Cursor;
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine as _;
 use bpi_rs::client::BpiClient;
 use bpi_rs::login::params::LoginQrPollParams;
 use bpi_rs::session::Account;
-use rand::rngs::OsRng;
-use rsa::pkcs8::DecodePublicKey;
-use rsa::{Pkcs1v15Encrypt, RsaPublicKey};
 use serde::{Deserialize, Serialize};
 use tauri::webview::Cookie;
 use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
@@ -28,7 +26,41 @@ const QR_CODE_WAITING: i32 = 86101;
 
 pub struct AccountState {
     client: BpiClient,
-    http: reqwest::Client,
+    http: wreq::Client,
+    pub douyin: Mutex<Option<DouyinSession>>,
+    pub douyin_cookies: Mutex<Vec<(String, String)>>,
+    /// 新安全栈扫码会话（ttwid/get_qrcode/get_client_cert 握手上下文）
+    pub douyin_web: Mutex<Option<crate::douyin_web::DouyinWebSession>>,
+}
+
+#[derive(Clone)]
+pub struct DouyinSession {
+    pub uid: String,
+    pub name: Option<String>,
+    pub cookie: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DouyinQrStart { pub qr_image: String }
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DouyinQrPoll {
+    pub status: String,
+    pub message: String,
+    pub uid: Option<String>,
+    pub name: Option<String>,
+    /// 过期无感换码：内嵌新二维码的 data URI
+    pub new_qr_image: Option<String>,
+    /// 扫码二次验证：需要短信验证码时携带脱敏手机号（可能为 None）
+    pub mobile: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DouyinQrSmsSend {
+    pub mobile: Option<String>,
 }
 
 const PASSPORT: &str = "https://passport.bilibili.com";
@@ -62,10 +94,10 @@ fn api_error(response: &ApiResponse) -> Result<(), String> {
     }
 }
 
-fn response_cookies(response: &reqwest::Response) -> Vec<(String, String)> {
+pub(crate) fn response_cookies(response: &wreq::Response) -> Vec<(String, String)> {
     response
         .headers()
-        .get_all(reqwest::header::SET_COOKIE)
+        .get_all(wreq::header::SET_COOKIE)
         .iter()
         .filter_map(|v| {
             let pair = v.to_str().ok()?.split(';').next()?;
@@ -153,6 +185,7 @@ struct AccountStore {
 #[serde(rename_all = "camelCase")]
 pub struct AccountEntry {
     pub dede_user_id: String,
+    pub platform: String,
     pub uname: Option<String>,
     pub face: Option<String>,
     pub active: bool,
@@ -321,7 +354,7 @@ fn render_qr_png(text: &str) -> Result<String, String> {
 
 async fn status_from_client(
     client: &BpiClient,
-    http: &reqwest::Client,
+    http: &wreq::Client,
 ) -> Result<AccountStatus, String> {
     let nav = client
         .login()
@@ -344,12 +377,12 @@ async fn status_from_nav(state: &AccountState) -> Result<AccountStatus, String> 
     status_from_client(&state.client, &state.http).await
 }
 
-async fn fetch_face_data_url(client: &reqwest::Client, url: &str) -> Option<String> {
+async fn fetch_face_data_url(client: &wreq::Client, url: &str) -> Option<String> {
     let url = url.replace("http://", "https://");
     let response = client
         .get(url)
-        .header(reqwest::header::REFERER, "https://www.bilibili.com/")
-        .header(reqwest::header::USER_AGENT, "Mozilla/5.0")
+        .header(wreq::header::REFERER, "https://www.bilibili.com/")
+        .header(wreq::header::USER_AGENT, "Mozilla/5.0")
         .send()
         .await
         .ok()?;
@@ -358,7 +391,7 @@ async fn fetch_face_data_url(client: &reqwest::Client, url: &str) -> Option<Stri
     }
     let content_type = response
         .headers()
-        .get(reqwest::header::CONTENT_TYPE)
+        .get(wreq::header::CONTENT_TYPE)
         .and_then(|value| value.to_str().ok())
         .filter(|value| value.starts_with("image/"))
         .unwrap_or("image/jpeg")
@@ -375,6 +408,19 @@ pub async fn account_get_status(
     app: AppHandle,
     state: State<'_, AccountState>,
 ) -> Result<AccountStatus, String> {
+    if let Some(session) = state
+        .douyin
+        .lock()
+        .map_err(|_| "抖音会话锁定失败")?
+        .clone()
+    {
+        return Ok(AccountStatus {
+            logged_in: true,
+            mid: session.uid.parse().ok(),
+            uname: session.name,
+            face: None,
+        });
+    }
     if load_store(&app)?.active_id.is_none() {
         return Ok(AccountStatus::not_logged_in());
     }
@@ -397,6 +443,7 @@ pub async fn account_list(
             Err(_) => {
                 entries.push(AccountEntry {
                     dede_user_id: account.dede_user_id.clone(),
+                    platform: "bilibili".into(),
                     uname: account.uname.clone(),
                     face: account.face.clone(),
                     active: active_id.as_deref() == Some(account.dede_user_id.as_str()),
@@ -426,6 +473,7 @@ pub async fn account_list(
 
         entries.push(AccountEntry {
             dede_user_id: account.dede_user_id.clone(),
+            platform: "bilibili".into(),
             uname: account.uname.clone(),
             face: account.face.clone(),
             active: active_id.as_deref() == Some(account.dede_user_id.as_str()),
@@ -434,6 +482,16 @@ pub async fn account_list(
     }
 
     save_store(&app, &store)?;
+    if let Some(session) = state.douyin.lock().map_err(|_| "抖音会话锁定失败")?.clone() {
+        entries.push(AccountEntry {
+            dede_user_id: session.uid,
+            platform: "douyin".into(),
+            uname: session.name,
+            face: None,
+            active: true,
+            credential_status: CredentialStatus::Valid,
+        });
+    }
     Ok(entries)
 }
 
@@ -733,62 +791,162 @@ pub async fn account_sms_login(
     apply_account(&app, &state, &cookies).await
 }
 
+fn chrono_like_now() -> u128 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or_default()
+}
+
+/// 重置抖音 web 会话：清空 cookie 与扫码会话上下文（模拟用户刷新页面；
+/// 新安全栈 ttwid/get_qrcode/握手上下文全部重建）
 #[tauri::command]
-pub async fn account_password_login(
-    app: AppHandle,
-    state: State<'_, AccountState>,
-    username: String,
-    password: String,
-    token: String,
-    challenge: String,
-    validate: String,
-    seccode: String,
-) -> Result<AccountStatus, String> {
-    let key: ApiResponse = state
-        .http
-        .get(format!("{PASSPORT}/x/passport-login/web/key"))
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .json()
-        .await
-        .map_err(|e| e.to_string())?;
-    api_error(&key)?;
-    let data = key.data.ok_or("登录密钥响应缺少 data")?;
-    let hash = data["hash"].as_str().ok_or("登录密钥缺少 hash")?;
-    let pem = data["key"].as_str().ok_or("登录密钥缺少 key")?;
-    let public_key = RsaPublicKey::from_public_key_pem(pem).map_err(|e| e.to_string())?;
-    let mut plain = hash.as_bytes().to_vec();
-    plain.extend_from_slice(password.as_bytes());
-    let encrypted = public_key
-        .encrypt(&mut OsRng, Pkcs1v15Encrypt, &plain)
-        .map_err(|e| e.to_string())?;
-    let encoded = BASE64.encode(encrypted);
-    let response = state
-        .http
-        .post(format!("{PASSPORT}/x/passport-login/web/login"))
-        .form(&[
-            ("username", username.trim()),
-            ("password", encoded.as_str()),
-            ("keep", "1"),
-            ("source", "main_web"),
-            ("token", token.as_str()),
-            ("challenge", challenge.as_str()),
-            ("validate", validate.as_str()),
-            ("seccode", seccode.as_str()),
-        ])
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-    let cookies = response_cookies(&response);
-    let body: ApiResponse = response.json().await.map_err(|e| e.to_string())?;
-    api_error(&body)?;
-    apply_account(&app, &state, &cookies).await
+pub async fn douyin_reset_session(state: State<'_, AccountState>) -> Result<(), String> {
+    {
+        let mut cookies = state.douyin_cookies.lock().map_err(|_| "Cookie锁定失败")?;
+        cookies.clear();
+    }
+    *state.douyin_web.lock().map_err(|_| "会话锁失败")? = None;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn douyin_qr_start(state: State<'_, AccountState>) -> Result<DouyinQrStart, String> {
+    // 完整链路：ttwid（aid=10006 回调）→ get_qrcode（bdms a_bogus + X-Ms-Token）
+    // → get_client_cert 握手 → DTrait d1 安全头（约 4 秒）
+    let (qr_image, session) =
+        crate::douyin_web::start(&state.http, &state.douyin_cookies).await?;
+    *state.douyin_web.lock().map_err(|_| "会话锁失败")? = Some(session);
+    Ok(DouyinQrStart { qr_image })
+}
+
+#[tauri::command]
+pub async fn douyin_qr_poll(state: State<'_, AccountState>) -> Result<DouyinQrPoll, String> {
+    // 会话上下文（安全头/msToken/token）全部保存在服务端会话中，前端无需传参
+    let outcome = {
+        // 不能跨 await 持有 std::MutexGuard（!Send），先把会话 take 出来
+        let mut session = state
+            .douyin_web
+            .lock()
+            .map_err(|_| "会话锁失败")?
+            .take()
+            .ok_or_else(|| "扫码会话不存在，请刷新二维码".to_string())?;
+        let result = crate::douyin_web::poll(&state.http, &state.douyin_cookies, &mut session).await;
+        // 非 confirmed 结果都要把会话放回去（confirmed 分支会置 None）
+        let is_confirmed =
+            matches!(result, Ok(crate::douyin_web::PollOutcome::Confirmed { .. }));
+        if !is_confirmed {
+            *state.douyin_web.lock().map_err(|_| "会话锁失败")? = Some(session);
+        }
+        result?
+    };
+
+    use crate::douyin_web::PollOutcome;
+    match outcome {
+        PollOutcome::Waiting => Ok(DouyinQrPoll {
+            status: "waiting".into(),
+            message: "等待扫码".into(),
+            uid: None,
+            name: None,
+            new_qr_image: None,
+            mobile: None,
+        }),
+        PollOutcome::Scanned => Ok(DouyinQrPoll {
+            status: "scanned".into(),
+            message: "已扫码，请在手机上确认登录".into(),
+            uid: None,
+            name: None,
+            new_qr_image: None,
+            mobile: None,
+        }),
+        PollOutcome::RateLimited => Ok(DouyinQrPoll {
+            status: "waiting".into(),
+            message: "请求过于频繁，正在退避重试…".into(),
+            uid: None,
+            name: None,
+            new_qr_image: None,
+            mobile: None,
+        }),
+        PollOutcome::Refreshed { qr_data_uri } => Ok(DouyinQrPoll {
+            status: "expired".into(),
+            message: "二维码已刷新，请重新扫码".into(),
+            uid: None,
+            name: None,
+            new_qr_image: Some(qr_data_uri),
+            mobile: None,
+        }),
+        PollOutcome::Expired => Ok(DouyinQrPoll {
+            status: "expired".into(),
+            message: "二维码已过期，请刷新".into(),
+            uid: None,
+            name: None,
+            new_qr_image: None,
+            mobile: None,
+        }),
+        PollOutcome::VerificationRequired { mobile } => Ok(DouyinQrPoll {
+            status: "verification_required".into(),
+            message: "账号需要短信二次验证，验证码已发送".into(),
+            uid: None,
+            name: None,
+            new_qr_image: None,
+            mobile,
+        }),
+        PollOutcome::VerificationUnsupported { message } => Ok(DouyinQrPoll {
+            status: "verification_unsupported".into(),
+            message,
+            uid: None,
+            name: None,
+            new_qr_image: None,
+            mobile: None,
+        }),
+        PollOutcome::Confirmed { uid, name, cookie } => {
+            let uid_value = uid.unwrap_or_else(|| format!("douyin-{}", chrono_like_now()));
+            *state.douyin.lock().map_err(|_| "抖音会话锁定失败")? =
+                Some(DouyinSession { uid: uid_value.clone(), name: name.clone(), cookie });
+            *state.douyin_web.lock().map_err(|_| "会话锁失败")? = None;
+            Ok(DouyinQrPoll {
+                status: "success".into(),
+                message: "登录成功".into(),
+                uid: Some(uid_value),
+                name,
+                new_qr_image: None,
+                mobile: None,
+            })
+        }
+    }
+}
+
+/// 扫码二次验证：重新发送短信验证码（首次验证码在触发 2046 时已自动发送）
+#[tauri::command]
+pub async fn douyin_qr_sms_send(state: State<'_, AccountState>) -> Result<DouyinQrSmsSend, String> {
+    let mut session = state
+        .douyin_web
+        .lock()
+        .map_err(|_| "会话锁失败")?
+        .take()
+        .ok_or_else(|| "扫码会话不存在，请刷新二维码".to_string())?;
+    // 无论成败都把会话放回去（失败时前端可重发）
+    let result = crate::douyin_web::mfa_send(&state.http, &state.douyin_cookies, &mut session).await;
+    *state.douyin_web.lock().map_err(|_| "会话锁失败")? = Some(session);
+    Ok(DouyinQrSmsSend { mobile: result? })
+}
+
+/// 扫码二次验证：校验短信验证码；成功后后续轮询自动携带 verify_ticket 完成登录
+#[tauri::command]
+pub async fn douyin_qr_sms_validate(state: State<'_, AccountState>, code: String) -> Result<(), String> {
+    let mut session = state
+        .douyin_web
+        .lock()
+        .map_err(|_| "会话锁失败")?
+        .take()
+        .ok_or_else(|| "扫码会话不存在，请刷新二维码".to_string())?;
+    let result = crate::douyin_web::mfa_validate(&state.http, &state.douyin_cookies, &mut session, &code).await;
+    // 验证失败也放回会话，允许用户重新输入/重发；成功同样放回（继续 check 轮询）
+    *state.douyin_web.lock().map_err(|_| "会话锁失败")? = Some(session);
+    result
 }
 
 /// 退出当前活动账号：从列表中移除并清除会话（其他保存的账号不受影响）
 #[tauri::command]
 pub async fn account_logout(app: AppHandle, state: State<'_, AccountState>) -> Result<(), String> {
+    *state.douyin.lock().map_err(|_| "抖音会话锁定失败")? = None;
     let mut store = load_store(&app)?;
     if let Some(active) = store.active_id.clone() {
         store.accounts.retain(|a| a.dede_user_id != active);
@@ -812,8 +970,29 @@ pub fn init_state(app: &AppHandle) -> Result<AccountState, Box<dyn std::error::E
             .set_account(active.to_account())
             .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
     }
+
+    // HTTP 客户端（启用 Cookie 存储）
+    // 使用 wreq 模拟 Chrome 136 (Windows) 的 TLS(JA3/JA4) 与 HTTP/2 指纹，
+    // 降低抖音风控对“非浏览器客户端”的识别（error_code 7 频控）。
+    // skip_headers(true)：传输层指纹交给 emulation，HTTP 头仍由现有代码手动
+    // 控制（UA 已是 Chrome/136 Windows，与指纹一致），保证 A/B 验证唯一变量是传输层。
+    let http = wreq::Client::builder()
+        .cookie_store(true)
+        .redirect(wreq::redirect::Policy::limited(10))
+        .emulation(
+            wreq_util::EmulationOption::builder()
+                .emulation(wreq_util::Emulation::Chrome136)
+                .emulation_os(wreq_util::EmulationOS::Windows)
+                .skip_headers(true)
+                .build(),
+        )
+        .build()?;
+
     Ok(AccountState {
         client,
-        http: reqwest::Client::builder().cookie_store(true).build()?,
+        http,
+        douyin: Mutex::new(None),
+        douyin_cookies: Mutex::new(Vec::new()),
+        douyin_web: Mutex::new(None),
     })
 }
