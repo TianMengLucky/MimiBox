@@ -91,10 +91,42 @@
   color: #b7a4ac;
 }
 
+/* 功能分类标签页（视觉沿用账号页 .account-tabs 的分段胶囊样式） */
+.home-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 28px 0 0;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgb(246 227 225 / 70%);
+}
+
+.home-tabs button {
+  border: none;
+  box-shadow: none;
+  padding: 7px 18px;
+  border-radius: 999px;
+  background: transparent;
+  color: #9b8a91;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.home-tabs button.home-tab--active {
+  background: #ffffff;
+  color: #66535a;
+  box-shadow: 0 2px 8px rgb(133 77 96 / 14%);
+}
+
+.home-tabs button:focus-visible {
+  outline: 2px solid #d26d9a;
+  outline-offset: 2px;
+}
+
 .home-grid {
   box-sizing: border-box;
   width: min(880px, 100%);
-  margin: 40px 0 0;
+  margin: 24px 0 0;
   padding: 0;
   list-style: none;
   display: grid;
@@ -109,6 +141,7 @@
   align-items: center;
   gap: 6px;
   padding: 26px 18px 22px;
+  border: 1px solid transparent;
   border-radius: 18px;
   text-align: center;
   background: rgb(255 255 255 / 78%);

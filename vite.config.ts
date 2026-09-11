@@ -10,7 +10,9 @@ const host = process.env.TAURI_DEV_HOST;
 // https://vite.dev/config/
 export default defineConfig(() => ({
   plugins: [
-    TanStackRouterVite({ target: "react", autoCodeSplitting: true }),
+    // 不做路由级代码分割：桌面应用路由组件都很小，懒加载会让
+    // 每次会话首次进入页面时现拉取 chunk，造成"点击后卡一下才换页"
+    TanStackRouterVite({ target: "react" }),
     react({ compiler: true }),
     tailwindcss(),
   ],

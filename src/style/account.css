@@ -21,6 +21,10 @@
   box-sizing: border-box;
   width: min(420px, 100%);
   max-height: 100%;
+  /* 内容超出卡片高度（如矮窗口 + MFA 验证卡片）时在卡片内滚动，不画出边框 */
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
   padding: clamp(20px, 3.5vh, 32px) 28px;
   border-radius: 22px;
   background: rgb(255 255 255 / 82%);
@@ -253,6 +257,12 @@
 
   .account-qr--douyin {
     margin-top: 12px;
+  }
+
+  /* 矮窗口下二维码略缩，给状态文字/按钮/二次验证卡片腾出空间 */
+  .account-qr__image,
+  .account-qr__placeholder {
+    width: min(200px, 30vh, calc(100vw - 64px));
   }
 
   .account-form {

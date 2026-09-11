@@ -3,7 +3,13 @@ import { Button, ButtonGroup } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
-type DockPath = "/home" | "/about" | "/feedback" | "/settings" | "/account";
+type DockPath =
+  | "/home"
+  | "/library"
+  | "/about"
+  | "/feedback"
+  | "/settings"
+  | "/account";
 
 type DockAction = {
   key: string;
@@ -33,6 +39,10 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 function HomeIcon() {
   return <Icon icon="lucide:house" width="20" height="20" aria-hidden="true" />;
+}
+
+function LibraryIcon() {
+  return <Icon icon="lucide:library" width="20" height="20" aria-hidden="true" />;
 }
 
 function AccountIcon() {
@@ -122,6 +132,17 @@ export function CornerDock({
           onPress={() => handleNav("/home")}
         >
           <HomeIcon />
+        </Button>
+        <Button
+          isIconOnly
+          aria-label="资料库"
+          aria-current={highlight && pathname === "/library" ? "page" : undefined}
+          className={
+            highlight && pathname === "/library" ? "dock-nav--active" : undefined
+          }
+          onPress={() => handleNav("/library")}
+        >
+          <LibraryIcon />
         </Button>
         <Button
           isIconOnly

@@ -15,8 +15,12 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as FeatureRouteRouteImport } from './routes/feature/route'
 import { Route as FeedbackRouteImport } from './routes/feedback'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as LibraryRouteImport } from './routes/library'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as FeatureIndexRouteImport } from './routes/feature/index'
+import { Route as FeatureBobingRouteImport } from './routes/feature/bobing'
+import { Route as FeatureLotteryRouteImport } from './routes/feature/lottery'
+import { Route as FeatureTierListRouteImport } from './routes/feature/tier-list'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -48,6 +52,11 @@ const HomeRoute = HomeRouteImport.update({
   path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -58,6 +67,21 @@ const FeatureIndexRoute = FeatureIndexRouteImport.update({
   path: '/',
   getParentRoute: () => FeatureRouteRoute,
 } as any)
+const FeatureBobingRoute = FeatureBobingRouteImport.update({
+  id: '/bobing',
+  path: '/bobing',
+  getParentRoute: () => FeatureRouteRoute,
+} as any)
+const FeatureLotteryRoute = FeatureLotteryRouteImport.update({
+  id: '/lottery',
+  path: '/lottery',
+  getParentRoute: () => FeatureRouteRoute,
+} as any)
+const FeatureTierListRoute = FeatureTierListRouteImport.update({
+  id: '/tier-list',
+  path: '/tier-list',
+  getParentRoute: () => FeatureRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -66,7 +90,11 @@ export interface FileRoutesByFullPath {
   '/account': typeof AccountRoute
   '/feedback': typeof FeedbackRoute
   '/home': typeof HomeRoute
+  '/library': typeof LibraryRoute
   '/settings': typeof SettingsRoute
+  '/feature/bobing': typeof FeatureBobingRoute
+  '/feature/lottery': typeof FeatureLotteryRoute
+  '/feature/tier-list': typeof FeatureTierListRoute
   '/feature/': typeof FeatureIndexRoute
 }
 export interface FileRoutesByTo {
@@ -75,7 +103,11 @@ export interface FileRoutesByTo {
   '/account': typeof AccountRoute
   '/feedback': typeof FeedbackRoute
   '/home': typeof HomeRoute
+  '/library': typeof LibraryRoute
   '/settings': typeof SettingsRoute
+  '/feature/bobing': typeof FeatureBobingRoute
+  '/feature/lottery': typeof FeatureLotteryRoute
+  '/feature/tier-list': typeof FeatureTierListRoute
   '/feature': typeof FeatureIndexRoute
 }
 export interface FileRoutesById {
@@ -86,7 +118,11 @@ export interface FileRoutesById {
   '/account': typeof AccountRoute
   '/feedback': typeof FeedbackRoute
   '/home': typeof HomeRoute
+  '/library': typeof LibraryRoute
   '/settings': typeof SettingsRoute
+  '/feature/bobing': typeof FeatureBobingRoute
+  '/feature/lottery': typeof FeatureLotteryRoute
+  '/feature/tier-list': typeof FeatureTierListRoute
   '/feature/': typeof FeatureIndexRoute
 }
 export interface FileRouteTypes {
@@ -98,7 +134,11 @@ export interface FileRouteTypes {
     | '/account'
     | '/feedback'
     | '/home'
+    | '/library'
     | '/settings'
+    | '/feature/bobing'
+    | '/feature/lottery'
+    | '/feature/tier-list'
     | '/feature/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -107,7 +147,11 @@ export interface FileRouteTypes {
     | '/account'
     | '/feedback'
     | '/home'
+    | '/library'
     | '/settings'
+    | '/feature/bobing'
+    | '/feature/lottery'
+    | '/feature/tier-list'
     | '/feature'
   id:
     | '__root__'
@@ -117,7 +161,11 @@ export interface FileRouteTypes {
     | '/account'
     | '/feedback'
     | '/home'
+    | '/library'
     | '/settings'
+    | '/feature/bobing'
+    | '/feature/lottery'
+    | '/feature/tier-list'
     | '/feature/'
   fileRoutesById: FileRoutesById
 }
@@ -128,6 +176,7 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRoute
   FeedbackRoute: typeof FeedbackRoute
   HomeRoute: typeof HomeRoute
+  LibraryRoute: typeof LibraryRoute
   SettingsRoute: typeof SettingsRoute
 }
 
@@ -175,6 +224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -189,14 +245,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeatureIndexRouteImport
       parentRoute: typeof FeatureRouteRoute
     }
+    '/feature/bobing': {
+      id: '/feature/bobing'
+      path: '/bobing'
+      fullPath: '/feature/bobing'
+      preLoaderRoute: typeof FeatureBobingRouteImport
+      parentRoute: typeof FeatureRouteRoute
+    }
+    '/feature/lottery': {
+      id: '/feature/lottery'
+      path: '/lottery'
+      fullPath: '/feature/lottery'
+      preLoaderRoute: typeof FeatureLotteryRouteImport
+      parentRoute: typeof FeatureRouteRoute
+    }
+    '/feature/tier-list': {
+      id: '/feature/tier-list'
+      path: '/tier-list'
+      fullPath: '/feature/tier-list'
+      preLoaderRoute: typeof FeatureTierListRouteImport
+      parentRoute: typeof FeatureRouteRoute
+    }
   }
 }
 
 interface FeatureRouteRouteChildren {
+  FeatureBobingRoute: typeof FeatureBobingRoute
+  FeatureLotteryRoute: typeof FeatureLotteryRoute
+  FeatureTierListRoute: typeof FeatureTierListRoute
   FeatureIndexRoute: typeof FeatureIndexRoute
 }
 
 const FeatureRouteRouteChildren: FeatureRouteRouteChildren = {
+  FeatureBobingRoute: FeatureBobingRoute,
+  FeatureLotteryRoute: FeatureLotteryRoute,
+  FeatureTierListRoute: FeatureTierListRoute,
   FeatureIndexRoute: FeatureIndexRoute,
 }
 
@@ -211,6 +294,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRoute: AccountRoute,
   FeedbackRoute: FeedbackRoute,
   HomeRoute: HomeRoute,
+  LibraryRoute: LibraryRoute,
   SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport

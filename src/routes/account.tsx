@@ -899,7 +899,7 @@ function DouyinQrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
         </div>
       ) : mfaActive ? (
         <div className="flex w-[min(220px,34vh,calc(100vw-64px))] flex-col items-center gap-3 rounded-[14px] bg-white p-4 shadow-[0_4px_16px_rgb(133_77_96/12%)]">
-          <Icon icon="mdi:shield-cellphone" className="text-3xl text-pink-400" aria-hidden="true" />
+          <Icon icon="mdi:cellphone-message" className="text-3xl text-pink-400" aria-hidden="true" />
           <p className="m-0 text-center text-sm leading-relaxed text-[#7a6a71]">
             账号需要短信二次验证
             {mfaMobile ? <>，验证码将发送至<br /><span className="font-semibold text-[#c05a87]">{mfaMobile}</span></> : "，验证码已发送至账号绑定手机"}

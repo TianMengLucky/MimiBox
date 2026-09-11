@@ -1,0 +1,146 @@
+/* ---------- 博饼：骰子面、掷骰动画与流式排版 ----------
+   所有尺寸用 clamp() + 容器查询单位（cqw/cqh）随功能面板实际宽高
+   平滑缩放：面板多矮内容整体收缩多少，默认 800x600 及以上完整呈现，
+   页面本身不出现滚动条（仅历史记录列表内部滚动）。 */
+
+.bobing-title {
+  font-size: clamp(1.125rem, 0.625rem + min(2.2cqw, 5cqh), 3rem);
+  line-height: 1.2;
+}
+
+.bobing-subtitle {
+  font-size: clamp(0.875rem, 0.5625rem + min(1.2cqw, 2.8cqh), 1.5rem);
+  line-height: 1.4;
+}
+
+.bobing-heading {
+  font-size: clamp(0.8125rem, 0.4375rem + min(1cqw, 2.4cqh), 1.5rem);
+  line-height: 1.4;
+}
+
+.bobing-chip {
+  font-size: clamp(0.75rem, 0.4375rem + min(0.9cqw, 2.2cqh), 1.25rem);
+  line-height: 1.3;
+}
+
+.bobing-row {
+  font-size: clamp(0.8125rem, 0.46875rem + min(1cqw, 2.6cqh), 1.5rem);
+}
+
+.bobing-row-meta {
+  font-size: clamp(0.6875rem, 0.40625rem + min(0.8cqw, 2cqh), 1.125rem);
+}
+
+.bobing-result-name {
+  font-size: clamp(1rem, 0.6875rem + min(1.4cqw, 3.2cqh), 2.375rem);
+  line-height: 1.3;
+}
+
+.bobing-result-note {
+  font-size: clamp(0.75rem, 0.4375rem + min(0.8cqw, 2cqh), 1.125rem);
+}
+
+/* 掷骰按钮：文字与图标随界面缩放（底色与内边距沿用 HeroUI 默认态） */
+.bobing-roll-btn {
+  font-size: clamp(0.875rem, 0.53125rem + min(1.4cqw, 3.4cqh), 2rem);
+}
+
+.bobing-roll-btn svg {
+  width: clamp(18px, 11px + min(1cqw, 2.4cqh), 34px);
+  height: clamp(18px, 11px + min(1cqw, 2.4cqh), 34px);
+}
+
+/* 页面根容器与历史列表的弹性间距/高度（配合容器查询单位） */
+.bobing-page {
+  gap: clamp(4px, 2px + min(1cqw, 2.4cqh), 18px);
+}
+
+/* 历史列表固定高度：新增记录只在列表内部滚动，底部区块总高度恒定，
+   彩头等级区域不会随之移动；空状态占位也复用此类保持同一高度。
+   系数压低（26cqh）保证 800x600 小窗口下页面整体不出现滚动条 */
+.bobing-history-list {
+  height: clamp(4rem, 26cqh, 24rem);
+}
+
+/* 骰碗与掷骰控制：始终横向并排，控制列位于骰碗右侧且
+   与骰碗垂直居中对齐（中心点齐平）；放不下时自动换行，
+   保证任何窗口宽度下骰碗都不会压到文字和按钮 */
+.bobing-hero {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(6px, 4px + min(1cqw, 2.4cqh), 44px);
+}
+
+/* 掷骰控制列：左对齐贴住骰碗右侧 */
+.bobing-controls {
+  align-items: flex-start;
+  text-align: left;
+}
+
+/* 骰碗：内边距、间距与圆角同步缩放；自身不可压缩，避免骰子溢出压到相邻内容 */
+.bobing-bowl {
+  flex: none;
+  gap: clamp(4px, 2px + min(0.5cqw, 1.2cqh), 10px);
+  padding: clamp(6px, 3px + min(0.9cqw, 2.2cqh), 26px) clamp(8px, 4px + min(1cqw, 2.4cqh), 30px);
+  border-radius: clamp(20px, 10px + min(1.2cqw, 2.8cqh), 54px);
+}
+
+.bobing-die {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: clamp(2px, 1px + 0.12cqw, 4px);
+  flex: none;
+  width: clamp(26px, 10px + min(6.5cqw, 14cqh, max((100cqw - 640px) / 6, 0px)), 132px);
+  height: clamp(26px, 10px + min(6.5cqw, 14cqh, max((100cqw - 640px) / 6, 0px)), 132px);
+  padding: clamp(3px, 2px + min(0.4cqw, 1cqh), 10px);
+  border-radius: clamp(6px, 4px + min(0.5cqw, 1.2cqh), 18px);
+  border: 1px solid rgba(210, 109, 154, 0.25);
+  background: linear-gradient(145deg, #ffffff, #fdf2f7);
+  box-shadow: 0 2px 6px rgba(102, 83, 90, 0.12);
+}
+
+.bobing-pip {
+  border-radius: 50%;
+  background: #57506b;
+}
+
+/* 红点：一点 / 四点（博饼传统） */
+.bobing-pip--red {
+  background: #d94a5a;
+}
+
+.bobing-pip--off {
+  background: transparent;
+}
+
+.bobing-die--rolling {
+  animation: bobing-shake 0.25s linear infinite;
+}
+
+@keyframes bobing-shake {
+  0% {
+    transform: rotate(0deg) translateY(0);
+  }
+  25% {
+    transform: rotate(-10deg) translateY(-4px);
+  }
+  50% {
+    transform: rotate(8deg) translateY(0);
+  }
+  75% {
+    transform: rotate(-6deg) translateY(-2px);
+  }
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bobing-die--rolling {
+    animation: none;
+  }
+}

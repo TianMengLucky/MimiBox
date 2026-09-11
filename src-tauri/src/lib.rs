@@ -1,6 +1,9 @@
 pub mod account;
+pub mod bobing;
 pub mod douyin_signer;
 pub mod douyin_web;
+pub mod lottery;
+pub mod tierlist;
 
 use std::fs;
 use std::path::PathBuf;
@@ -53,6 +56,8 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             let first_launch = if dir.join("config.json").exists() {
@@ -93,6 +98,13 @@ pub fn run() {
             account::douyin::douyin_qr_sms_validate,
             account::douyin::douyin_reset_session,
             account::douyin::douyin_open_web,
+            lottery::lottery_load,
+            lottery::lottery_save,
+            bobing::bobing_load,
+            bobing::bobing_save,
+            tierlist::tierlist_load,
+            tierlist::tierlist_save,
+            tierlist::tierlist_export_image,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

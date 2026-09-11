@@ -19,7 +19,7 @@ function FeatureLayout() {
     <div className="box-border flex min-h-screen justify-end px-14 pt-24 pb-14">
       <section
         aria-label="功能区域"
-        className="feature-panel box-border flex max-h-[calc(100vh_-_152px)] w-[min(700px,calc(100vw_-_320px))] flex-col overflow-hidden rounded-3xl border border-white/55 bg-white/55 px-8 pt-[26px] pb-9 shadow-[0_10px_36px_rgb(133_77_96/14%)] backdrop-blur-[16px] backdrop-saturate-[1.3] motion-reduce:bg-white/80 motion-reduce:backdrop-blur-none"
+        className="feature-panel box-border flex max-h-[calc(100vh_-_152px)] w-[calc(100vw_-_160px)] flex-col overflow-hidden rounded-3xl border border-white/55 bg-white/55 px-8 pt-[26px] pb-9 shadow-[0_10px_36px_rgb(133_77_96/14%)] backdrop-blur-[16px] backdrop-saturate-[1.3] motion-reduce:bg-white/80 motion-reduce:backdrop-blur-none"
       >
         <Button
           variant="tertiary"
@@ -29,7 +29,7 @@ function FeatureLayout() {
           <Icon icon="lucide:chevron-left" width="16" height="16" aria-hidden="true" />
           返回
         </Button>
-        <div className="feature-content mt-3.5 box-border flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div className="feature-content mt-3.5 box-border flex min-h-0 flex-1 flex-col overflow-y-auto [container-type:size]">
           <Outlet />
         </div>
       </section>

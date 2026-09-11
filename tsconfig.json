@@ -24,7 +24,8 @@
     "paths": {
       "@assets/*": ["./src/assets/*"],
       "@components/*": ["./src/components/*"],
-      "@style/*": ["./src/style/*"]
+      "@style/*": ["./src/style/*"],
+      "@lucky-canvas/react": ["./src/types/lucky-canvas.d.ts"]
     }
   },
   "include": ["src"],

@@ -44,6 +44,18 @@
 
 ---
 
+## 🎮 功能一览
+
+| 功能 | 说明 |
+| :--- | :--- |
+| 🎁 抽奖 | 自定义奖品（含图片上传、文件名导入）、幸运转盘、抽奖历史 |
+| 🏆 夯到拉 | 图片拖拽排名表（Tier List），支持导出成图分享 |
+| 🎲 博饼 | 中秋传统掷骰游戏，骰子动画与掷骰历史 |
+| 📚 资料库 | 敬请期待，正在规划中 |
+| ⬆️ 应用内更新 | 设置页一键检查更新，新版本通过 GitHub Releases 自动分发 |
+
+---
+
 ## 🛠️ 技术栈
 
 | 层级 | 技术 |
@@ -66,25 +78,40 @@ MimiBox/
 ├── src/                     # 前端源代码
 │   ├── assets/              # 静态资源（图标、背景图）
 │   ├── components/          # React 组件
+│   │   ├── bobing/          # 博饼骰子、规则与历史
+│   │   ├── home/            # 主页功能卡片
+│   │   ├── lottery/         # 抽奖奖品编辑与历史
+│   │   ├── settings/        # 设置页应用更新
+│   │   ├── tierlist/        # 夯到拉拖拽排名与导出
 │   │   ├── CornerDock.tsx   # 左下角悬浮操作坞
 │   │   ├── ErrorFallback.tsx # 错误降级界面
+│   │   ├── FileDropZone.tsx # 通用文件拖入区域
 │   │   ├── TitleBar.tsx     # 无边框窗口标题栏
+│   │   ├── icons.ts         # Iconify 图标离线子集
 │   │   └── screen/          # 欢迎页、闲置屏保与空状态
 │   ├── routes/              # 页面路由（文件路由）
 │   │   ├── __root.tsx       # 根布局
-│   │   ├── home.tsx         # 功能搜索与入口主页
+│   │   ├── home.tsx         # 功能分类与入口主页
 │   │   ├── account.tsx      # 多平台账号登录与管理
 │   │   ├── feature/         # 功能内容面板及子路由
+│   │   │   ├── lottery.tsx  # 抽奖转盘
+│   │   │   ├── tier-list.tsx # 夯到拉图片排名
+│   │   │   └── bobing.tsx   # 博饼掷骰
+│   │   ├── library.tsx      # 资料库（规划中）
 │   │   ├── settings.tsx     # 设置页
 │   │   ├── about.tsx        # 关于页
 │   │   ├── feedback.tsx     # 反馈页
 │   │   └── index.tsx        # 欢迎入口
 │   ├── main.tsx             # 应用入口
 │   ├── router.tsx           # 路由配置
+│   ├── types/               # 前端类型声明
 │   └── style/               # 页面与组件样式
 ├── src-tauri/               # Tauri Rust 后端
 │   ├── src/                 # Rust 源代码
 │   │   ├── account.rs       # 多账号、Cookie、状态与网页登录命令
+│   │   ├── bobing/          # 博饼数据存储
+│   │   ├── lottery/         # 抽奖奖品存储
+│   │   ├── tierlist/        # 夯到拉数据存储
 │   │   ├── douyin_web.rs    # 抖音 web 扫码登录（安全栈 + 短信 MFA）
 │   │   ├── douyin_signer.rs # 抖音 bdms a_bogus 签名 + DTrait 指纹（QuickJS）
 │   │   ├── lib.rs           # Tauri 应用初始化与命令注册
@@ -94,6 +121,7 @@ MimiBox/
 │   ├── icons/               # 应用图标（多平台）
 │   ├── Cargo.toml           # Rust 依赖配置
 │   └── tauri.conf.json      # Tauri 配置
+├── scripts/                 # 构建辅助脚本（图标离线子集生成）
 ├── package.json             # 前端依赖
 ├── tsconfig.json            # TypeScript 配置
 └── vite.config.ts           # Vite 配置
@@ -169,6 +197,7 @@ pnpm dev
 | `pnpm preview` | 预览前端构建结果 |
 | `pnpm tauri dev` | 启动 Tauri 开发模式（含热更新） |
 | `pnpm tauri build` | 构建桌面应用安装包 |
+| `pnpm icons` | 重新生成 Iconify 图标离线子集（新增图标后必须执行，否则线上图标加载失败） |
 
 ---
 

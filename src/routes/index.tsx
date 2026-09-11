@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Navigate, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
 import WelcomeScreen from "@components/screen/WelcomeScreen";
 
@@ -30,8 +30,7 @@ function WelcomeRoute() {
   }
 
   if (!showWelcome) {
-    navigate({ to: "/home", replace: true });
-    return null;
+    return <Navigate to="/home" replace />;
   }
 
   return (

@@ -25,5 +25,11 @@ dist-ssr
 # heroui-agents-md
 .heroui-docs/
 
+# TanStack Router 开发工具缓存
+.tanstack/
+
 # Accidental literal expansion of the Windows AppData variable
 %AppData%/
+
+# Tauri updater 签名私钥（公钥 mimibox.key.pub 已进 tauri.conf.json，可提交）
+src-tauri/keys/
