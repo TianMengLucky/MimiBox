@@ -12,6 +12,29 @@ conventions, verification expectations, and change-safety rules.
 - The frontend-design skill is project-local. Do not assume it is available in
   other repositories.
 
+## Code organization (代码组织约定)
+
+- 代码必须按功能拆分到独立的文件夹/模块，不要把所有逻辑挤在一个文件里。
+  一个文件过大（约 500 行以上）时，应按职责边界拆分，例如：
+  - Rust 端：`src-tauri/src/<功能>/` 目录 + `mod.rs`（类型与入口）+ 按职责
+    划分的子模块（如 `account/{mod,bilibili,douyin,store,avatar}.rs`）；
+  - 前端：路由页面超过约 500 行时，把独立的区块/组件抽到
+    `src/components/<功能>/` 或页面同目录的子组件文件中。
+- 拆分边界按"职责"而非"行数"机械切分：数据存取、HTTP/协议、UI 组件、
+  纯工具函数各自独立；跨模块共享的类型与常量收敛到 `mod.rs`/`types.ts`。
+- 模块间共享项用最小可见性（Rust `pub(crate)`/`pub(super)`）限定，
+  不扩大公开面。
+
+## Component reuse (组件复用约定)
+
+- 需要新增 React 组件时，优先查找 HeroUI（`@heroui/react`，v3，文档位于
+  `./.heroui-docs/react`）是否已有满足需求的组件（按钮、输入、下拉、
+  模态、Toast、Tooltip、表格等），先读对应文档再用，不要手写等效组件。
+- 仅当 HeroUI 没有合适组件时，才在 `src/components/` 自行实现；
+  自实现组件的交互与可访问性应向 HeroUI（React Aria）行为看齐。
+- 项目已有的业务组件（如 `@components/screen/ComingSoon`）优先复用，
+  避免重复实现。
+
 ## Styling conventions (样式约定)
 
 - 简单样式一律使用 Tailwind CSS 工具类直接写在组件 JSX 的 `className` 上，
@@ -62,6 +85,9 @@ conventions, verification expectations, and change-safety rules.
 3. 完成后在本节记录：日期、旧/新文件名与格式差异、采用的迁移方式。
    本次多账号改造（2026-09，`account.json` → `accounts.json`）属于
    版本号未提升的情况，已删除开发期旧文件，无迁移代码。
+   新增抖音登录态持久化（2026-09-11，`douyin_state.json`，含完整 cookie
+   jar 与会话信息），用于重启后免重新扫码与设备信任延续；属于版本号
+   未提升的情况，无迁移代码，解析失败降级为空数据。
 
 ## Git commit & GitHub push（提交与推送约定）
 

@@ -121,9 +121,12 @@ function AccountRoute() {
   const [mode, setMode] = useState<"manage" | "add">("manage");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // 右键菜单里的轻量操作反馈（如"Cookie 已复制"）
+  const [notice, setNotice] = useState("");
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
+    platform: string;
   } | null>(null);
 
   const refresh = useCallback(() => {
@@ -230,7 +233,8 @@ function AccountRoute() {
                     event.preventDefault();
                     setContextMenu({
                       x: Math.min(event.clientX, window.innerWidth - 144),
-                      y: Math.min(event.clientY, window.innerHeight - 52),
+                      y: Math.min(event.clientY, window.innerHeight - 84),
+                      platform: entry.platform,
                     });
                   }}
                   onKeyDown={(event) => {
@@ -245,7 +249,8 @@ function AccountRoute() {
                     const rect = event.currentTarget.getBoundingClientRect();
                     setContextMenu({
                       x: Math.min(rect.left, window.innerWidth - 144),
-                      y: Math.min(rect.bottom + 4, window.innerHeight - 52),
+                      y: Math.min(rect.bottom + 4, window.innerHeight - 84),
+                      platform: entry.platform,
                     });
                   }}
                 >
@@ -280,6 +285,7 @@ function AccountRoute() {
           <AddAvatarButton busy={busy} onAdd={() => setMode("add")} />
         </div>
         {error && <p className="account-error">{error}</p>}
+        {!error && notice && <p className="account-error text-emerald-600">{notice}</p>}
       </section>
       {contextMenu && status.loggedIn && (
         <div
@@ -297,7 +303,29 @@ function AccountRoute() {
             autoFocus
             onClick={() => {
               setContextMenu(null);
-              runAction(() => invoke("account_open_web"));
+              runAction(async () => {
+                const cookie = await invoke<string>("account_copy_cookie");
+                await navigator.clipboard.writeText(cookie);
+                setNotice("Cookie 已复制到剪贴板");
+                setTimeout(() => setNotice(""), 2500);
+              });
+            }}
+          >
+            复制 Cookie
+          </button>
+          <button
+            type="button"
+            className="w-full rounded-md border-0 bg-transparent px-3 py-2 text-left text-sm font-medium text-[#66535a] shadow-none hover:bg-pink-50 focus-visible:outline-2 focus-visible:outline-pink-400"
+            role="menuitem"
+            disabled={busy}
+            autoFocus
+            onClick={() => {
+              setContextMenu(null);
+              runAction(() =>
+                contextMenu.platform === "douyin"
+                  ? invoke("douyin_open_web")
+                  : invoke("account_open_web"),
+              );
             }}
           >
             在网页中打开
