@@ -1,6 +1,6 @@
 //! 抖音 passport HTTP 层：手工 cookie jar、通用请求、重定向跟随、ttwid 引导。
 
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 
 use serde_json::{json, Value};
 
@@ -8,6 +8,17 @@ use super::profile_ua;
 use crate::account::response_cookies;
 
 pub(super) const TTWID_REGISTER_URL: &str = "https://ttwid.bytedance.com/ttwid/union/register/";
+
+/// 不自动跟随重定向的客户端（follow_with_cookies 需手动逐级收集 Set-Cookie）
+static NO_REDIRECT_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+fn no_redirect_client() -> &'static reqwest::Client {
+    NO_REDIRECT_CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .expect("构建 no-redirect HTTP 客户端失败")
+    })
+}
 
 pub(super) fn merge_cookies(slot: &Mutex<Vec<(String, String)>>, fresh: Vec<(String, String)>) -> Result<(), String> {
     if fresh.is_empty() {
@@ -41,9 +52,9 @@ pub(super) struct HttpResponse {
 
 /// passport 通用请求（JSON 响应）。body 为 None 时发 GET，否则按表单 POST。
 pub(super) async fn passport_request(
-    http: &wreq::Client,
+    http: &reqwest::Client,
     cookie_slot: &Mutex<Vec<(String, String)>>,
-    method: wreq::Method,
+    method: reqwest::Method,
     full_url: &str,
     body: Option<&str>,
     extra_headers: &[(String, String)],
@@ -53,16 +64,16 @@ pub(super) async fn passport_request(
     let portrait = format!("{}.login", super::params::uuid_v4());
     let mut rb = http
         .request(method, full_url)
-        .header(wreq::header::USER_AGENT, profile_ua())
-        .header(wreq::header::ACCEPT, "application/json, text/plain, */*")
-        .header(wreq::header::ORIGIN, super::NEXT_URL)
-        .header(wreq::header::REFERER, referer.unwrap_or(&format!("{}/", super::NEXT_URL)))
+        .header(reqwest::header::USER_AGENT, profile_ua())
+        .header(reqwest::header::ACCEPT, "application/json, text/plain, */*")
+        .header(reqwest::header::ORIGIN, super::NEXT_URL)
+        .header(reqwest::header::REFERER, referer.unwrap_or(&format!("{}/", super::NEXT_URL)))
         .header("X-Tt-Passport-Verify-Portrait", &portrait);
     if !cookie.is_empty() {
-        rb = rb.header(wreq::header::COOKIE, &cookie);
+        rb = rb.header(reqwest::header::COOKIE, &cookie);
     }
     if let Some(form) = body {
-        rb = rb.header(wreq::header::CONTENT_TYPE, "application/x-www-form-urlencoded").body(form.to_string());
+        rb = rb.header(reqwest::header::CONTENT_TYPE, "application/x-www-form-urlencoded").body(form.to_string());
     }
     for (k, v) in extra_headers {
         rb = rb.header(k.as_str(), v.as_str());
@@ -86,22 +97,22 @@ pub(super) async fn passport_request(
 }
 
 /// 手动跟随 3xx 跳转并逐步收集 Set-Cookie（ttwid 回调 / confirmed 落地用）
-pub(super) async fn follow_with_cookies(http: &wreq::Client, cookie_slot: &Mutex<Vec<(String, String)>>, start_url: &str) -> Result<(), String> {
+pub(super) async fn follow_with_cookies(cookie_slot: &Mutex<Vec<(String, String)>>, start_url: &str) -> Result<(), String> {
+    let http = no_redirect_client();
     let mut url = start_url.to_string();
     for _ in 0..6 {
         let cookie = cookie_header(cookie_slot)?;
         let mut rb = http
             .get(&url)
-            .header(wreq::header::USER_AGENT, profile_ua())
-            .redirect(wreq::redirect::Policy::none());
+            .header(reqwest::header::USER_AGENT, profile_ua());
         if !cookie.is_empty() {
-            rb = rb.header(wreq::header::COOKIE, &cookie);
+            rb = rb.header(reqwest::header::COOKIE, &cookie);
         }
         let resp = rb.send().await.map_err(|e| format!("回调请求失败: {e}"))?;
         let status = resp.status().as_u16();
         merge_cookies(cookie_slot, response_cookies(&resp))?;
         if (300..400).contains(&status) {
-            if let Some(location) = resp.headers().get(wreq::header::LOCATION).and_then(|v| v.to_str().ok()) {
+            if let Some(location) = resp.headers().get(reqwest::header::LOCATION).and_then(|v| v.to_str().ok()) {
                 url = location.to_string();
                 continue;
             }
@@ -115,7 +126,7 @@ pub(super) async fn follow_with_cookies(http: &wreq::Client, cookie_slot: &Mutex
 }
 
 /// 流程 1：ttwid（aid=10006 / sso.douyin.com + redirect_url 回调）
-pub(super) async fn bootstrap_ttwid(http: &wreq::Client, cookie_slot: &Mutex<Vec<(String, String)>>) -> Result<(), String> {
+pub(super) async fn bootstrap_ttwid(http: &reqwest::Client, cookie_slot: &Mutex<Vec<(String, String)>>) -> Result<(), String> {
     let payload = json!({
         "aid": 10006,
         "service": "sso.douyin.com",
@@ -127,8 +138,8 @@ pub(super) async fn bootstrap_ttwid(http: &wreq::Client, cookie_slot: &Mutex<Vec
     });
     let resp = http
         .post(TTWID_REGISTER_URL)
-        .header(wreq::header::CONTENT_TYPE, "application/json")
-        .header(wreq::header::USER_AGENT, profile_ua())
+        .header(reqwest::header::CONTENT_TYPE, "application/json")
+        .header(reqwest::header::USER_AGENT, profile_ua())
         .json(&payload)
         .send()
         .await
@@ -138,7 +149,7 @@ pub(super) async fn bootstrap_ttwid(http: &wreq::Client, cookie_slot: &Mutex<Vec
     if redirect_url.is_empty() {
         return Err("ttwid register 未返回 redirect_url".into());
     }
-    follow_with_cookies(http, cookie_slot, redirect_url).await?;
+    follow_with_cookies(cookie_slot, redirect_url).await?;
     if cookie_value(cookie_slot, "ttwid")?.is_empty() {
         return Err("ttwid 回调后仍未取得 ttwid cookie".into());
     }

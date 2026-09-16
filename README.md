@@ -50,8 +50,10 @@
 | :--- | :--- |
 | 🎁 抽奖 | 自定义奖品（含图片上传、文件名导入）、幸运转盘、抽奖历史 |
 | 🏆 夯到拉 | 图片拖拽排名表（Tier List），支持导出成图分享 |
+| 🏅 赛事预测 | 电竞赛程晋级节点图，选项拖拽编排、比分编辑与多方案保存 |
 | 🎲 博饼 | 中秋传统掷骰游戏，骰子动画与掷骰历史 |
-| 📚 资料库 | 敬请期待，正在规划中 |
+| 📺 番剧 | Bangumi 每日放送时间表，按星期浏览、评分速览与条目页跳转 |
+| 📚 资料库 | 番剧时间表已上线，更多内容规划中 |
 | ⬆️ 应用内更新 | 设置页一键检查更新，新版本通过 GitHub Releases 自动分发 |
 
 ---
@@ -81,39 +83,45 @@ MimiBox/
 │   │   ├── bobing/          # 博饼骰子、规则与历史
 │   │   ├── home/            # 主页功能卡片
 │   │   ├── lottery/         # 抽奖奖品编辑与历史
+│   │   ├── prediction/      # 赛事预测节点图、拖拽与方案存储
+│   │   ├── bangumi/         # Bangumi 每日放送类型
 │   │   ├── settings/        # 设置页应用更新
 │   │   ├── tierlist/        # 夯到拉拖拽排名与导出
+│   │   ├── screen/          # 欢迎页、闲置屏保与空状态
 │   │   ├── CornerDock.tsx   # 左下角悬浮操作坞
 │   │   ├── ErrorFallback.tsx # 错误降级界面
 │   │   ├── FileDropZone.tsx # 通用文件拖入区域
 │   │   ├── TitleBar.tsx     # 无边框窗口标题栏
-│   │   ├── icons.ts         # Iconify 图标离线子集
-│   │   └── screen/          # 欢迎页、闲置屏保与空状态
+│   │   └── image.ts         # 图片处理工具
 │   ├── routes/              # 页面路由（文件路由）
 │   │   ├── __root.tsx       # 根布局
+│   │   ├── index.tsx        # 欢迎入口
 │   │   ├── home.tsx         # 功能分类与入口主页
 │   │   ├── account.tsx      # 多平台账号登录与管理
 │   │   ├── feature/         # 功能内容面板及子路由
 │   │   │   ├── lottery.tsx  # 抽奖转盘
 │   │   │   ├── tier-list.tsx # 夯到拉图片排名
+│   │   │   ├── prediction.tsx # 赛事晋级预测图
+│   │   │   ├── anime.tsx    # 番剧每日放送时间表
 │   │   │   └── bobing.tsx   # 博饼掷骰
 │   │   ├── library.tsx      # 资料库（规划中）
 │   │   ├── settings.tsx     # 设置页
-│   │   ├── about.tsx        # 关于页
-│   │   ├── feedback.tsx     # 反馈页
-│   │   └── index.tsx        # 欢迎入口
+│   │   └── about.tsx        # 关于页
+│   ├── icons.ts             # Iconify 图标离线子集
 │   ├── main.tsx             # 应用入口
 │   ├── router.tsx           # 路由配置
 │   ├── types/               # 前端类型声明
 │   └── style/               # 页面与组件样式
 ├── src-tauri/               # Tauri Rust 后端
-│   ├── src/                 # Rust 源代码
-│   │   ├── account.rs       # 多账号、Cookie、状态与网页登录命令
-│   │   ├── bobing/          # 博饼数据存储
+│   ├── src/
+│   │   ├── account/         # 多账号：Bilibili/抖音登录、凭据存储与头像代理
+│   │   ├── douyin_web/      # 抖音 web 扫码登录（协议参数 + 短信 MFA）
+│   │   ├── douyin_signer/   # 抖音 a_bogus 签名 + DTrait 指纹（QuickJS）
 │   │   ├── lottery/         # 抽奖奖品存储
 │   │   ├── tierlist/        # 夯到拉数据存储
-│   │   ├── douyin_web.rs    # 抖音 web 扫码登录（安全栈 + 短信 MFA）
-│   │   ├── douyin_signer.rs # 抖音 bdms a_bogus 签名 + DTrait 指纹（QuickJS）
+│   │   ├── bobing/          # 博饼数据存储
+│   │   ├── prediction/      # 赛事预测方案存储
+│   │   ├── bangumi/         # Bangumi 每日放送抓取（缓存 30 分钟）
 │   │   ├── lib.rs           # Tauri 应用初始化与命令注册
 │   │   └── main.rs          # 桌面应用入口
 │   ├── resources/           # 内嵌资源（抖音 JS SDK、协议参数）
@@ -121,6 +129,7 @@ MimiBox/
 │   ├── icons/               # 应用图标（多平台）
 │   ├── Cargo.toml           # Rust 依赖配置
 │   └── tauri.conf.json      # Tauri 配置
+├── .agents/skills/          # 项目本地 Agent 技能（设计规范、最佳实践等）
 ├── scripts/                 # 构建辅助脚本（图标离线子集生成）
 ├── package.json             # 前端依赖
 ├── tsconfig.json            # TypeScript 配置

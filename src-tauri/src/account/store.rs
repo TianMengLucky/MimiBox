@@ -10,7 +10,7 @@ use std::path::PathBuf;
 
 use bpi_rs::session::Account;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 /// 保存到 accounts.json 的单条账号记录（含缓存的昵称/头像）
 #[derive(Serialize, Deserialize, Clone)]
@@ -106,17 +106,7 @@ pub enum CredentialStatus {
     Unknown,
 }
 
-pub(super) fn data_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("无法解析应用数据目录: {e}"))?;
-    if !dir.exists() {
-        std::fs::create_dir_all(&dir)
-            .map_err(|e| format!("无法创建数据目录 {}: {e}", dir.display()))?;
-    }
-    Ok(dir)
-}
+pub(super) use crate::scheme_store::data_dir;
 
 fn accounts_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(data_dir(app)?.join("accounts.json"))

@@ -1,7 +1,7 @@
 # Project Agent Instructions
 
-Read `AGENT.md` for the repository structure, commands, implementation
-conventions, verification expectations, and change-safety rules.
+本文件是仓库唯一的 Agent 指令入口，涵盖项目结构、命令、实现约定、
+验证要求与变更安全规则。
 
 ## Project skills
 
@@ -9,8 +9,12 @@ conventions, verification expectations, and change-safety rules.
   read and follow `.agents/skills/frontend-design/SKILL.md` before designing or
   editing UI code. Its design brief, planning, accessibility, and visual QA
   requirements apply to the affected work.
-- The frontend-design skill is project-local. Do not assume it is available in
-  other repositories.
+- 项目本地还安装了以下技能，按需取用（均为 `.agents/skills/` 下的
+  project-local 技能，勿假设其他仓库可用）：
+  - `web-design-guidelines` / `react-best-practices`：UI 审查与 React
+    性能最佳实践（来自 vercel-labs/agent-skills）；
+  - `dependency-updater` / `agent-md-refactor` / `reducing-entropy`：
+    依赖更新、指令文件重构与代码瘦身（来自 softaworks/agent-toolkit）。
 
 ## Code organization (代码组织约定)
 
@@ -37,6 +41,21 @@ conventions, verification expectations, and change-safety rules.
 
 ## Styling conventions (样式约定)
 
+- 布局结构使用 `@apvee/react-layout-kit`（Emotion CSS-in-JS，容器感知
+  响应式）：布局容器（页面外壳、面板、flex/grid 行列、居中、间距骨架、
+  溢出滚动）用 Box/Flex/Stack/SimpleGrid 等组件表达——短属性（`p`/`px`/
+  `w`/`mih`…）写常用间距与尺寸，`$` 前缀属性（`$display`、`$flexDirection`…）
+  写任意 CSS；需要语义元素时用 `asChild` 把样式合并到 `main`/`section`/
+  `ul` 等子元素上，不额外包 div。需要按容器宽度自适应时用响应式对象值
+  （如 `p={{ xs: "md", md: "xl" }}`），它按组件容器实际宽度（ResizeObserver）
+  而非视口解析；断点/间距可用 TS module augmentation 自定义（当前用默认值）。
+- 颜色/边框/圆角/阴影/字体/毛玻璃/过渡等视觉样式仍用 Tailwind 工具类
+  写在 `className` 上；文本元素的内边距/外边距微调也可继续用 Tailwind。
+- 分工纪律：同一元素上不要让两套体系写同一个 CSS 属性——Emotion 注入的
+  样式无层级，会覆盖 `@layer` 内的 Tailwind 工具类（kit props 优先级更高）。
+- kit 断点按容器宽度解析，无法表达视口高度（`max-height`）类媒体查询：
+  这类视口自适应规则（如 account.css 的窄窗/矮窗口 padding 调整）保留在
+  CSS 中，对应元素的结构布局与 padding 分属两处时在注释中互相说明。
 - 简单样式一律使用 Tailwind CSS 工具类直接写在组件 JSX 的 `className` 上，
   不要为其新建或追加外接 CSS。仅当样式"复杂"时才使用 `src/style/*.css`
   外接文件并在 `src/style/index.css` 中引入。"复杂"指满足以下任一条件：
@@ -52,6 +71,11 @@ conventions, verification expectations, and change-safety rules.
   文字色）沿用项目既有值，避免重复定义。
 
 - 页面内容必须优先通过响应式布局、弹性尺寸和合理的断点适配完整呈现，不能因内容过长或固定尺寸设计让用户必须滚动页面才能使用主要功能；新增页面完成后需检查常见窄屏和矮窗口尺寸。
+- 在全屏 / 最大化窗口下，页面主体必须一屏完整呈现，不允许出现因内容
+  溢出导致的页面级滚动条。画布、节点图等主区域应贴合剩余空间：
+  用 `flex-1` + `min-h-0` 的弹性链路从根容器一路传导到主区域，让高度
+  由布局决定；不要用 `100vh` 减固定值的魔数估算高度（标题栏、返回按钮
+  等周边元素的累计误差会造成全屏时溢出）。
 - 能通过排版优化（弹性/流式尺寸、clamp 缩放、断点折叠、压缩留白等）
   适配的内容就不要使用页面级滚动条；滚动只作为最后手段，且优先收在
   真正会无限增长的子区域内部（如历史记录列表），页面主体保持一屏完整呈现。
@@ -64,11 +88,19 @@ conventions, verification expectations, and change-safety rules.
 
 ## Preview & verification workflow (预览与验证)
 
-- 完成所有修改后再启动预览给开发者查看，不要在改动过程中反复启动；
+- 默认不启动开发服务器或应用：除非开发者在对话中明确说明需要自己
+  测试应用（如"启动给我看看"、"我要测试"等），否则完成改动后仅以
+  `pnpm build` 等静态验证（编译 + 类型检查）为准，并告知开发者可
+  自行运行哪些命令查看效果。
+- 开发者要求预览时：完成所有修改后再启动，不要在改动过程中反复启动；
   展示时不需要截图，由开发者自行在浏览器/应用中确认。
-- 仅修改前端代码（`src/` 下的 TS/TSX/CSS 等）：运行 `pnpm dev` 启动 Vite
-  开发服务器（http://localhost:1420），供开发者在浏览器中查看。
-- 修改包含 Rust 代码（`src-tauri/`）：运行 `pnpm tauri dev` 启动完整应用。
+  - 仅修改前端代码（`src/` 下的 TS/TSX/CSS 等）：运行 `pnpm dev`
+    （http://localhost:1420）。
+  - 修改包含 Rust 代码（`src-tauri/`）：运行 `pnpm tauri dev` 启动
+    完整应用。
+- 修复 Rust 端相关报错后，重启编辑器的 rust-analyzer 服务器（VS Code
+  命令面板：`Rust Analyzer: Restart Server`），以清除 LSP 缓存的错误状态，
+  确保编辑器显示的诊断与最新代码一致。
 
 ## Data storage & migration (数据存储与迁移处理方法)
 
@@ -91,6 +123,13 @@ conventions, verification expectations, and change-safety rules.
    新增抖音登录态持久化（2026-09-11，`douyin_state.json`，含完整 cookie
    jar 与会话信息），用于重启后免重新扫码与设备信任延续；属于版本号
    未提升的情况，无迁移代码，解析失败降级为空数据。
+   新增评分功能（2026-09-15，`rating.json`，方案列表 + 活动方案 + 条目
+   `id/name/score/createdAt`），用于批量导入选项并打 1-10 分；属于版本号
+   未提升的情况，无迁移代码，解析失败降级为空数据。
+   新增方案导入导出（2026-09-15，`.miz` 方案包）：zip 压缩包，包内唯一
+   条目 `miz.json`（`app/format/kind/exportedAt/schemes`），`kind` 校验
+   只能导回对应功能；由 `scheme_io.rs` 读写，文件对话框用
+   `tauri-plugin-dialog` 前端 API，方案 id 冲突在导入时重新生成。
 
 ## Git commit & GitHub push（提交与推送约定）
 

@@ -84,6 +84,8 @@ export interface LuckyWheelProps {
 export class LuckyWheel extends Component<LuckyWheelProps> {
   play(...args: unknown[]): void;
   stop(index?: number): void;
+  /** 底层转盘实例，stop 后保留最终旋转角度（用于悬停命中检测） */
+  lucky?: { rotateDeg: number };
 }
 
 export class LuckyGrid extends Component<LuckyWheelProps> {

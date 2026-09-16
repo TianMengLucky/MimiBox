@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import FeatureCard from "@components/home/FeatureCard";
+import { CardGrid, PageShell } from "@components/home/PageShell";
 
 export const Route = createFileRoute("/home")({
   component: HomeRoute,
@@ -17,7 +18,13 @@ type FeatureEntry = {
   /** 所属功能分类 */
   category: FeatureCategory;
   /** 目标路由；缺省时渲染为“敬请期待”占位卡片。新增功能页面后把路由字面量加进联合类型 */
-  to?: "/feature/lottery" | "/feature/tier-list" | "/feature/bobing";
+  to?:
+    | "/feature/lottery"
+    | "/feature/tier-list"
+    | "/feature/bobing"
+    | "/feature/prediction"
+    | "/feature/rating"
+    | "/feature/bilibili-comments";
 };
 
 /** 主页功能分类标签：新增分类时在这里加一项 */
@@ -43,6 +50,30 @@ const FEATURE_LIST: FeatureEntry[] = [
     description: "图片排名表",
     category: "video",
     to: "/feature/tier-list",
+  },
+  {
+    key: "prediction",
+    title: "赛事预测",
+    emoji: "🏅",
+    description: "晋级节点预测图",
+    category: "video",
+    to: "/feature/prediction",
+  },
+  {
+    key: "rating",
+    title: "评分",
+    emoji: "⭐",
+    description: "批量打 1-10 分",
+    category: "video",
+    to: "/feature/rating",
+  },
+  {
+    key: "bilibili-comments",
+    title: "B站评论区",
+    emoji: "💬",
+    description: "查看并筛选投稿评论",
+    category: "video",
+    to: "/feature/bilibili-comments",
   },
   {
     key: "bobing",
@@ -82,7 +113,9 @@ function HomeRoute() {
   );
 
   return (
-    <main className="home-page">
+    // 页面外壳与卡片网格是 home / library 共享组件（PageShell/CardGrid），
+    // 搜索框/标签的视觉样式留在 home.css
+    <PageShell>
       <label className="home-search">
         <span className="sr-only">搜索功能</span>
         <Icon icon="lucide:search" width="18" height="18" aria-hidden="true" />
@@ -94,13 +127,12 @@ function HomeRoute() {
         />
       </label>
 
-      <div className="home-tabs" role="group" aria-label="功能分类">
+      <div className="home-tabs segment-tabs" role="group" aria-label="功能分类">
         {CATEGORY_TABS.map(({ key, label }) => (
           <button
             key={key}
             type="button"
             aria-pressed={category === key}
-            className={category === key ? "home-tab--active" : undefined}
             onClick={() => selectCategory(key)}
           >
             {label}
@@ -108,7 +140,8 @@ function HomeRoute() {
         ))}
       </div>
 
-      <ul className="home-grid" aria-label="功能列表">
+      {/* 功能卡片网格：auto-fill 自适应列数（共享 CardGrid） */}
+      <CardGrid label="功能列表">
         {visibleList.map(({ key, title, emoji, description, to }) => (
           <li key={key}>
             <FeatureCard
@@ -120,11 +153,11 @@ function HomeRoute() {
             />
           </li>
         ))}
-      </ul>
+      </CardGrid>
 
       {visibleList.length === 0 ? (
         <p className="home-empty">没有找到匹配的功能</p>
       ) : null}
-    </main>
+    </PageShell>
   );
 }

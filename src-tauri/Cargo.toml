@@ -23,13 +23,13 @@ tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-single-instance = "2"
 tauri-plugin-window-state = "2"
 tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 bpi-rs = "0.3.0"
-wreq = { version = "0.15.3", features = ["cookies", "cookies-preserve-order", "json", "gzip", "brotli"] }
-wreq-util = "0.1"
+reqwest = { version = "0.12", features = ["cookies", "json", "gzip", "brotli"] }
 tokio = { version = "1", features = ["time"] }
 qrcode = "0.14.1"
 image = "0.25.10"
@@ -37,6 +37,8 @@ base64 = "0.23.1"
 rand = "0.9"
 rand_core = "0.6"
 sha2 = "0.11"
+# B 站评论区 WBI 参数签名（w_rid = MD5(查询串 + mixin key)）
+md-5 = "0.10"
 # 抖音 web 安全栈：QuickJS 承载官方 bdms/dtrait JS，RSA/AES/ECDH/DEFLATE 为其提供原生绑定
 rquickjs = { version = "0.13", features = ["futures"] }
 aes = "0.8"
@@ -47,6 +49,8 @@ p256 = { version = "0.13", features = ["ecdh"] }
 flate2 = "1"
 hex = "0.4"
 url = "2"
+# 方案导入导出（.miz）：应用专属 zip 方案包，仅 deflate 压缩
+zip = { version = "2", default-features = false, features = ["deflate"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

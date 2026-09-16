@@ -7,7 +7,6 @@ type DockPath =
   | "/home"
   | "/library"
   | "/about"
-  | "/feedback"
   | "/settings"
   | "/account";
 
@@ -23,13 +22,7 @@ const actions: DockAction[] = [
     key: "about",
     label: "关于",
     to: "/about",
-    icon: <Icon icon="lucide:circle-help" width="20" height="20" aria-hidden="true" />,
-  },
-  {
-    key: "feedback",
-    label: "反馈",
-    to: "/feedback",
-    icon: <Icon icon="lucide:message-square" width="20" height="20" aria-hidden="true" />,
+    icon: <Icon icon="lucide:info" width="20" height="20" aria-hidden="true" />,
   },
 ];
 

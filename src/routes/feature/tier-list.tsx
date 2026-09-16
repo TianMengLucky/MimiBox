@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { SchemeBar } from "@components/SchemeBar";
+import { SchemeTransfer } from "@components/schemeTransfer/SchemeTransfer";
+import { useSchemeData } from "@components/schemeStore";
 import { fileToCompressedImage } from "@components/image";
 import { exportTierListImage } from "@components/tierlist/export";
 import { PoolPanel } from "@components/tierlist/PoolPanel";
@@ -48,59 +50,33 @@ const fixedTiers = (scheme: TierListScheme): Tier[] =>
     ],
   }));
 
-/** 保证数据可用：至少一个方案，且活动方案指向存在的方案；梯队固定不可变 */
-function normalize(data: TierListData): TierListData {
-  if (data.schemes.length === 0) {
-    const scheme = makeScheme("默认方案");
-    return { schemes: [scheme], activeSchemeId: scheme.id };
-  }
-  const schemes = data.schemes.map((scheme) => ({ ...scheme, tiers: fixedTiers(scheme) }));
-  if (!schemes.some((s) => s.id === data.activeSchemeId)) {
-    return { schemes, activeSchemeId: schemes[0].id };
-  }
-  return { ...data, schemes };
-}
-
 function TierListRoute() {
-  const [data, setData] = useState<TierListData | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    loadTierListData().then((loaded) => {
-      if (!cancelled) setData(normalize(loaded));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  /** 统一的数据更新入口：改内存的同时整体写盘 */
-  const update = useCallback((fn: (prev: TierListData) => TierListData) => {
-    setData((prev) => {
-      if (!prev) return prev;
-      const next = fn(prev);
-      saveTierListData(next).catch((err) => console.error("保存排名数据失败", err));
-      return next;
-    });
-  }, []);
-
-  const activeScheme = data
-    ? (data.schemes.find((s) => s.id === data.activeSchemeId) ?? data.schemes[0])
-    : undefined;
-
-  /** 修改当前方案的统一入口 */
-  const mutateScheme = useCallback(
-    (fn: (scheme: TierListScheme) => TierListScheme) => {
-      update((prev) => ({
-        ...prev,
-        schemes: prev.schemes.map((s) => (s.id === prev.activeSchemeId ? fn(s) : s)),
-      }));
-    },
-    [update],
-  );
+  const {
+    data,
+    activeScheme,
+    mutateScheme,
+    selectScheme,
+    addScheme,
+    deleteActiveScheme,
+    importSchemes,
+  } = useSchemeData<TierListData, TierListScheme>({
+    load: loadTierListData,
+    save: saveTierListData,
+    logLabel: "保存排名数据失败",
+    // 领域规整：梯队固定不可变；“至少一个方案/活动方案有效”由公共规整负责
+    normalize: (loaded) => ({
+      ...loaded,
+      schemes: loaded.schemes.map((scheme) => ({
+        ...scheme,
+        tiers: fixedTiers(scheme),
+      })),
+    }),
+    makeDefaultScheme: () => makeScheme("默认方案"),
+  });
 
   const totalCount = activeScheme
     ? activeScheme.pool.length +
@@ -209,18 +185,25 @@ function TierListRoute() {
 
   return (
     <div className="flex flex-1 flex-col gap-2.5">
-      <header className="flex flex-wrap items-baseline gap-x-3">
+      <header className="flex flex-wrap items-center gap-x-3">
         <h1 className="m-0 text-lg font-extrabold tracking-tight text-[#66535a]">夯到拉</h1>
         <p className="m-0 hidden text-sm text-[#9b8a91] min-[560px]:inline">
           把图片拖进梯队排出位次，支持多方案保存与导出排名图。
         </p>
+        <SchemeTransfer
+          kind="tierlist"
+          featureName="夯到拉"
+          className="ml-auto"
+          schemes={data.schemes}
+          onImport={importSchemes}
+        />
       </header>
 
       <SchemeBar
         schemes={data.schemes}
         activeId={activeScheme.id}
         createLabel="新建方案（复制当前梯队）"
-        onSelect={(id) => update((prev) => ({ ...prev, activeSchemeId: id }))}
+        onSelect={selectScheme}
         onCreate={() => {
           // 新建方案 = 复制当前梯队与待排池（另存为），图片一并带入
           const tiers = activeScheme.tiers.map((tier) => ({
@@ -232,26 +215,14 @@ function TierListRoute() {
             ...item,
             id: crypto.randomUUID(),
           }));
-          update((prev) => {
-            const scheme: TierListScheme = {
-              id: crypto.randomUUID(),
-              name: `方案 ${prev.schemes.length + 1}`,
-              tiers,
-              pool,
-            };
-            return { ...prev, schemes: [...prev.schemes, scheme], activeSchemeId: scheme.id };
+          addScheme({
+            id: crypto.randomUUID(),
+            name: `方案 ${data.schemes.length + 1}`,
+            tiers,
+            pool,
           });
         }}
-        onDelete={() => {
-          update((prev) => {
-            const rest = prev.schemes.filter((s) => s.id !== prev.activeSchemeId);
-            if (rest.length === 0) {
-              const scheme = makeScheme("默认方案");
-              return { ...prev, schemes: [scheme], activeSchemeId: scheme.id };
-            }
-            return { ...prev, schemes: rest, activeSchemeId: rest[0].id };
-          });
-        }}
+        onDelete={deleteActiveScheme}
       />
 
       <section aria-label="梯队" className="flex flex-1 flex-col gap-1.5">

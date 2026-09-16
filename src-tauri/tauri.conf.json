@@ -37,7 +37,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMxQjAzN0IzODBGNTg0NjIKUldSaWhQV0FzemV3d1lRS0ZQQXZQbE9XN0JWS3h1aGtodEhZL2FSU05CUWJKcWFPelNYSDJBNDUK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZBQkJDQjRGNDM0QTdEMjMKUldRamZVcERUOHU3K3RPaVN4QXJldEt5VDZSQm84UFJmRkE1c1l2SUhldlcwSFltNm0wSUlwenYK",
       "endpoints": [
         "https://github.com/TianMengLucky/MimiBox/releases/latest/download/latest.json"
       ]

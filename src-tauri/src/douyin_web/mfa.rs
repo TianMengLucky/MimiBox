@@ -103,7 +103,7 @@ fn build_mfa_body(profile: &ProtocolProfile, data: &Value, code: Option<&str>) -
 }
 
 async fn mfa_request(
-    http: &wreq::Client,
+    http: &reqwest::Client,
     cookie_slot: &Mutex<Vec<(String, String)>>,
     endpoint: &str,
     body: &[(String, String)],
@@ -120,13 +120,13 @@ async fn mfa_request(
         ("new_authn_sdk_version".into(), MFA_SDK_VERSION.into()),
     ];
     let full_url = format!("{endpoint}?{}", encode_pairs(&query));
-    let resp = passport_request(http, cookie_slot, wreq::Method::POST, &full_url, Some(&encode_pairs(body)), &[], None).await?;
+    let resp = passport_request(http, cookie_slot, reqwest::Method::POST, &full_url, Some(&encode_pairs(body)), &[], None).await?;
     response_data(&resp.payload)
 }
 
 /// 发送扫码二次验证短信（pending_verify 由 poll 遇到 2046 时写入）
 pub async fn mfa_send(
-    http: &wreq::Client,
+    http: &reqwest::Client,
     cookie_slot: &Mutex<Vec<(String, String)>>,
     session: &mut DouyinWebSession,
 ) -> Result<Option<String>, String> {
@@ -143,7 +143,7 @@ pub async fn mfa_send(
 
 /// 校验扫码二次验证短信：成功后写入 verify_ticket，后续 check 请求体自动上送
 pub async fn mfa_validate(
-    http: &wreq::Client,
+    http: &reqwest::Client,
     cookie_slot: &Mutex<Vec<(String, String)>>,
     session: &mut DouyinWebSession,
     code: &str,

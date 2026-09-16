@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { invoke } from "@tauri-apps/api/core";
+import { tauriInvoke } from "../lib/tauriInvoke";
 import WelcomeScreen from "@components/screen/WelcomeScreen";
 
 export const Route = createFileRoute("/")({
@@ -17,7 +17,7 @@ function WelcomeRoute() {
       setShowWelcome(true);
       return;
     }
-    invoke<boolean>("is_first_launch")
+    tauriInvoke<boolean>("is_first_launch", undefined, { defaultValue: false })
       .then((firstLaunch) => setShowWelcome(firstLaunch))
       .catch((err) => {
         console.error("读取启动配置失败", err);
@@ -37,7 +37,7 @@ function WelcomeRoute() {
     <WelcomeScreen
       onContinue={() => {
         setShowWelcome(false);
-        invoke("mark_welcome_seen").catch((err) =>
+        tauriInvoke("mark_welcome_seen").catch((err) =>
           console.error("写入启动配置失败", err),
         );
         navigate({ to: "/home" });

@@ -3,8 +3,7 @@
 //! - `LotteryData`：磁盘上的完整数据（方案列表 + 活动方案 + 历史记录）
 //! - `lottery_load`/`lottery_save`：整体读写的唯一入口，由前端在数据变化时保存
 
-mod store;
-
+use crate::scheme_store;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
@@ -54,10 +53,10 @@ pub struct LotteryData {
 
 #[tauri::command]
 pub fn lottery_load(app: AppHandle) -> Result<LotteryData, String> {
-    store::load(&app)
+    scheme_store::load(&app, "lottery.json", "抽奖数据")
 }
 
 #[tauri::command]
 pub fn lottery_save(app: AppHandle, data: LotteryData) -> Result<(), String> {
-    store::save(&app, &data)
+    scheme_store::save(&app, "lottery.json", "抽奖数据", &data)
 }

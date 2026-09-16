@@ -31,15 +31,15 @@ fn cached_avatar(dir: &Path, url: &str) -> Option<String> {
 
 /// 下载头像（B 站/抖音共用）并写入磁盘缓存，返回 data URI。
 /// 缓存以图片 URL 为键；下载失败时回退为原始 URL（由前端按需加载）。
-pub(super) async fn fetch_face_data_url(client: &wreq::Client, dir: &Path, url: &str) -> Option<String> {
+pub(super) async fn fetch_face_data_url(client: &reqwest::Client, dir: &Path, url: &str) -> Option<String> {
     if let Some(hit) = cached_avatar(dir, url) {
         return Some(hit);
     }
     let url = url.replace("http://", "https://");
     let response = client
         .get(url.as_str())
-        .header(wreq::header::REFERER, "https://www.bilibili.com/")
-        .header(wreq::header::USER_AGENT, "Mozilla/5.0")
+        .header(reqwest::header::REFERER, "https://www.bilibili.com/")
+        .header(reqwest::header::USER_AGENT, "Mozilla/5.0")
         .send()
         .await
         .ok()?;
@@ -48,7 +48,7 @@ pub(super) async fn fetch_face_data_url(client: &wreq::Client, dir: &Path, url: 
     }
     let content_type = response
         .headers()
-        .get(wreq::header::CONTENT_TYPE)
+        .get(reqwest::header::CONTENT_TYPE)
         .and_then(|value| value.to_str().ok())
         .filter(|value| value.starts_with("image/"))
         .unwrap_or("image/jpeg")

@@ -13,13 +13,17 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as FeatureRouteRouteImport } from './routes/feature/route'
-import { Route as FeedbackRouteImport } from './routes/feedback'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as TauriRequiredRouteImport } from './routes/tauri-required'
 import { Route as FeatureIndexRouteImport } from './routes/feature/index'
+import { Route as FeatureAnimeRouteImport } from './routes/feature/anime'
+import { Route as FeatureBilibiliCommentsRouteImport } from './routes/feature/bilibili-comments'
 import { Route as FeatureBobingRouteImport } from './routes/feature/bobing'
 import { Route as FeatureLotteryRouteImport } from './routes/feature/lottery'
+import { Route as FeaturePredictionRouteImport } from './routes/feature/prediction'
+import { Route as FeatureRatingRouteImport } from './routes/feature/rating'
 import { Route as FeatureTierListRouteImport } from './routes/feature/tier-list'
 
 const IndexRoute = IndexRouteImport.update({
@@ -42,11 +46,6 @@ const FeatureRouteRoute = FeatureRouteRouteImport.update({
   path: '/feature',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FeedbackRoute = FeedbackRouteImport.update({
-  id: '/feedback',
-  path: '/feedback',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
@@ -62,9 +61,24 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TauriRequiredRoute = TauriRequiredRouteImport.update({
+  id: '/tauri-required',
+  path: '/tauri-required',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FeatureIndexRoute = FeatureIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => FeatureRouteRoute,
+} as any)
+const FeatureAnimeRoute = FeatureAnimeRouteImport.update({
+  id: '/anime',
+  path: '/anime',
+  getParentRoute: () => FeatureRouteRoute,
+} as any)
+const FeatureBilibiliCommentsRoute = FeatureBilibiliCommentsRouteImport.update({
+  id: '/bilibili-comments',
+  path: '/bilibili-comments',
   getParentRoute: () => FeatureRouteRoute,
 } as any)
 const FeatureBobingRoute = FeatureBobingRouteImport.update({
@@ -75,6 +89,16 @@ const FeatureBobingRoute = FeatureBobingRouteImport.update({
 const FeatureLotteryRoute = FeatureLotteryRouteImport.update({
   id: '/lottery',
   path: '/lottery',
+  getParentRoute: () => FeatureRouteRoute,
+} as any)
+const FeaturePredictionRoute = FeaturePredictionRouteImport.update({
+  id: '/prediction',
+  path: '/prediction',
+  getParentRoute: () => FeatureRouteRoute,
+} as any)
+const FeatureRatingRoute = FeatureRatingRouteImport.update({
+  id: '/rating',
+  path: '/rating',
   getParentRoute: () => FeatureRouteRoute,
 } as any)
 const FeatureTierListRoute = FeatureTierListRouteImport.update({
@@ -88,12 +112,16 @@ export interface FileRoutesByFullPath {
   '/feature': typeof FeatureRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
-  '/feedback': typeof FeedbackRoute
   '/home': typeof HomeRoute
   '/library': typeof LibraryRoute
   '/settings': typeof SettingsRoute
+  '/tauri-required': typeof TauriRequiredRoute
+  '/feature/anime': typeof FeatureAnimeRoute
+  '/feature/bilibili-comments': typeof FeatureBilibiliCommentsRoute
   '/feature/bobing': typeof FeatureBobingRoute
   '/feature/lottery': typeof FeatureLotteryRoute
+  '/feature/prediction': typeof FeaturePredictionRoute
+  '/feature/rating': typeof FeatureRatingRoute
   '/feature/tier-list': typeof FeatureTierListRoute
   '/feature/': typeof FeatureIndexRoute
 }
@@ -101,12 +129,16 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
-  '/feedback': typeof FeedbackRoute
   '/home': typeof HomeRoute
   '/library': typeof LibraryRoute
   '/settings': typeof SettingsRoute
+  '/tauri-required': typeof TauriRequiredRoute
+  '/feature/anime': typeof FeatureAnimeRoute
+  '/feature/bilibili-comments': typeof FeatureBilibiliCommentsRoute
   '/feature/bobing': typeof FeatureBobingRoute
   '/feature/lottery': typeof FeatureLotteryRoute
+  '/feature/prediction': typeof FeaturePredictionRoute
+  '/feature/rating': typeof FeatureRatingRoute
   '/feature/tier-list': typeof FeatureTierListRoute
   '/feature': typeof FeatureIndexRoute
 }
@@ -116,12 +148,16 @@ export interface FileRoutesById {
   '/feature': typeof FeatureRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
-  '/feedback': typeof FeedbackRoute
   '/home': typeof HomeRoute
   '/library': typeof LibraryRoute
   '/settings': typeof SettingsRoute
+  '/tauri-required': typeof TauriRequiredRoute
+  '/feature/anime': typeof FeatureAnimeRoute
+  '/feature/bilibili-comments': typeof FeatureBilibiliCommentsRoute
   '/feature/bobing': typeof FeatureBobingRoute
   '/feature/lottery': typeof FeatureLotteryRoute
+  '/feature/prediction': typeof FeaturePredictionRoute
+  '/feature/rating': typeof FeatureRatingRoute
   '/feature/tier-list': typeof FeatureTierListRoute
   '/feature/': typeof FeatureIndexRoute
 }
@@ -132,12 +168,16 @@ export interface FileRouteTypes {
     | '/feature'
     | '/about'
     | '/account'
-    | '/feedback'
     | '/home'
     | '/library'
     | '/settings'
+    | '/tauri-required'
+    | '/feature/anime'
+    | '/feature/bilibili-comments'
     | '/feature/bobing'
     | '/feature/lottery'
+    | '/feature/prediction'
+    | '/feature/rating'
     | '/feature/tier-list'
     | '/feature/'
   fileRoutesByTo: FileRoutesByTo
@@ -145,12 +185,16 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/account'
-    | '/feedback'
     | '/home'
     | '/library'
     | '/settings'
+    | '/tauri-required'
+    | '/feature/anime'
+    | '/feature/bilibili-comments'
     | '/feature/bobing'
     | '/feature/lottery'
+    | '/feature/prediction'
+    | '/feature/rating'
     | '/feature/tier-list'
     | '/feature'
   id:
@@ -159,12 +203,16 @@ export interface FileRouteTypes {
     | '/feature'
     | '/about'
     | '/account'
-    | '/feedback'
     | '/home'
     | '/library'
     | '/settings'
+    | '/tauri-required'
+    | '/feature/anime'
+    | '/feature/bilibili-comments'
     | '/feature/bobing'
     | '/feature/lottery'
+    | '/feature/prediction'
+    | '/feature/rating'
     | '/feature/tier-list'
     | '/feature/'
   fileRoutesById: FileRoutesById
@@ -174,10 +222,10 @@ export interface RootRouteChildren {
   FeatureRouteRoute: typeof FeatureRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
-  FeedbackRoute: typeof FeedbackRoute
   HomeRoute: typeof HomeRoute
   LibraryRoute: typeof LibraryRoute
   SettingsRoute: typeof SettingsRoute
+  TauriRequiredRoute: typeof TauriRequiredRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -210,13 +258,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeatureRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/feedback': {
-      id: '/feedback'
-      path: '/feedback'
-      fullPath: '/feedback'
-      preLoaderRoute: typeof FeedbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/home': {
       id: '/home'
       path: '/home'
@@ -238,11 +279,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tauri-required': {
+      id: '/tauri-required'
+      path: '/tauri-required'
+      fullPath: '/tauri-required'
+      preLoaderRoute: typeof TauriRequiredRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/feature/': {
       id: '/feature/'
       path: '/'
       fullPath: '/feature/'
       preLoaderRoute: typeof FeatureIndexRouteImport
+      parentRoute: typeof FeatureRouteRoute
+    }
+    '/feature/anime': {
+      id: '/feature/anime'
+      path: '/anime'
+      fullPath: '/feature/anime'
+      preLoaderRoute: typeof FeatureAnimeRouteImport
+      parentRoute: typeof FeatureRouteRoute
+    }
+    '/feature/bilibili-comments': {
+      id: '/feature/bilibili-comments'
+      path: '/bilibili-comments'
+      fullPath: '/feature/bilibili-comments'
+      preLoaderRoute: typeof FeatureBilibiliCommentsRouteImport
       parentRoute: typeof FeatureRouteRoute
     }
     '/feature/bobing': {
@@ -259,6 +321,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeatureLotteryRouteImport
       parentRoute: typeof FeatureRouteRoute
     }
+    '/feature/prediction': {
+      id: '/feature/prediction'
+      path: '/prediction'
+      fullPath: '/feature/prediction'
+      preLoaderRoute: typeof FeaturePredictionRouteImport
+      parentRoute: typeof FeatureRouteRoute
+    }
+    '/feature/rating': {
+      id: '/feature/rating'
+      path: '/rating'
+      fullPath: '/feature/rating'
+      preLoaderRoute: typeof FeatureRatingRouteImport
+      parentRoute: typeof FeatureRouteRoute
+    }
     '/feature/tier-list': {
       id: '/feature/tier-list'
       path: '/tier-list'
@@ -270,15 +346,23 @@ declare module '@tanstack/react-router' {
 }
 
 interface FeatureRouteRouteChildren {
+  FeatureAnimeRoute: typeof FeatureAnimeRoute
+  FeatureBilibiliCommentsRoute: typeof FeatureBilibiliCommentsRoute
   FeatureBobingRoute: typeof FeatureBobingRoute
   FeatureLotteryRoute: typeof FeatureLotteryRoute
+  FeaturePredictionRoute: typeof FeaturePredictionRoute
+  FeatureRatingRoute: typeof FeatureRatingRoute
   FeatureTierListRoute: typeof FeatureTierListRoute
   FeatureIndexRoute: typeof FeatureIndexRoute
 }
 
 const FeatureRouteRouteChildren: FeatureRouteRouteChildren = {
+  FeatureAnimeRoute: FeatureAnimeRoute,
+  FeatureBilibiliCommentsRoute: FeatureBilibiliCommentsRoute,
   FeatureBobingRoute: FeatureBobingRoute,
   FeatureLotteryRoute: FeatureLotteryRoute,
+  FeaturePredictionRoute: FeaturePredictionRoute,
+  FeatureRatingRoute: FeatureRatingRoute,
   FeatureTierListRoute: FeatureTierListRoute,
   FeatureIndexRoute: FeatureIndexRoute,
 }
@@ -292,10 +376,10 @@ const rootRouteChildren: RootRouteChildren = {
   FeatureRouteRoute: FeatureRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
-  FeedbackRoute: FeedbackRoute,
   HomeRoute: HomeRoute,
   LibraryRoute: LibraryRoute,
   SettingsRoute: SettingsRoute,
+  TauriRequiredRoute: TauriRequiredRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

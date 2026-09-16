@@ -20,21 +20,21 @@ use std::sync::Mutex;
 
 use bpi_rs::client::BpiClient;
 use tauri::AppHandle;
-use wreq::header::SET_COOKIE;
+use reqwest::header::SET_COOKIE;
 
 /// 跨平台账号管理命令（状态/列表/复制 Cookie/退出）
 pub use manage::{account_copy_cookie, account_get_status, account_list, account_logout};
-/// B 站专属命令（扫码/短信登录、账号切换/移除、网页打开）
+/// B 站专属命令（扫码/短信登录、账号切换、网页打开）
 pub use bilibili::{
-    account_captcha, account_open_web, account_qr_poll, account_qr_start, account_remove,
-    account_sms_login, account_sms_send, account_switch,
+    account_captcha, account_open_web, account_qr_poll, account_qr_start, account_sms_login,
+    account_sms_send, account_switch,
 };
 pub use douyin::{douyin_qr_poll, douyin_qr_sms_send, douyin_qr_sms_validate, douyin_qr_start, douyin_reset_session};
 pub use store::{AccountEntry, AccountStatus, CredentialStatus};
 
 pub struct AccountState {
     client: BpiClient,
-    http: wreq::Client,
+    http: reqwest::Client,
     pub douyin: Mutex<Option<DouyinSession>>,
     pub douyin_cookies: Mutex<Vec<(String, String)>>,
     /// 新安全栈扫码会话（ttwid/get_qrcode/get_client_cert 握手上下文）
@@ -53,8 +53,32 @@ pub struct DouyinSession {
     pub cookie: String,
 }
 
+impl AccountState {
+    /// 共享 HTTP 客户端（Cookie 存储 + 重定向），供 B 站内容类功能模块复用
+    pub(crate) fn http(&self) -> &reqwest::Client {
+        &self.http
+    }
+
+    /// 当前活动 B 站账号的 (mid, Cookie 请求头)，未登录返回 None
+    pub(crate) fn bilibili_session(&self, app: &AppHandle) -> Result<Option<(u64, String)>, String> {
+        let store = store::load_store(app)?;
+        Ok(store
+            .active_id
+            .as_deref()
+            .and_then(|id| store.accounts.iter().find(|a| a.dede_user_id == id))
+            .and_then(|a| {
+                let mid = a.dede_user_id.parse().ok()?;
+                let cookie = format!(
+                    "DedeUserID={}; SESSDATA={}; bili_jct={}; buvid3={}",
+                    a.dede_user_id, a.sessdata, a.bili_jct, a.buvid3
+                );
+                Some((mid, cookie))
+            }))
+    }
+}
+
 /// 提取响应的全部 Set-Cookie 为键值对（去掉属性部分）
-pub(crate) fn response_cookies(response: &wreq::Response) -> Vec<(String, String)> {
+pub(crate) fn response_cookies(response: &reqwest::Response) -> Vec<(String, String)> {
     response
         .headers()
         .get_all(SET_COOKIE)
@@ -81,21 +105,11 @@ pub fn init_state(app: &AppHandle) -> Result<AccountState, Box<dyn std::error::E
             .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
     }
 
-    // HTTP 客户端（启用 Cookie 存储）
-    // 使用 wreq 模拟 Chrome 136 (Windows) 的 TLS(JA3/JA4) 与 HTTP/2 指纹，
-    // 降低抖音风控对“非浏览器客户端”的识别（error_code 7 频控）。
-    // skip_headers(true)：传输层指纹交给 emulation，HTTP 头仍由现有代码手动
-    // 控制（UA 已是 Chrome/136 Windows，与指纹一致），保证 A/B 验证唯一变量是传输层。
-    let http = wreq::Client::builder()
+    // HTTP 客户端（启用 Cookie 存储 + 重定向限制）
+    // 注意：reqwest 不支持 TLS 指纹模拟，抖音/B站登录可能因 TLS 指纹被风控拦截
+    let http = reqwest::Client::builder()
         .cookie_store(true)
-        .redirect(wreq::redirect::Policy::limited(10))
-        .emulation(
-            wreq_util::EmulationOption::builder()
-                .emulation(wreq_util::Emulation::Chrome137)
-                .emulation_os(wreq_util::EmulationOS::Windows)
-                .skip_headers(true)
-                .build(),
-        )
+        .redirect(reqwest::redirect::Policy::limited(10))
         .build()?;
 
     // 恢复抖音登录态与设备 cookie（douyin_state.json）：重启后免重新扫码，

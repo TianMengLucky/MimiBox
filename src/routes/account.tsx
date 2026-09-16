@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Box } from "@apvee/react-layout-kit";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Tooltip } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import { invoke } from "@tauri-apps/api/core";
+import { tauriInvoke } from "../lib/tauriInvoke";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/account")({
@@ -114,6 +115,28 @@ function loadGeetestScript() {
   });
 }
 
+/**
+ * 账号页外壳：全屏、垂直居中、隐藏溢出。结构布局由 layout-kit 提供；
+ * padding 及其视口媒体查询自适应（窄窗/矮窗）保留在 account.css——
+ * kit 断点按容器宽度解析，无法表达视口高度类规则。
+ */
+function AccountPageShell({ children }: { children: ReactNode }) {
+  return (
+    <Box
+      asChild
+      $minHeight="100dvh"
+      $height="100dvh"
+      $display="flex"
+      $flexDirection="column"
+      $alignItems="center"
+      $justifyContent="center"
+      $overflow="hidden"
+    >
+      <main className="account-page">{children}</main>
+    </Box>
+  );
+}
+
 function AccountRoute() {
   const [status, setStatus] = useState<AccountStatus | null>(null);
   const [accounts, setAccounts] = useState<AccountEntry[] | null>(null);
@@ -132,8 +155,8 @@ function AccountRoute() {
   const refresh = useCallback(() => {
     setError("");
     Promise.all([
-      invoke<AccountStatus>("account_get_status"),
-      invoke<AccountEntry[]>("account_list"),
+      tauriInvoke<AccountStatus>("account_get_status"),
+      tauriInvoke<AccountEntry[]>("account_list"),
     ])
       .then(([nextStatus, list]) => {
         setStatus(nextStatus);
@@ -176,25 +199,25 @@ function AccountRoute() {
 
   if (status === null || accounts === null) {
     return (
-      <main className="account-page">
+      <AccountPageShell>
         <p className="account-loading">{error || "正在加载…"}</p>
-      </main>
+      </AccountPageShell>
     );
   }
 
   // 未保存任何账号且未登录：直接展示登录面板
   if (!status.loggedIn && accounts.length === 0) {
     return (
-      <main className="account-page">
+      <AccountPageShell>
         <LoginPanel onLoggedIn={refresh} />
         {error && <p className="account-error">{error}</p>}
-      </main>
+      </AccountPageShell>
     );
   }
 
   if (mode === "add") {
     return (
-      <main className="account-page">
+      <AccountPageShell>
         <LoginPanel
           onLoggedIn={() => {
             setMode("manage");
@@ -203,12 +226,12 @@ function AccountRoute() {
           onCancel={() => setMode("manage")}
         />
         {error && <p className="account-error">{error}</p>}
-      </main>
+      </AccountPageShell>
     );
   }
 
   return (
-    <main className="account-page">
+    <AccountPageShell>
       <section className="account-card !w-[min(460px,100%)]">
         <h1 className="account-title">账号管理</h1>
         <div className="mt-5 flex max-w-full flex-wrap items-start justify-center gap-4">
@@ -224,7 +247,7 @@ function AccountRoute() {
                   onClick={() => {
                     if (!entry.active) {
                       runAction(() =>
-                        invoke("account_switch", { mid: entry.dedeUserId }),
+                        tauriInvoke("account_switch", { mid: entry.dedeUserId }),
                       );
                     }
                   }}
@@ -304,7 +327,7 @@ function AccountRoute() {
             onClick={() => {
               setContextMenu(null);
               runAction(async () => {
-                const cookie = await invoke<string>("account_copy_cookie");
+                const cookie = await tauriInvoke<string>("account_copy_cookie");
                 await navigator.clipboard.writeText(cookie);
                 setNotice("Cookie 已复制到剪贴板");
                 setTimeout(() => setNotice(""), 2500);
@@ -323,8 +346,8 @@ function AccountRoute() {
               setContextMenu(null);
               runAction(() =>
                 contextMenu.platform === "douyin"
-                  ? invoke("douyin_open_web")
-                  : invoke("account_open_web"),
+                  ? tauriInvoke("douyin_open_web")
+                  : tauriInvoke("account_open_web"),
               );
             }}
           >
@@ -338,14 +361,14 @@ function AccountRoute() {
             disabled={busy}
             onClick={() => {
               setContextMenu(null);
-              runAction(() => invoke("account_logout"));
+              runAction(() => tauriInvoke("account_logout"));
             }}
           >
             退出登录
           </button>
         </div>
       )}
-    </main>
+    </AccountPageShell>
   );
 }
 
@@ -444,13 +467,12 @@ function LoginPanel({
       </div>
 
       {platform === "bilibili" && (
-        <nav className="account-tabs" aria-label="登录方式">
+        <nav className="account-tabs segment-tabs" aria-label="登录方式">
           {(["qr", "sms"] as const).map((value) => (
             <button
               key={value}
               type="button"
-              className={tab === value ? "account-tab--active" : ""}
-              aria-current={tab === value ? "page" : undefined}
+              aria-pressed={tab === value}
               onClick={() => setTab(value)}
             >
               {{ qr: "扫码登录", sms: "短信登录" }[value]}
@@ -476,7 +498,7 @@ function Geetest({ onVerified }: { onVerified: (result: CaptchaResult) => void }
   useEffect(() => {
     let disposed = false;
     let instance: GeetestInstance | undefined;
-    Promise.all([loadGeetestScript(), invoke<CaptchaInfo>("account_captcha")])
+    Promise.all([loadGeetestScript(), tauriInvoke<CaptchaInfo>("account_captcha")])
       .then(([, info]) => {
         if (disposed || !window.initGeetest || !containerRef.current) return;
         window.initGeetest({ gt: info.gt, challenge: info.challenge, new_captcha: true, offline: false, product: "float", width: "100%", https: true }, (captcha) => {
@@ -513,7 +535,7 @@ function SmsLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
     setBusy(true);
     setError("");
     try {
-      const result = await invoke<SmsSendResult>("account_sms_send", { tel, ...captcha });
+      const result = await tauriInvoke<SmsSendResult>("account_sms_send", { tel, ...captcha });
       setCaptchaKey(result.captchaKey);
     } catch (reason) {
       setError(String(reason));
@@ -527,7 +549,7 @@ function SmsLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
     setBusy(true);
     setError("");
     try {
-      await invoke("account_sms_login", { tel, code, captchaKey });
+      await tauriInvoke("account_sms_login", { tel, code, captchaKey });
       onLoggedIn();
     } catch (reason) {
       setError(String(reason));
@@ -601,8 +623,8 @@ function DouyinQrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
     lastQrStatusRef.current = "unknown";
     // 先重置 Rust 侧 web 会话（清空 cookie/指纹标识，强制重新预热首页与 ttwid），
     // 等价于浏览器里刷新页面换新环境，降低连续风控评分
-    invoke("douyin_reset_session").catch(() => undefined).finally(() => {
-      invoke<DouyinQrStart>("douyin_qr_start")
+    tauriInvoke("douyin_reset_session").catch(() => undefined).finally(() => {
+      tauriInvoke<DouyinQrStart>("douyin_qr_start")
         .then((data) => setQr(data))
         .catch((reason) => setError(String(reason)))
         .finally(() => { startingRef.current = false; });
@@ -672,7 +694,7 @@ function DouyinQrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
           return;
         }
 
-        const result = await invoke<DouyinQrPoll>("douyin_qr_poll");
+        const result = await tauriInvoke<DouyinQrPoll>("douyin_qr_poll");
         if (stopped) return;
 
         setPoll(result);
@@ -850,7 +872,7 @@ function DouyinQrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
     setMfaBusy(true);
     setMfaError("");
     try {
-      await invoke("douyin_qr_sms_validate", { code: value });
+      await tauriInvoke("douyin_qr_sms_validate", { code: value });
       setMfaCode("");
       setPoll({ status: "waiting", message: "验证成功，正在完成登录…" });
       checkRef.current?.();
@@ -867,7 +889,7 @@ function DouyinQrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
     setMfaBusy(true);
     setMfaError("");
     try {
-      const result = await invoke<{ mobile: string | null }>("douyin_qr_sms_send");
+      const result = await tauriInvoke<{ mobile: string | null }>("douyin_qr_sms_send");
       if (result.mobile) setMfaMobile(result.mobile);
       setMfaResendIn(60);
     } catch (reason) {
@@ -950,7 +972,7 @@ function QrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
   const start = useCallback(() => {
     setError("");
     setPoll(null);
-    invoke<QrStart>("account_qr_start")
+    tauriInvoke<QrStart>("account_qr_start")
       .then((data) => {
         setQr(data);
       })
@@ -966,7 +988,7 @@ function QrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
     let timer: number | undefined;
     const pollStatus = async () => {
       try {
-        const data = await invoke<QrPoll>("account_qr_poll", {
+        const data = await tauriInvoke<QrPoll>("account_qr_poll", {
           qrcodeKey: qr.qrcodeKey,
         });
         if (stopped) return;

@@ -1,16 +1,11 @@
-/* ---------- 账号页 ---------- */
+/* ---------- 账号页 ----------
+   结构布局（全屏、flex 居中、overflow）已迁至 account.tsx 的
+   AccountPageShell（@apvee/react-layout-kit）；这里只保留 padding 及其
+   视口媒体查询自适应——kit 断点按容器宽度解析，无法表达视口高度规则。 */
 
 .account-page {
-  box-sizing: border-box;
-  min-height: 100dvh;
-  height: 100dvh;
   /* 左右留 96px，避开左下角悬浮坞 */
   padding: clamp(56px, 8vh, 80px) 96px clamp(24px, 5vh, 48px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
 }
 
 .account-loading {
@@ -32,11 +27,6 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-.account-card--profile {
-  gap: 4px;
-  text-align: center;
 }
 
 .account-avatar {
@@ -74,34 +64,9 @@
   text-align: center;
 }
 
+/* 登录方式切换（视觉样式由 base.css 的 .segment-tabs 提供） */
 .account-tabs {
-  display: flex;
-  gap: 4px;
   margin: 20px 0 18px;
-  padding: 4px;
-  border-radius: 999px;
-  background: rgb(246 227 225 / 70%);
-}
-
-.account-tabs button {
-  border: none;
-  box-shadow: none;
-  padding: 7px 18px;
-  border-radius: 999px;
-  background: transparent;
-  color: #9b8a91;
-  font-weight: 600;
-}
-
-.account-tabs button.account-tab--active {
-  background: #ffffff;
-  color: #66535a;
-  box-shadow: 0 2px 8px rgb(133 77 96 / 14%);
-}
-
-.account-tabs button.account-tab--active:focus-visible {
-  outline: 2px solid #d26d9a;
-  outline-offset: 2px;
 }
 
 .account-qr {

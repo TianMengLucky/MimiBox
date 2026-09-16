@@ -3,8 +3,7 @@
 //! - `BobingData`：磁盘上的完整数据（仅历史记录，彩头判定在前端完成）
 //! - `bobing_load`/`bobing_save`：整体读写的唯一入口，由前端在数据变化时保存
 
-mod store;
-
+use crate::scheme_store;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
@@ -32,10 +31,10 @@ pub struct BobingData {
 
 #[tauri::command]
 pub fn bobing_load(app: AppHandle) -> Result<BobingData, String> {
-    store::load(&app)
+    scheme_store::load(&app, "bobing.json", "博饼数据")
 }
 
 #[tauri::command]
 pub fn bobing_save(app: AppHandle, data: BobingData) -> Result<(), String> {
-    store::save(&app, &data)
+    scheme_store::save(&app, "bobing.json", "博饼数据", &data)
 }

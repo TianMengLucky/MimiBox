@@ -43,8 +43,7 @@
   border: 1px solid rgb(255 255 255 / 65%);
   border-radius: 16px;
   background: rgb(255 255 255 / 45%);
-  backdrop-filter: blur(12px) saturate(1.4);
-  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: var(--backdrop-glass);
   box-shadow: 0 6px 18px rgb(133 77 96 / 16%);
   padding: 6px;
 }
@@ -62,15 +61,6 @@
   box-shadow: none;
 }
 
-.dock-menu__item:hover {
-  border-radius: 50%;
-  background: rgb(247 196 213 / 70%);
-}
-
-.dock-menu__item:active {
-  background: rgb(255 236 244 / 70%);
-}
-
 .dock-menu__item:focus-visible {
   outline: 2px solid #d26d9a;
   outline-offset: 0;
@@ -80,8 +70,7 @@
   border: 1px solid rgb(255 255 255 / 65%);
   border-radius: 16px;
   background: rgb(255 255 255 / 45%);
-  backdrop-filter: blur(12px) saturate(1.4);
-  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: var(--backdrop-glass);
   box-shadow: 0 6px 18px rgb(133 77 96 / 16%);
   padding: 6px;
 }
@@ -109,15 +98,6 @@
   border-bottom-right-radius: 10px;
 }
 
-.nav-group .button:hover {
-  border-radius: 50%;
-  background: rgb(247 196 213 / 70%);
-}
-
-.nav-group .button:active {
-  background: rgb(255 236 244 / 70%);
-}
-
 .nav-group .button:focus-visible {
   outline: 2px solid #d26d9a;
   outline-offset: 0;
@@ -141,22 +121,13 @@
   background: #f5b3c9;
   color: #5e4c53;
 }
-/* 鍘嬪埗 HeroUI 鎸夐挳鑷甫鐨勬柟褰㈤粯璁ら珮浜?鎸夊帇鎬侊紙涓嶅奖鍝嶅綋鍓嶈矾寰勯珮浜渾锛?*/
+/* 兜底压制 HeroUI 按钮默认底色/阴影（含 dock 高亮项） */
 .nav-group .button,
 .dock-menu__item {
   background-color: transparent;
   box-shadow: none !important;
 }
 
-.nav-group .button:not(.dock-nav--active)[data-hovered="true"],
-.nav-group .button:not(.dock-nav--active)[data-pressed="true"],
-.nav-group .button:not(.dock-nav--active):hover,
-.dock-menu__item[data-hovered="true"],
-.dock-menu__item[data-pressed="true"],
-.dock-menu__item:hover {
-  border-radius: 50%;
-  background-color: rgb(247 196 213 / 70%);
-}
 /* 压制 HeroUI 按钮自带的方形默认高亮/按压态（不影响当前路径高亮圆） */
 .nav-group .button:not(.dock-nav--active),
 .dock-menu__item {

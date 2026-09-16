@@ -276,7 +276,7 @@ pub(super) fn profile_ua() -> &'static str {
 
 /// 完整取码 + 安全上下文握手。成功返回（二维码 data URI, 会话上下文）
 pub async fn start(
-    http: &wreq::Client,
+    http: &reqwest::Client,
     cookie_slot: &Mutex<Vec<(String, String)>>,
 ) -> Result<(String, DouyinWebSession), String> {
     let profile = ProtocolProfile::load()?;
@@ -297,7 +297,7 @@ pub async fn start(
     let a_bogus = sign_a_bogus(sign_target.clone(), "GET".into(), String::new(), profile.user_agent.clone()).await?;
     let full_url = format!("{sign_target}&a_bogus={}", q_escape(&a_bogus));
 
-    let resp = passport_request(http, cookie_slot, wreq::Method::GET, &full_url, None, &[], None).await?;
+    let resp = passport_request(http, cookie_slot, reqwest::Method::GET, &full_url, None, &[], None).await?;
     let data = response_data(&resp.payload)?;
     let frontier = data.get("is_frontier").and_then(Value::as_bool).unwrap_or(false);
     if !frontier {
@@ -344,7 +344,7 @@ pub async fn start(
     let cert_resp = passport_request(
         http,
         cookie_slot,
-        wreq::Method::POST,
+        reqwest::Method::POST,
         &cert_full,
         Some(&cert_body_string),
         &cert_headers,
@@ -383,7 +383,7 @@ pub async fn start(
 // ---------------------------------------------------------------------------
 
 pub async fn poll(
-    http: &wreq::Client,
+    http: &reqwest::Client,
     cookie_slot: &Mutex<Vec<(String, String)>>,
     session: &mut DouyinWebSession,
 ) -> Result<PollOutcome, String> {
@@ -400,7 +400,7 @@ pub async fn poll(
     headers.push(("X-Tt-Passport-Csrf-Token".into(), csrf));
     headers.push(("X-Tt-Passport-Trace-Id".into(), session.trace_id.clone()));
 
-    let resp = passport_request(http, cookie_slot, wreq::Method::POST, &full_url, Some(&body_string), &headers, None).await;
+    let resp = passport_request(http, cookie_slot, reqwest::Method::POST, &full_url, Some(&body_string), &headers, None).await;
     let data = match resp.and_then(|r| response_data(&r.payload).map(|data| (r, data))) {
         Ok((resp, data)) => {
             // 服务端 msToken 轮换（仅成功响应）
@@ -486,7 +486,7 @@ pub async fn poll(
         "confirmed" => {
             // 跟随 redirect_url 完成登录票据 Set-Cookie 落地
             if let Some(redirect) = data.get("redirect_url").and_then(Value::as_str).filter(|s| !s.is_empty()) {
-                follow_with_cookies(http, cookie_slot, redirect).await?;
+                follow_with_cookies(cookie_slot, redirect).await?;
             }
             let (uid, name, avatar_url) = fetch_self(http, cookie_slot, &profile).await?;
             let cookie = cookie_header(cookie_slot)?;
@@ -498,7 +498,7 @@ pub async fn poll(
 
 /// confirmed 后拉 self profile 校验登录态并取 uid/昵称/头像 URL
 async fn fetch_self(
-    http: &wreq::Client,
+    http: &reqwest::Client,
     cookie_slot: &Mutex<Vec<(String, String)>>,
     profile: &ProtocolProfile,
 ) -> Result<(Option<String>, Option<String>, Option<String>), String> {
@@ -512,7 +512,7 @@ async fn fetch_self(
     let target = format!("{SELF_PROFILE_URL}?{}", encode_pairs(&query));
     let a_bogus = sign_a_bogus(target.clone(), "GET".into(), String::new(), profile.user_agent.clone()).await?;
     let full_url = format!("{target}&a_bogus={}", q_escape(&a_bogus));
-    let resp = passport_request(http, cookie_slot, wreq::Method::GET, &full_url, None, &[], Some("https://www.douyin.com/user/self")).await?;
+    let resp = passport_request(http, cookie_slot, reqwest::Method::GET, &full_url, None, &[], Some("https://www.douyin.com/user/self")).await?;
     let payload = resp.payload;
     let status_code = payload.get("status_code").and_then(Value::as_i64).unwrap_or(-1);
     if status_code != 0 {

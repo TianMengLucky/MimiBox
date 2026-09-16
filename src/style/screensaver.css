@@ -11,7 +11,6 @@
   color: #4b3540;
   background: rgb(255 246 250 / 55%);
   backdrop-filter: blur(12px) saturate(1.25);
-  -webkit-backdrop-filter: blur(12px) saturate(1.25);
   user-select: none;
   cursor: default;
 }

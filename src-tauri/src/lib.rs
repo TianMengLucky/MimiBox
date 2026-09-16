@@ -1,8 +1,14 @@
 pub mod account;
+pub mod bangumi;
+pub mod bilibili_comments;
 pub mod bobing;
 pub mod douyin_signer;
 pub mod douyin_web;
 pub mod lottery;
+pub mod prediction;
+pub mod rating;
+mod scheme_store;
+pub mod scheme_io;
 pub mod tierlist;
 
 use std::fs;
@@ -20,14 +26,7 @@ struct AppState {
 }
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("无法解析应用数据目录: {e}"))?;
-    if !dir.exists() {
-        fs::create_dir_all(&dir).map_err(|e| format!("无法创建数据目录 {}: {e}", dir.display()))?;
-    }
-    Ok(dir.join("config.json"))
+    Ok(scheme_store::data_dir(app)?.join("config.json"))
 }
 
 #[tauri::command]
@@ -56,6 +55,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
@@ -85,7 +85,6 @@ pub fn run() {
             account::manage::account_copy_cookie,
             account::manage::account_logout,
             account::bilibili::account_switch,
-            account::bilibili::account_remove,
             account::bilibili::account_open_web,
             account::bilibili::account_qr_start,
             account::bilibili::account_qr_poll,
@@ -105,6 +104,15 @@ pub fn run() {
             tierlist::tierlist_load,
             tierlist::tierlist_save,
             tierlist::tierlist_export_image,
+            prediction::prediction_load,
+            prediction::prediction_save,
+            rating::rating_load,
+            rating::rating_save,
+            bangumi::bangumi_calendar,
+            bilibili_comments::bilibili_comments_videos,
+            bilibili_comments::bilibili_comments_list,
+            scheme_io::scheme_io_write,
+            scheme_io::scheme_io_read,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

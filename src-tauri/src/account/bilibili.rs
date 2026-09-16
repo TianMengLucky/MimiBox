@@ -183,26 +183,6 @@ pub async fn account_switch(
     Ok(status)
 }
 
-/// 从列表中移除一个账号；移除的是当前活动账号时同时注销会话
-#[tauri::command]
-pub async fn account_remove(
-    app: AppHandle,
-    state: State<'_, AccountState>,
-    mid: String,
-) -> Result<(), String> {
-    let mut store = load_store(&app)?;
-    let before = store.accounts.len();
-    store.accounts.retain(|a| a.dede_user_id != mid);
-    if store.accounts.len() == before {
-        return Err("该账号未保存".into());
-    }
-    if store.active_id.as_deref() == Some(mid.as_str()) {
-        store.active_id = None;
-        state.client.clear_account();
-    }
-    save_store(&app, &store)
-}
-
 /// 在隔离的网页窗口中打开 Bilibili，并注入当前账号的登录 Cookie。
 #[tauri::command]
 pub async fn account_open_web(

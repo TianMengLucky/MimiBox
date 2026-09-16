@@ -15,7 +15,7 @@ use super::AccountState;
 /// 通过 B 站 nav 接口查询凭据状态（头像下载接入磁盘缓存）
 pub(super) async fn status_from_client(
     client: &BpiClient,
-    http: &wreq::Client,
+    http: &reqwest::Client,
     avatar_dir: &std::path::Path,
 ) -> Result<AccountStatus, String> {
     let nav = client

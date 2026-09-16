@@ -12,6 +12,8 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* 玻璃面板共用的毛玻璃滤镜（titlebar / dock）；更柔和的场景单独写值 */
+    --backdrop-glass: blur(12px) saturate(1.4);
   }
 
   html,
@@ -70,5 +72,34 @@
   button:focus-visible {
     outline: 2px solid #d26d9a;
     outline-offset: 2px;
+  }
+}
+
+/* 分段胶囊标签页：主页功能分类（.home-tabs）与账号页登录方式（.account-tabs）
+   共用的视觉样式；两页各自的 margin 差异保留在 home.css / account.css。
+   激活态直接按 aria-pressed 选择，页面无需再拼激活类名 */
+@layer components {
+  .segment-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 999px;
+    background: rgb(246 227 225 / 70%);
+  }
+
+  .segment-tabs button {
+    border: none;
+    box-shadow: none;
+    padding: 7px 18px;
+    border-radius: 999px;
+    background: transparent;
+    color: #9b8a91;
+    font-weight: 600;
+  }
+
+  .segment-tabs button[aria-pressed="true"] {
+    background: #ffffff;
+    color: #66535a;
+    box-shadow: 0 2px 8px rgb(133 77 96 / 14%);
   }
 }
