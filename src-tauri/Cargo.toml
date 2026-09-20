@@ -30,7 +30,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 bpi-rs = "0.3.0"
 reqwest = { version = "0.12", features = ["cookies", "json", "gzip", "brotli"] }
-tokio = { version = "1", features = ["time"] }
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt", "sync", "time"] }
 qrcode = "0.14.1"
 image = "0.25.10"
 base64 = "0.23.1"
@@ -51,6 +51,9 @@ hex = "0.4"
 url = "2"
 # 方案导入导出（.miz）：应用专属 zip 方案包，仅 deflate 压缩
 zip = { version = "2", default-features = false, features = ["deflate"] }
+tokio-tungstenite = { version = "0.30.0", features = ["rustls-tls-webpki-roots"] }
+brotli = "9.0.0"
+futures-util = { version = "0.3.34", default-features = false, features = ["sink", "std"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

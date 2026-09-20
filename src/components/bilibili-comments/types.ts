@@ -30,6 +30,8 @@ export type CommentItem = {
   likes: number;
   ctime: number;
   isTop: boolean;
+  /** 是否灌水评论（纯表情/复读/口癖），由 Rust 端解析时计算 */
+  isSpam: boolean;
 };
 
 export type CommentsPage = {

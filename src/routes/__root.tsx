@@ -19,6 +19,10 @@ function RootComponent() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isWelcome = pathname === "/";
 
+  // 弹幕姬独立窗口（/danmaku）自带迷你标题栏，主窗口的外壳（标题栏/
+  // 悬浮坞/屏保/开发工具）一律不渲染，否则会叠加出两套界面
+  const isDanmakuWindow = pathname === "/danmaku";
+
   // 极简（背景）模式：隐藏路径内容并解除路径按钮高亮，仅菜单栏按钮切换。
   const [minimal, setMinimal] = useState(false);
 
@@ -26,6 +30,7 @@ function RootComponent() {
   const [screensaver, setScreensaver] = useState(false);
 
   useEffect(() => {
+    if (isDanmakuWindow) return;
     let timer = window.setTimeout(() => setScreensaver(true), IDLE_TIMEOUT_MS);
     const reset = () => {
       setScreensaver(false);
@@ -39,13 +44,13 @@ function RootComponent() {
       window.clearTimeout(timer);
       for (const type of events) window.removeEventListener(type, reset);
     };
-  }, [IDLE_TIMEOUT_MS]);
+  }, [IDLE_TIMEOUT_MS, isDanmakuWindow]);
 
   return (
     <>
-      {!screensaver && <TitleBar />}
+      {!screensaver && !isDanmakuWindow && <TitleBar />}
       {!screensaver && !minimal && <Outlet />}
-      {!isWelcome && !screensaver && (
+      {!isWelcome && !screensaver && !isDanmakuWindow && (
         <div className="corner-actions">
           <CornerDock
             highlight={!minimal}
@@ -53,8 +58,10 @@ function RootComponent() {
           />
         </div>
       )}
-      {screensaver && <Screensaver />}
-      {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
+      {screensaver && !isDanmakuWindow && <Screensaver />}
+      {import.meta.env.DEV && !isDanmakuWindow && (
+        <TanStackRouterDevtools position="bottom-right" />
+      )}
     </>
   );
 }

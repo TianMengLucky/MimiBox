@@ -1,6 +1,8 @@
 pub mod account;
 pub mod bangumi;
 pub mod bilibili_comments;
+pub mod bilibili_danmaku;
+pub mod bilibili_upload;
 pub mod bobing;
 pub mod douyin_signer;
 pub mod douyin_web;
@@ -10,6 +12,7 @@ pub mod rating;
 mod scheme_store;
 pub mod scheme_io;
 pub mod tierlist;
+pub mod whiteboard;
 
 use std::fs;
 use std::path::PathBuf;
@@ -74,6 +77,8 @@ pub fn run() {
                 first_launch: Mutex::new(first_launch),
             });
             app.manage(account::init_state(app.handle())?);
+            app.manage(bilibili_upload::UploadState::default());
+            app.manage(bilibili_danmaku::DanmakuState::default());
             setup_tray(app)?;
             Ok(())
         })
@@ -108,9 +113,20 @@ pub fn run() {
             prediction::prediction_save,
             rating::rating_load,
             rating::rating_save,
+            whiteboard::whiteboard_load,
+            whiteboard::whiteboard_save,
             bangumi::bangumi_calendar,
             bilibili_comments::bilibili_comments_videos,
             bilibili_comments::bilibili_comments_list,
+            bilibili_danmaku::client::danmaku_open,
+            bilibili_danmaku::client::danmaku_connect,
+            bilibili_danmaku::client::danmaku_disconnect,
+            bilibili_danmaku::client::danmaku_snapshot,
+            bilibili_upload::bilibili_upload_cats,
+            bilibili_upload::bilibili_upload_probe,
+            bilibili_upload::bilibili_upload_cover,
+            bilibili_upload::bilibili_upload_start,
+            bilibili_upload::bilibili_upload_cancel,
             scheme_io::scheme_io_write,
             scheme_io::scheme_io_read,
         ])

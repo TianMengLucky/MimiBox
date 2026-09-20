@@ -24,7 +24,10 @@ type FeatureEntry = {
     | "/feature/bobing"
     | "/feature/prediction"
     | "/feature/rating"
-    | "/feature/bilibili-comments";
+    | "/feature/bilibili-comments"
+    | "/feature/bilibili-upload"
+    | "/feature/danmaku"
+    | "/feature/whiteboard";
 };
 
 /** 主页功能分类标签：新增分类时在这里加一项 */
@@ -74,6 +77,30 @@ const FEATURE_LIST: FeatureEntry[] = [
     description: "查看并筛选投稿评论",
     category: "video",
     to: "/feature/bilibili-comments",
+  },
+  {
+    key: "bilibili-upload",
+    title: "B站投稿",
+    emoji: "📺",
+    description: "上传视频一键投稿",
+    category: "video",
+    to: "/feature/bilibili-upload",
+  },
+  {
+    key: "danmaku",
+    title: "弹幕直播姬",
+    emoji: "🎀",
+    description: "连接直播间实时弹幕",
+    category: "video",
+    to: "/feature/danmaku",
+  },
+  {
+    key: "whiteboard",
+    title: "白板",
+    emoji: "🖼️",
+    description: "背景图上自由摆放贴图",
+    category: "video",
+    to: "/feature/whiteboard",
   },
   {
     key: "bobing",

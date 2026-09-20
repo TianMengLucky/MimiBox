@@ -29,6 +29,19 @@
 - 模块间共享项用最小可见性（Rust `pub(crate)`/`pub(super)`）限定，
   不扩大公开面。
 
+## Performance-bound work (性能敏感计算的归属)
+
+- 性能敏感的计算必须放在 Rust 端（`src-tauri/src/`）执行，前端只消费
+  结果。"性能敏感"指：数据量随业务增长（如评论可达数千条）、需要
+  正则/Unicode 分类等逐字符重计算、或批量统计/聚合。判断基准：几十到
+  几百条数据上的简单过滤排序留在前端即可，不必为小数据跨进程移动。
+- 实现方式：优先在 Rust 返回数据的 DTO 上直接携带计算结果字段
+  （如 `bilibili_comments::CommentItem::is_spam` 由 `spam.rs` 在解析时
+  计算），前端过滤只读布尔/数值标记；确有交互式重计算需求时才单独
+  暴露 `#[tauri::command]`。
+- 同步维护 Rust DTO 与前端 `types.ts`（camelCase 对应），字段语义变更
+  时两侧一起改。
+
 ## Component reuse (组件复用约定)
 
 - 需要新增 React 组件时，优先查找 HeroUI（`@heroui/react`，v3，文档位于
@@ -130,6 +143,17 @@
    条目 `miz.json`（`app/format/kind/exportedAt/schemes`），`kind` 校验
    只能导回对应功能；由 `scheme_io.rs` 读写，文件对话框用
    `tauri-plugin-dialog` 前端 API，方案 id 冲突在导入时重新生成。
+
+## Changelog（变更日志约定）
+
+- 每次发布新版本（或做值得用户知晓的功能变更）时，必须在根目录的
+  `CHANGELOG.md` 中编写对应条目，不得遗漏。
+- `CHANGELOG.md` 采用 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)
+  格式与语义化版本号：新增条目先写入 `## [Unreleased]` 分区，发布时把
+  `Unreleased` 改为版本号并加日期，按 `Added/Changed/Fixed/Removed` 等
+  分类记录。
+- 条目面向用户描述"发生了什么"，一行一个变更；版本号变更需同步
+  `package.json`、`src-tauri/Cargo.toml`、`src-tauri/tauri.conf.json`。
 
 ## Git commit & GitHub push（提交与推送约定）
 

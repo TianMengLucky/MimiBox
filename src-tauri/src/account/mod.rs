@@ -66,20 +66,48 @@ impl AccountState {
             .active_id
             .as_deref()
             .and_then(|id| store.accounts.iter().find(|a| a.dede_user_id == id))
-            .and_then(|a| {
-                let mid = a.dede_user_id.parse().ok()?;
-                let cookie = format!(
-                    "DedeUserID={}; SESSDATA={}; bili_jct={}; buvid3={}",
-                    a.dede_user_id, a.sessdata, a.bili_jct, a.buvid3
-                );
-                Some((mid, cookie))
-            }))
+            .map(|a| (a.dede_user_id.parse().unwrap_or(0), cookie_header(a)))
+            .filter(|(mid, _)| *mid > 0))
+    }
+
+    /// 指定 mid（None 时用活动账号）的 B 站凭据 (mid, Cookie 请求头)；
+    /// 供需要按账号（而非仅活动账号）取凭据的功能模块使用
+    pub(crate) fn bilibili_credentials(
+        &self,
+        app: &AppHandle,
+        mid: Option<&str>,
+    ) -> Result<(u64, String), String> {
+        let store = store::load_store(app)?;
+        let entry = match mid {
+            Some(id) => store
+                .accounts
+                .iter()
+                .find(|a| a.dede_user_id == id)
+                .ok_or_else(|| "该账号不存在或已被删除".to_string())?,
+            None => store
+                .active_id
+                .as_deref()
+                .and_then(|id| store.accounts.iter().find(|a| a.dede_user_id == id))
+                .ok_or_else(|| "请先在账号页登录 B 站账号".to_string())?,
+        };
+        let mid = entry
+            .dede_user_id
+            .parse()
+            .map_err(|_| "账号 mid 不是有效数字".to_string())?;
+        Ok((mid, cookie_header(entry)))
     }
 }
 
+/// 由账号记录拼 B 站接口所需的 Cookie 请求头
+fn cookie_header(entry: &store::StoredAccount) -> String {
+    format!(
+        "DedeUserID={}; SESSDATA={}; bili_jct={}; buvid3={}",
+        entry.dede_user_id, entry.sessdata, entry.bili_jct, entry.buvid3
+    )
+}
+
 /// 提取响应的全部 Set-Cookie 为键值对（去掉属性部分）
-pub(crate) fn response_cookies(response: &reqwest::Response) -> Vec<(String, String)> {
-    response
+pub(crate) fn response_cookies(response: &reqwest::Response) -> Vec<(String, String)> {    response
         .headers()
         .get_all(SET_COOKIE)
         .iter()

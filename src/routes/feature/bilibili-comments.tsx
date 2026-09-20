@@ -58,9 +58,10 @@ function BilibiliCommentsRoute() {
   const [commentsError, setCommentsError] = useState("");
   const [mode, setMode] = useState<ReplyMode>(2);
 
-  /** 筛选项：关键词 + 最低点赞 */
+  /** 筛选项：关键词 + 最低点赞 + 过滤灌水 */
   const [keyword, setKeyword] = useState("");
   const [minLikes, setMinLikes] = useState(0);
+  const [hideSpam, setHideSpam] = useState(true);
 
   const loadVideos = useCallback(async (target: number) => {
     setVideosLoading(true);
@@ -109,6 +110,7 @@ function BilibiliCommentsRoute() {
     setHasMore(false);
     setKeyword("");
     setMinLikes(0);
+    setHideSpam(true);
     setMode(2);
     void loadComments(target, 1, 2, false);
   };
@@ -120,17 +122,18 @@ function BilibiliCommentsRoute() {
     void loadComments(video, 1, next, false);
   };
 
-  /** 客户端筛选：关键词（昵称或内容）+ 最低点赞 */
+  /** 客户端筛选：关键词（昵称或内容）+ 最低点赞 + 灌水过滤 */
   const filteredComments = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
     return comments.filter(
       (c) =>
         c.likes >= minLikes &&
+        (!hideSpam || !c.isSpam) &&
         (kw === "" ||
           c.content.toLowerCase().includes(kw) ||
           c.uname.toLowerCase().includes(kw)),
     );
-  }, [comments, keyword, minLikes]);
+  }, [comments, keyword, minLikes, hideSpam]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -186,6 +189,21 @@ function BilibiliCommentsRoute() {
               {label}
             </button>
           ))}
+
+          <button
+            type="button"
+            aria-pressed={hideSpam}
+            title="隐藏纯表情、单字复读、打卡口癖等无实质内容的评论"
+            className={
+              hideSpam
+                ? "flex items-center gap-1.5 rounded-full border border-white/70 bg-white px-4 py-1.5 text-sm font-bold text-[#66535a] shadow-[0_2px_8px_rgb(133_77_96/14%)]"
+                : "flex items-center gap-1.5 rounded-full border border-white/55 bg-white/45 px-4 py-1.5 text-sm font-semibold text-[#9b8a91] hover:text-[#66535a]"
+            }
+            onClick={() => setHideSpam((prev) => !prev)}
+          >
+            <Icon icon="lucide:filter" width="14" height="14" aria-hidden="true" />
+            过滤灌水
+          </button>
 
           <label className="flex min-w-40 flex-1 items-center gap-1.5 rounded-full border border-white/55 bg-white/60 px-3 py-1.5 sm:max-w-64">
             <Icon icon="lucide:search" width="15" height="15" aria-hidden="true" className="shrink-0 text-[#9b8a91]" />

@@ -1,0 +1,100 @@
+/* 弹幕姬独立窗口（/danmaku）：进入动画、粉丝牌/舰队徽章与自绘标题栏按钮。
+   keyframes 与未分层的元素级规则按约定放在外接 CSS；布局与配色写在组件 Tailwind 类上。 */
+
+/* 弹幕进入动画：轻微上浮 + 淡入，尊重系统减弱动态偏好 */
+@keyframes danmaku-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.danmaku-item {
+  animation: danmaku-in 0.18s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .danmaku-item {
+    animation: none;
+  }
+}
+
+/* 粉丝牌：小圆角两段式 chip（名字浅粉底 + 等级加深） */
+.danmaku-medal {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  color: #fff;
+  background: linear-gradient(90deg, #f9a8c9, #fb7299);
+}
+
+/* 舰队徽章：总督/提督/舰长各一档配色 */
+.danmaku-guard {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 999px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  color: #fff;
+}
+
+.danmaku-guard-captain {
+  background: #4fa9e0;
+}
+
+.danmaku-guard-admiral {
+  background: #9d7ce8;
+}
+
+.danmaku-guard-governor {
+  background: #f06a5e;
+}
+
+/* 自绘标题栏的窗口控制按钮（最小化/关闭），覆盖元素默认样式的细节留在层外 */
+.danmaku-window-control {
+  display: flex;
+  height: 28px;
+  width: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #9b8a91;
+  cursor: pointer;
+  outline-offset: -2px;
+}
+
+.danmaku-window-control:hover {
+  color: #66535a;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.danmaku-window-control:last-child:hover {
+  color: #d9538a;
+}
+
+/* 弹幕窗口滚动条：细一点，贴合粉白主题 */
+.danmaku-item::-webkit-scrollbar,
+ul[aria-label="弹幕列表"]::-webkit-scrollbar {
+  width: 6px;
+}
+
+ul[aria-label="弹幕列表"]::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(251, 114, 153, 0.25);
+}
+
+ul[aria-label="弹幕列表"]::-webkit-scrollbar-track {
+  background: transparent;
+}

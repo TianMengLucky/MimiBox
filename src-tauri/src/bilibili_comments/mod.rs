@@ -1,5 +1,6 @@
 //! B 站评论区功能：获取当前登录账号的视频列表与指定视频的评论。
 
+mod spam;
 mod wbi;
 
 use serde::{Deserialize, Serialize};
@@ -7,8 +8,8 @@ use tauri::{AppHandle, State};
 
 use crate::account::AccountState;
 
-/// Chrome 137 UA（与协议 profile 保持一致）
-const UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
+/// Chrome 137 UA（与协议 profile 保持一致），B 站功能模块共享
+pub(crate) const UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -47,6 +48,8 @@ pub struct CommentItem {
     /// 发布时间（Unix 秒）
     pub ctime: i64,
     pub is_top: bool,
+    /// 是否灌水评论（纯表情/复读/口癖），由 spam 模块在解析时计算
+    pub is_spam: bool,
 }
 
 #[derive(Serialize)]
@@ -163,7 +166,7 @@ pub async fn bilibili_comments_videos(
 /// 解析单条评论（wbi/main 与 reply/main 的回复结构一致）
 fn parse_comment(item: &serde_json::Value, is_top: bool) -> CommentItem {
     let member = &item["member"];
-    CommentItem {
+    let mut result = CommentItem {
         rpid: item["rpid"].as_i64().unwrap_or(0),
         mid: member["mid"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0),
         uname: member["uname"].as_str().unwrap_or("匿名用户").to_string(),
@@ -181,7 +184,10 @@ fn parse_comment(item: &serde_json::Value, is_top: bool) -> CommentItem {
         likes: item["like"].as_i64().unwrap_or(0),
         ctime: item["ctime"].as_i64().unwrap_or(0),
         is_top,
-    }
+        is_spam: false,
+    };
+    result.is_spam = spam::is_spam_comment(&result.content);
+    result
 }
 
 /// 指定视频的评论区（aid + 分页；mode: 2=最热 3=最新）
