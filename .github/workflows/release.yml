@@ -36,6 +36,31 @@ jobs:
         with:
           workspaces: src-tauri
 
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            { sub(/\r$/, "") }
+            BEGIN { head = "## [" ver "]" }
+            !found && index($0, head) == 1 { found = 1; next }
+            found && (substr($0, 1, 3) == "## " || substr($0, 1, 1) == "[") { exit }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+          sed -i -e '/./,$!d' release_notes.md
+          printf '%s\n' "$(cat release_notes.md)" > release_notes.md
+          if [ ! -s release_notes.md ]; then
+            echo "No section '## [$VERSION]' found in CHANGELOG.md" >&2
+            exit 1
+          fi
+          {
+            echo 'body<<NOTES_EOF'
+            cat release_notes.md
+            echo 'NOTES_EOF'
+          } >> "$GITHUB_OUTPUT"
+          cat release_notes.md
+
       - name: Build and release
         uses: tauri-apps/tauri-action@v1
         env:
@@ -45,6 +70,6 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'MimiBox ${{ github.ref_name }}'
-          releaseBody: 'See the assets to download and install this version.'
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false

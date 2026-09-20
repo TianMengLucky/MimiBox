@@ -155,6 +155,35 @@
 - 条目面向用户描述"发生了什么"，一行一个变更；版本号变更需同步
   `package.json`、`src-tauri/Cargo.toml`、`src-tauri/tauri.conf.json`。
 
+## Release & Tauri Updater（版本发布与更新源约定）
+
+- Tauri Updater 已启用（`src-tauri/tauri.conf.json`：
+  `createUpdaterArtifacts: true` + `plugins.updater`），更新源 endpoint 指向
+  `https://github.com/TianMengLucky/MimiBox/releases/latest/download/latest.json`，
+  即从最新 GitHub Release 的资产中读取 `latest.json`。
+- `latest.json` **不需要手写提交到仓库**：推送 `v*` tag 后，`.github/workflows/release.yml`
+  中的 `tauri-action` 会自动构建安装包与签名更新包，并把生成的 `latest.json`
+  连同安装包一起上传到对应 Release 的资产里。手动在仓库里放静态
+  `latest.json` 不会被更新源读取到，只会造成过期信息。
+- Release（GitHub 发布）与发布说明同样由 workflow 自动创建/更新，**不要
+  手动在 GitHub 上创建或编辑 Release**：`tauri-action` 会用 `releaseBody`
+  覆盖已有 Release 的说明。workflow 中的 "Extract release notes" 步骤会
+  从 `CHANGELOG.md` 提取 `## [X.Y.Z]` 小节（到下一个 `## ` 标题或链接
+  定义行为止）作为发布说明，并同步写入 `latest.json` 的 `notes` 字段；
+  因此发版前务必把该版本条目整理进 `CHANGELOG.md`，要修改已发布的说明
+  也应先改 `CHANGELOG.md`（再手动同步到 Release 页面即可）。
+- 因此**每次版本发布都必须**：
+  1. 同步提升版本号：`package.json`、`src-tauri/Cargo.toml`、
+     `src-tauri/tauri.conf.json`（三处一致）；
+  2. 按 Changelog 约定更新 `CHANGELOG.md`（`Unreleased` → 版本号 + 日期）；
+  3. 提交并推送 tag（`git push origin main --follow-tags`，或单独
+     `git push origin vX.Y.Z`）触发 release workflow；
+  4. 等 GitHub Actions 构建完成后，检查 Release 资产中包含
+     `latest.json` 与 `.msi`/`.exe` 等安装包，确认更新链路可用
+     （访问 `releases/latest/download/latest.json` 应能返回新版本号）。
+  - 若 workflow 失败或资产缺失，需修复后重新发布，否则旧版本客户端
+    无法通过应用内更新升级。
+
 ## Git commit & GitHub push（提交与推送约定）
 
 - 当 Agent 创建 Git 提交并将其推送到 GitHub，且该提交包含的改动完全由
