@@ -1,7 +1,12 @@
 import { Box, Flex } from "@apvee/react-layout-kit";
 import { Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 
 export const Route = createFileRoute("/feature")({
   component: FeatureLayout,
@@ -16,6 +21,8 @@ export const Route = createFileRoute("/feature")({
  */
 function FeatureLayout() {
   const navigate = useNavigate();
+  // 以路径为 key：切换功能页时重挂载包裹层，重放入场动画（style/motion.css）
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   return (
     // 固定视口高度 + 上下留白（顶部给 TitleBar 覆盖层），面板高度由
@@ -57,7 +64,7 @@ function FeatureLayout() {
             $minHeight={0}
             $overflowY="auto"
           >
-            <div>
+            <div key={pathname} className="page-in">
               <Outlet />
             </div>
           </Box>

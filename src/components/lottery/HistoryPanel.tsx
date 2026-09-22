@@ -1,11 +1,8 @@
-import { useEffect, useRef, useState } from "react";
 import { Button, ScrollShadow } from "@heroui/react";
 import { Icon } from "@iconify/react";
+import { formatTime } from "../../lib/format";
+import { useConfirmClear } from "../../lib/useConfirmClear";
 import type { LotteryHistoryEntry } from "./types";
-
-function formatTime(time: number): string {
-  return new Date(time).toLocaleString("zh-CN", { hour12: false });
-}
 
 /** 历史记录面板：查看最近抽奖记录 / 清除（两步确认） */
 export function HistoryPanel({
@@ -15,10 +12,7 @@ export function HistoryPanel({
   entries: LotteryHistoryEntry[];
   onClear: () => void;
 }) {
-  const [confirmingClear, setConfirmingClear] = useState(false);
-  const resetTimer = useRef<number | undefined>(undefined);
-
-  useEffect(() => () => window.clearTimeout(resetTimer.current), []);
+  const { confirming: confirmingClear, confirm } = useConfirmClear(onClear);
 
   return (
     <section
@@ -38,16 +32,7 @@ export function HistoryPanel({
           <Button
             size="sm"
             variant={confirmingClear ? "danger" : "ghost"}
-            onPress={() => {
-              window.clearTimeout(resetTimer.current);
-              if (confirmingClear) {
-                setConfirmingClear(false);
-                onClear();
-              } else {
-                setConfirmingClear(true);
-                resetTimer.current = window.setTimeout(() => setConfirmingClear(false), 3000);
-              }
-            }}
+            onPress={confirm}
           >
             <Icon icon="lucide:eraser" width="14" height="14" aria-hidden="true" />
             {confirmingClear ? "确认清除？" : "清除记录"}

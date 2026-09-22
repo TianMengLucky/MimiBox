@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
-import { formatBytes } from "./format";
+import { formatBytes } from "../../lib/format";
 import type { VideoFileInfo } from "./types";
 import { FileDropZone } from "@components/FileDropZone";
 import { tauriInvoke } from "../../lib/tauriInvoke";
+import { errorMessage } from "../../lib/errors";
 
 /** 视频文件选择过滤（与 Rust 端 VIDEO_EXTS 一致） */
 const VIDEO_ACCEPT = ".mp4,.flv,.avi,.wmv,.mov,.webm,.mkv,.m4v,.ts,.3gp,.mpeg,.mpg";
@@ -44,7 +45,7 @@ export function VideoPicker({
       const probed = await tauriInvoke<VideoFileInfo>("bilibili_upload_probe", { path });
       onPicked(path, probed);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(errorMessage(err));
     }
   };
 

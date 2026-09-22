@@ -1,21 +1,32 @@
 "use no memo";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Spinner } from "@heroui/react";
+import { Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { tauriInvoke } from "../../lib/tauriInvoke";
+import { errorMessage } from "../../lib/errors";
 import CommentCard from "@components/bilibili-comments/CommentCard";
 import VideoCard from "@components/bilibili-comments/VideoCard";
 import { formatCount } from "@components/bilibili-comments/format";
-import type { CommentItem, VideoSummary, VideosPage } from "@components/bilibili-comments/types";
+import { PageLoading } from "@components/screen/PageLoading";
+import type { CommentItem, LocalReply, VideoSummary, VideosPage } from "@components/bilibili-comments/types";
 
 export const Route = createFileRoute("/feature/bilibili-comments")({
   component: BilibiliCommentsRoute,
 });
 
-/** 评论排序：2=最热（点赞）3=最新（时间），对应 reply 接口的 mode */
+/** B站 reply 接口的排序 mode：3=最热（默认）2=按时间 */
 type ReplyMode = 2 | 3;
+
+/** 排序展示项：最新/最晚都走 mode=2，最晚仅把已加载评论改为从旧到新展示 */
+type SortKey = "hot" | "newest" | "oldest";
+
+const SORT_ITEMS = [
+  { key: "hot", label: "最热", icon: "lucide:flame" },
+  { key: "newest", label: "最新", icon: "lucide:calendar-days" },
+  { key: "oldest", label: "最晚", icon: "lucide:history" },
+] as const satisfies ReadonlyArray<{ key: SortKey; label: string; icon: string }>;
 
 /** 点赞数筛选阈值 */
 const LIKE_FILTERS = [
@@ -27,7 +38,12 @@ const LIKE_FILTERS = [
 
 /** 浏览器开发预览时的空数据默认值 */
 const EMPTY_VIDEOS: VideosPage = { videos: [], page: 1, pageCount: 1, total: 0 };
-const EMPTY_COMMENTS = { comments: [] as CommentItem[], total: 0, hasMore: false };
+const EMPTY_COMMENTS = {
+  comments: [] as CommentItem[],
+  total: 0,
+  hasMore: false,
+  nextOffset: null,
+};
 
 async function fetchVideos(page: number): Promise<VideosPage> {
   return tauriInvoke<VideosPage>("bilibili_comments_videos", { page }, {
@@ -35,10 +51,15 @@ async function fetchVideos(page: number): Promise<VideosPage> {
   });
 }
 
-async function fetchComments(aid: number, page: number, mode: ReplyMode) {
-  return tauriInvoke<{ comments: CommentItem[]; total: number; hasMore: boolean }>(
+async function fetchComments(aid: number, page: number, mode: ReplyMode, nextOffset: string | null) {
+  return tauriInvoke<{
+    comments: CommentItem[];
+    total: number;
+    hasMore: boolean;
+    nextOffset: string | null;
+  }>(
     "bilibili_comments_list",
-    { aid, page, mode },
+    { aid, page, mode, nextOffset },
     { defaultValue: EMPTY_COMMENTS },
   );
 }
@@ -56,12 +77,15 @@ function BilibiliCommentsRoute() {
   const [hasMore, setHasMore] = useState(false);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentsError, setCommentsError] = useState("");
-  const [mode, setMode] = useState<ReplyMode>(2);
+  const [sort, setSort] = useState<SortKey>("hot");
+  /** 时间排序的翻页游标（mode=2），最热排序走页码不需要 */
+  const [nextOffset, setNextOffset] = useState<string | null>(null);
 
-  /** 筛选项：关键词 + 最低点赞 + 过滤灌水 */
+  /** 筛选项：关键词 + 最低点赞 + 过滤灌水 + 只看标记 */
   const [keyword, setKeyword] = useState("");
   const [minLikes, setMinLikes] = useState(0);
   const [hideSpam, setHideSpam] = useState(true);
+  const [onlyMarked, setOnlyMarked] = useState(false);
 
   const loadVideos = useCallback(async (target: number) => {
     setVideosLoading(true);
@@ -71,7 +95,7 @@ function BilibiliCommentsRoute() {
       setPage(target);
     } catch (err) {
       setVideosPage(null);
-      setVideosError(err instanceof Error ? err.message : String(err));
+      setVideosError(errorMessage(err));
     } finally {
       setVideosLoading(false);
     }
@@ -82,23 +106,130 @@ function BilibiliCommentsRoute() {
   }, [video, videosPage, videosError, loadVideos]);
 
   const loadComments = useCallback(
-    async (target: VideoSummary, next: number, sortMode: ReplyMode, append: boolean) => {
+    async (
+      target: VideoSummary,
+      next: number,
+      sortMode: ReplyMode,
+      cursor: string | null,
+      append: boolean,
+    ) => {
       setCommentsLoading(true);
       setCommentsError("");
       try {
-        const data = await fetchComments(target.aid, next, sortMode);
+        const data = await fetchComments(target.aid, next, sortMode, cursor);
         setComments((prev) => (append ? [...prev, ...data.comments] : data.comments));
         setCommentTotal(data.total);
         setCommentPage(next);
         setHasMore(data.hasMore);
+        setNextOffset(data.nextOffset);
       } catch (err) {
-        setCommentsError(err instanceof Error ? err.message : String(err));
+        setCommentsError(errorMessage(err));
         if (!append) setComments([]);
       } finally {
         setCommentsLoading(false);
       }
     },
     [],
+  );
+
+  /** 标记 / 取消标记：先本地乐观更新，落盘失败则回滚 */
+  const toggleMark = useCallback(async (rpid: number, marked: boolean) => {
+    setComments((prev) =>
+      prev.map((c) => (c.rpid === rpid ? { ...c, isMarked: marked } : c)),
+    );
+    try {
+      await tauriInvoke("bilibili_comments_set_mark", { rpid, marked });
+    } catch {
+      setComments((prev) =>
+        prev.map((c) => (c.rpid === rpid ? { ...c, isMarked: !marked } : c)),
+      );
+    }
+  }, []);
+
+  /** 本地修改评论内容（null=还原原文）：乐观更新，落盘失败回滚 */
+  const setEdit = useCallback(
+    async (rpid: number, content: string | null) => {
+      const prev = comments.find((c) => c.rpid === rpid)?.localEdit ?? null;
+      setComments((cs) =>
+        cs.map((c) => (c.rpid === rpid ? { ...c, localEdit: content } : c)),
+      );
+      try {
+        await tauriInvoke("bilibili_comments_set_edit", { rpid, content });
+      } catch (err) {
+        setComments((cs) =>
+          cs.map((c) => (c.rpid === rpid ? { ...c, localEdit: prev } : c)),
+        );
+        setCommentsError(errorMessage(err));
+      }
+    },
+    [comments],
+  );
+
+  /** 新增本地回复：落盘成功后挂到原评论下方 */
+  const addReply = useCallback(async (rpid: number, content: string) => {
+    try {
+      const reply = await tauriInvoke<LocalReply>(
+        "bilibili_comments_add_reply",
+        { parentRpid: rpid, content },
+      );
+      setComments((cs) =>
+        cs.map((c) => (c.rpid === rpid ? { ...c, replies: [...c.replies, reply] } : c)),
+      );
+    } catch (err) {
+      setCommentsError(errorMessage(err));
+    }
+  }, []);
+
+  /** 修改本地回复：乐观更新，落盘失败回滚 */
+  const updateReply = useCallback(
+    async (id: string, content: string) => {
+      const parent = comments.find((c) => c.replies.some((r) => r.id === id));
+      const prev = parent?.replies.find((r) => r.id === id)?.content;
+      setComments((cs) =>
+        cs.map((c) => ({
+          ...c,
+          replies: c.replies.map((r) => (r.id === id ? { ...r, content } : r)),
+        })),
+      );
+      try {
+        await tauriInvoke("bilibili_comments_update_reply", { id, content });
+      } catch (err) {
+        if (prev !== undefined) {
+          setComments((cs) =>
+            cs.map((c) => ({
+              ...c,
+              replies: c.replies.map((r) => (r.id === id ? { ...r, content: prev } : r)),
+            })),
+          );
+        }
+        setCommentsError(errorMessage(err));
+      }
+    },
+    [comments],
+  );
+
+  /** 删除本地回复：乐观更新，落盘失败回滚 */
+  const removeReply = useCallback(
+    async (id: string) => {
+      const parent = comments.find((c) => c.replies.some((r) => r.id === id));
+      const prev = parent?.replies.find((r) => r.id === id);
+      setComments((cs) =>
+        cs.map((c) => ({ ...c, replies: c.replies.filter((r) => r.id !== id) })),
+      );
+      try {
+        await tauriInvoke("bilibili_comments_remove_reply", { id });
+      } catch (err) {
+        if (prev && parent) {
+          setComments((cs) =>
+            cs.map((c) =>
+              c.rpid === parent.rpid ? { ...c, replies: [...c.replies, prev] } : c,
+            ),
+          );
+        }
+        setCommentsError(errorMessage(err));
+      }
+    },
+    [comments],
   );
 
   /** 选中视频：进入评论区并重置筛选 */
@@ -111,29 +242,48 @@ function BilibiliCommentsRoute() {
     setKeyword("");
     setMinLikes(0);
     setHideSpam(true);
-    setMode(2);
-    void loadComments(target, 1, 2, false);
+    setOnlyMarked(false);
+    setSort("hot");
+    setNextOffset(null);
+    void loadComments(target, 1, 3, null, false);
   };
 
-  /** 切换排序：从第一页重新拉取 */
-  const changeMode = (next: ReplyMode) => {
-    if (!video || mode === next) return;
-    setMode(next);
-    void loadComments(video, 1, next, false);
+  /** 切换排序：最热↔时间需要重新拉取；最新↔最晚只是同一批数据的展示顺序 */
+  const changeSort = (next: SortKey) => {
+    if (!video || sort === next) return;
+    const modeChanged = sort === "hot" !== (next === "hot");
+    setSort(next);
+    if (modeChanged) {
+      setNextOffset(null);
+      void loadComments(video, 1, next === "hot" ? 3 : 2, null, false);
+    }
   };
 
-  /** 客户端筛选：关键词（昵称或内容）+ 最低点赞 + 灌水过滤 */
+  /** 当前排序对应的接口 mode：最热=3，最新/最晚=2（时间） */
+  const replyMode: ReplyMode = sort === "hot" ? 3 : 2;
+
+  /** 客户端筛选：关键词（昵称或显示内容，含本地修改）+ 最低点赞 + 灌水过滤 + 只看标记 */
   const filteredComments = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
     return comments.filter(
       (c) =>
         c.likes >= minLikes &&
         (!hideSpam || !c.isSpam) &&
+        (!onlyMarked || c.isMarked) &&
         (kw === "" ||
-          c.content.toLowerCase().includes(kw) ||
+          (c.localEdit ?? c.content).toLowerCase().includes(kw) ||
           c.uname.toLowerCase().includes(kw)),
     );
-  }, [comments, keyword, minLikes, hideSpam]);
+  }, [comments, keyword, minLikes, hideSpam, onlyMarked]);
+
+  /** 展示顺序：最热/最新按接口返回顺序；「最晚」把已加载评论改为从旧到新，置顶始终在前 */
+  const displayComments = useMemo(() => {
+    if (sort !== "oldest") return filteredComments;
+    return [...filteredComments].sort(
+      (a, b) =>
+        Number(b.isTop) - Number(a.isTop) || a.ctime - b.ctime || a.rpid - b.rpid,
+    );
+  }, [filteredComments, sort]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -163,29 +313,24 @@ function BilibiliCommentsRoute() {
           role="group"
           aria-label="评论筛选"
         >
-          {(
-            [
-              { value: 2 as ReplyMode, label: "最热" },
-              { value: 3 as ReplyMode, label: "最新" },
-            ] as const
-          ).map(({ value, label }) => (
+          {SORT_ITEMS.map(({ key, label, icon }) => (
             <button
-              key={value}
+              key={key}
               type="button"
-              aria-pressed={mode === value}
+              aria-pressed={sort === key}
+              title={
+                key === "oldest"
+                  ? "在已加载的评论里从旧到新排列（置顶除外）"
+                  : undefined
+              }
               className={
-                mode === value
+                sort === key
                   ? "flex items-center gap-1.5 rounded-full border border-white/70 bg-white px-4 py-1.5 text-sm font-bold text-[#66535a] shadow-[0_2px_8px_rgb(133_77_96/14%)]"
                   : "flex items-center gap-1.5 rounded-full border border-white/55 bg-white/45 px-4 py-1.5 text-sm font-semibold text-[#9b8a91] hover:text-[#66535a]"
               }
-              onClick={() => changeMode(value)}
+              onClick={() => changeSort(key)}
             >
-              <Icon
-                icon={value === 2 ? "lucide:flame" : "lucide:calendar-days"}
-                width="14"
-                height="14"
-                aria-hidden="true"
-              />
+              <Icon icon={icon} width="14" height="14" aria-hidden="true" />
               {label}
             </button>
           ))}
@@ -203,6 +348,27 @@ function BilibiliCommentsRoute() {
           >
             <Icon icon="lucide:filter" width="14" height="14" aria-hidden="true" />
             过滤灌水
+          </button>
+
+          <button
+            type="button"
+            aria-pressed={onlyMarked}
+            title="只显示已标记的评论"
+            className={
+              onlyMarked
+                ? "flex items-center gap-1.5 rounded-full border border-[#fb7299]/45 bg-[#fb7299]/15 px-4 py-1.5 text-sm font-bold text-[#fb7299] shadow-[0_2px_8px_rgb(251_114_153/18%)]"
+                : "flex items-center gap-1.5 rounded-full border border-white/55 bg-white/45 px-4 py-1.5 text-sm font-semibold text-[#9b8a91] hover:text-[#66535a]"
+            }
+            onClick={() => setOnlyMarked((prev) => !prev)}
+          >
+            <Icon
+              icon="lucide:bookmark"
+              width="14"
+              height="14"
+              aria-hidden="true"
+              className={onlyMarked ? "fill-current" : ""}
+            />
+            只看标记
           </button>
 
           <label className="flex min-w-40 flex-1 items-center gap-1.5 rounded-full border border-white/55 bg-white/60 px-3 py-1.5 sm:max-w-64">
@@ -288,21 +454,33 @@ function BilibiliCommentsRoute() {
               loading={commentsLoading && comments.length === 0}
               error={commentsError}
               loadingText="正在获取评论…"
-              onRetry={() => void loadComments(video, 1, mode, false)}
+              onRetry={() => void loadComments(video, 1, replyMode, null, false)}
             />
-            {!commentsLoading && !commentsError && filteredComments.length === 0 && (
+            {!commentsLoading && !commentsError && displayComments.length === 0 && (
               <p className="m-0 py-12 text-center text-sm text-[#9b8a91]">
-                {comments.length === 0 ? "这个视频还没有评论" : "没有符合筛选条件的评论"}
+                {comments.length === 0
+                  ? "这个视频还没有评论"
+                  : onlyMarked && !comments.some((c) => c.isMarked)
+                    ? "还没有标记任何评论，点击评论右下角的「标记」按钮即可收藏"
+                    : "没有符合筛选条件的评论"}
               </p>
             )}
-            {filteredComments.length > 0 && (
+            {displayComments.length > 0 && (
               <>
                 <ul
                   aria-label="评论列表"
                   className="m-0 flex list-none flex-col gap-3 overflow-y-auto p-0 pb-1"
                 >
-                  {filteredComments.map((comment) => (
-                    <CommentCard key={comment.rpid} comment={comment} />
+                  {displayComments.map((comment) => (
+                    <CommentCard
+                      key={comment.rpid}
+                      comment={comment}
+                      onToggleMark={toggleMark}
+                      onSetEdit={setEdit}
+                      onAddReply={addReply}
+                      onUpdateReply={updateReply}
+                      onRemoveReply={removeReply}
+                    />
                   ))}
                 </ul>
                 <div className="flex justify-center pt-2">
@@ -311,7 +489,9 @@ function BilibiliCommentsRoute() {
                       variant="tertiary"
                       size="sm"
                       isDisabled={commentsLoading}
-                      onPress={() => void loadComments(video, commentPage + 1, mode, true)}
+                      onPress={() =>
+                        void loadComments(video, commentPage + 1, replyMode, nextOffset, true)
+                      }
                     >
                       {commentsLoading ? "正在加载…" : "加载更多"}
                     </Button>
@@ -377,16 +557,11 @@ function LoadingError({
   onRetry: () => void;
 }) {
   if (loading) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-[#9b8a91]">
-        <Spinner size="lg" color="accent" />
-        {loadingText}
-      </div>
-    );
+    return <PageLoading label={loadingText} />;
   }
   if (error) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+      <div className="page-in flex flex-1 flex-col items-center justify-center gap-3 text-center">
         <Icon
           icon="lucide:circle-off"
           width="36"

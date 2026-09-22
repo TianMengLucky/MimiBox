@@ -1,11 +1,12 @@
 /* 弹幕姬独立窗口（/danmaku）：进入动画、粉丝牌/舰队徽章与自绘标题栏按钮。
    keyframes 与未分层的元素级规则按约定放在外接 CSS；布局与配色写在组件 Tailwind 类上。 */
 
-/* 弹幕进入动画：轻微上浮 + 淡入，尊重系统减弱动态偏好 */
+/* 弹幕进入动画：轻微下落 + 淡入（-Y 起始避免容器底部溢出触发滚动条，
+   见 motion.css 同规则），尊重系统减弱动态偏好 */
 @keyframes danmaku-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;

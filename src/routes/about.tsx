@@ -4,8 +4,7 @@ import { Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { createFileRoute } from "@tanstack/react-router";
 import appIcon from "@assets/app-icon.png";
-
-const hasTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+import { hasTauri } from "../lib/tauriInvoke";
 
 const GITHUB_URL = "https://github.com/TianMengLucky/MimiBox";
 
@@ -39,7 +38,7 @@ function AboutRoute() {
     <Flex direction="column" align="center" justify="center" mih="100dvh" px={96} py={80}>
       <Box
         asChild
-        className="rounded-3xl border border-white/55 bg-white/60 shadow-[0_8px_30px_rgb(133_77_96/14%)] backdrop-blur-[16px] backdrop-saturate-[1.3] motion-reduce:bg-white/80 motion-reduce:backdrop-blur-none"
+        className="page-in rounded-3xl border border-white/55 bg-white/60 shadow-[0_8px_30px_rgb(133_77_96/14%)] backdrop-blur-[16px] backdrop-saturate-[1.3] motion-reduce:bg-white/80 motion-reduce:backdrop-blur-none"
         $width="100%"
         $maxWidth={448}
         p={28}

@@ -143,6 +143,18 @@
    条目 `miz.json`（`app/format/kind/exportedAt/schemes`），`kind` 校验
    只能导回对应功能；由 `scheme_io.rs` 读写，文件对话框用
    `tauri-plugin-dialog` 前端 API，方案 id 冲突在导入时重新生成。
+   新增评论标记（2026-09-20，`comment_marks.json`，结构 `{ rpids: number[] }`）：
+   B 站评论每次从接口重拉、不落地，故标记状态按全站唯一的评论 `rpid` 单独
+   持久化；由 `bilibili_comments/marks.rs` 读写，列表接口返回前注入
+   `CommentItem::is_marked`，前端「只看标记」只读该布尔字段；属于版本号
+   未提升的情况，无迁移代码，解析失败降级为空集合。
+   新增本地评论备注（2026-09-22，`comment_notes.json`，结构
+   `{ edits: { rpid: content }, replies: [{ id, parentRpid, content, createdAt }] }`）：
+   B 站评论区支持仅本地存储与显示的评论修改与回复——修改按 rpid 覆盖显示
+   内容（还原即删除条目），回复按 `parent_rpid` 挂回原评论下方，不同步到
+   B 站；由 `bilibili_comments/notes.rs` 读写，列表接口返回前注入
+   `CommentItem::local_edit` 与 `CommentItem::replies`；新增文件无旧格式，
+   无迁移代码，解析失败降级为空数据。
 
 ## Changelog（变更日志约定）
 

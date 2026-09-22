@@ -3,8 +3,7 @@ import { Button, ButtonGroup } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useRouterState } from "@tanstack/react-router";
 import appIcon from "@assets/app-icon.png";
-
-const hasTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+import { hasTauri } from "../lib/tauriInvoke";
 
 function MinimizeGlyph() {
   return <Icon icon="mdi:window-minimize" width="14" height="14" aria-hidden="true" />;

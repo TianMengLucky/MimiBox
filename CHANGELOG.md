@@ -5,7 +5,26 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [0.2.0] - 2026-09-22
+
+### Added
+
+- 应用更新界面加入过渡动画：检查/发现新版本/下载进度/安装重启等阶段平滑切换，图标弹性入场，下载进度显示百分比与已下载大小
+- 页面加载占位加入品牌弹性动效：加载点改用 motion 动效库（framer-motion 继任者），账号页、评论区等加载状态统一使用同一占位组件
+- 所有动效尊重系统「减弱动态效果」设置
+- B 站评论区支持标记评论，并可一键「只看标记」筛选已标记的评论（标记按评论 rpid 持久化到 `comment_marks.json`，翻页或重进后仍保留）
+- B 站评论区新增本地备注：可修改任意评论的显示内容（支持「查看原文」与一键还原），并可撰写仅本地显示的回复、挂在原评论下方，回复可再编辑或删除；修改与回复持久化到 `comment_notes.json`，不会同步到 B 站
+- 出错界面新增「返回主页」按钮，可从崩溃页面直接回到主页
+
+### Changed
+
+- B 站评论区排序调整为「最热 / 最新 / 最晚」三项：按时间排序改用 B 站游标翻页接口（修复翻页与加载更多），「最晚」把已加载的评论从旧到新排列（置顶除外）
+
+### Fixed
+
+- 修复动画进行时背景掉帧卡顿的问题：背景图从 `background-attachment: fixed` 改为独立 fixed 定位层，只合成一次，动画帧不再强制整张背景重绘；同时入场动画改为从上方落下（-Y 位移），修复占满一屏的页面（主页/资料库/账号页等）切换时滚动条闪现导致的背景左右晃动
+- 修复评论排序模式与 B 站接口语义相反的问题：原「最新」实际请求的是热度排序、「最热」实际是时间排序
+- 修复评论区「加载更多」在已到末页后仍显示的问题（`is_end` 布尔值解析错误导致 hasMore 恒为真）
 
 ## [0.1.0] - 2026-09-20
 
@@ -33,5 +52,6 @@
 - 网络层由 wreq 迁移到 reqwest
 - 许可证确定为 GPLv3，README 添加免责声明
 
-[Unreleased]: https://github.com/TianMengLucky/MimiBox/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/TianMengLucky/MimiBox/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.0
 [0.1.0]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.1.0

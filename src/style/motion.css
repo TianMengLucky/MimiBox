@@ -1,0 +1,30 @@
+/* ---------- 共享动效：页面入场 ----------
+   keyframes 与多状态动画按约定放外接 CSS；组件内通过 className 引用。
+   加载占位的弹性点位动画由 motion 库（MotionConfig reducedMotion="user"）
+   提供，见 components/screen/PageLoading.tsx。 */
+
+/* 页面 / 面板内容入场：轻微下落 + 淡入。
+   挂在路由页面根元素或随阶段切换重挂载的面板块上（key 变化时重放）。
+   位移必须从 -Y 开始：占满一屏的页面向下位移 10px 会让底部短暂溢出、
+   滚动条闪现（视口宽度变化 → 固定背景左右晃动掉帧）；
+   向上位移不属于可滚动溢出，永远不会触发滚动条 */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page-in {
+  animation: page-in 0.28s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-in {
+    animation: none;
+  }
+}

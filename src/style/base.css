@@ -26,8 +26,19 @@
 
   body {
     min-height: 100vh;
-    background: #f6e3e1 url("../assets/app-background.png") center / cover
-      no-repeat fixed;
+  }
+
+  /* 背景图放独立 fixed 定位伪元素层：整张图只栅格化/合成一次。
+     不用 background-attachment: fixed —— 它在 Chromium/WebView2 下
+     会让视口内任何重绘（包括动画的每一帧）都强制整张背景重绘，
+     表现为动画时背景明显掉帧 */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: url("../assets/app-background.png") center / cover no-repeat;
+    pointer-events: none;
   }
 
   #root {

@@ -5,6 +5,7 @@ import { Button, Spinner } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { tauriInvoke } from "../../lib/tauriInvoke";
+import { errorMessage } from "../../lib/errors";
 import { useDanmakuFeed } from "@components/danmaku/useDanmakuFeed";
 import type { DanmakuRoom, DanmakuStatus } from "@components/danmaku/types";
 
@@ -59,7 +60,7 @@ function DanmakuFeatureRoute() {
           (prev) => prev ?? bilibili.find((entry) => entry.active)?.dedeUserId ?? null,
         );
       } catch (err) {
-        if (!disposed) setAccountsError(err instanceof Error ? err.message : String(err));
+        if (!disposed) setAccountsError(errorMessage(err));
       }
     })();
     return () => {
@@ -77,7 +78,7 @@ function DanmakuFeatureRoute() {
       const info = await tauriInvoke<DanmakuRoom>("danmaku_connect", { mid: selectedMid });
       setRoom(info);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : String(err));
+      setActionError(errorMessage(err));
     } finally {
       setStarting(false);
     }
@@ -89,7 +90,7 @@ function DanmakuFeatureRoute() {
       await tauriInvoke("danmaku_disconnect");
       setRoom(null);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : String(err));
+      setActionError(errorMessage(err));
     }
   }, []);
 

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { formatCount, formatRelative } from "./format";
-import type { CommentItem } from "./types";
+import type { CommentItem, LocalReply } from "./types";
 
 /** 硬币等级徽章配色：0-1 灰 / 2-3 绿 / 4-5 琥珀 / 6+ B 站粉 */
 function levelBadgeClass(level: number): string {
@@ -13,12 +13,72 @@ function levelBadgeClass(level: number): string {
   return "bg-[#e3d3da] text-[#9b8a91]";
 }
 
-/** 单条评论：圆头像 + 昵称 + 等级徽章 + 时间 + 内容 + 点赞 */
-export default function CommentCard({ comment }: { comment: CommentItem }) {
+/** 操作栏幽灵按钮（回复/修改/还原/标记共用） */
+function actionButtonClass(active?: boolean): string {
+  return active
+    ? "flex items-center gap-1 rounded-full border border-transparent bg-[#fb7299]/15 px-2 py-0.5 font-bold text-[#fb7299] shadow-none transition-colors hover:bg-[#fb7299]/25"
+    : "flex items-center gap-1 rounded-full border border-transparent bg-transparent px-2 py-0.5 font-semibold text-[#9b8a91] shadow-none transition-colors hover:bg-white/70 hover:text-[#66535a]";
+}
+
+/** 本地输入区（修改评论 / 写回复 / 改回复）共用的多行文本框 */
+const textareaClass =
+  "w-full resize-y rounded-xl border border-white/70 bg-white/85 p-2.5 text-sm leading-relaxed text-[#66535a] outline-none placeholder:text-[#bfa9b2] focus:border-[#fb7299]/50";
+
+/** 单条评论：圆头像 + 昵称 + 等级徽章 + 时间 + 内容 + 点赞 + 标记 +
+ *  仅本地的修改与回复（修改覆盖显示原内容，回复嵌在原评论下方） */
+export default function CommentCard({
+  comment,
+  onToggleMark,
+  onSetEdit,
+  onAddReply,
+  onUpdateReply,
+  onRemoveReply,
+}: {
+  comment: CommentItem;
+  onToggleMark: (rpid: number, marked: boolean) => void;
+  onSetEdit: (rpid: number, content: string | null) => void;
+  onAddReply: (rpid: number, content: string) => void;
+  onUpdateReply: (id: string, content: string) => void;
+  onRemoveReply: (id: string) => void;
+}) {
   const [avatarFailed, setAvatarFailed] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState("");
+  const [showOriginal, setShowOriginal] = useState(false);
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyDraft, setReplyDraft] = useState("");
+
+  const hasEdit = comment.localEdit != null;
+  const displayedContent = comment.localEdit ?? comment.content;
+
+  const startEdit = () => {
+    setEditDraft(displayedContent);
+    setEditing(true);
+  };
+  const saveEdit = () => {
+    const text = editDraft.trim();
+    if (!text) return;
+    // 改回与原文一致时视同还原，不再保留覆盖条目
+    onSetEdit(comment.rpid, text === comment.content ? null : text);
+    setEditing(false);
+    setShowOriginal(false);
+  };
+  const submitReply = () => {
+    const text = replyDraft.trim();
+    if (!text) return;
+    onAddReply(comment.rpid, text);
+    setReplyDraft("");
+    setReplyOpen(false);
+  };
 
   return (
-    <li className="flex gap-3 rounded-2xl border border-white/55 bg-white/65 p-3.5 shadow-[0_4px_18px_rgb(133_77_96/10%)]">
+    <li
+      className={
+        comment.isMarked
+          ? "flex gap-3 rounded-2xl border border-[#fb7299]/45 bg-[#fff4f8]/80 p-3.5 shadow-[0_4px_18px_rgb(251_114_153/18%)]"
+          : "flex gap-3 rounded-2xl border border-white/55 bg-white/65 p-3.5 shadow-[0_4px_18px_rgb(133_77_96/10%)]"
+      }
+    >
       <span className="relative h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-[#ffd9e8] to-[#c9a7dd] p-[2px]">
         {comment.avatar && !avatarFailed ? (
           <img
@@ -57,18 +117,252 @@ export default function CommentCard({ comment }: { comment: CommentItem }) {
               置顶
             </span>
           )}
+          {hasEdit && (
+            <span
+              title="这条评论的内容只在本地被修改显示，未同步到 B 站"
+              className="flex items-center gap-0.5 rounded-full bg-[#fb7299]/12 px-1.5 py-px text-[10px] font-bold text-[#fb7299]"
+            >
+              <Icon icon="lucide:pencil" width="11" height="11" aria-hidden="true" />
+              本地修改
+            </span>
+          )}
           <span className="ml-auto text-xs text-[#9b8a91]">
             {formatRelative(comment.ctime)}
           </span>
         </div>
-        <p className="m-0 mt-1.5 text-sm leading-relaxed break-words whitespace-pre-wrap text-[#66535a]">
-          {comment.content}
-        </p>
-        <div className="mt-1.5 flex items-center gap-1 text-xs text-[#9b8a91]">
-          <Icon icon="lucide:thumbs-up" width="13" height="13" aria-hidden="true" />
-          {comment.likes > 0 ? formatCount(comment.likes) : "赞"}
+
+        {editing ? (
+          <div className="mt-1.5 flex flex-col gap-1.5">
+            <textarea
+              value={editDraft}
+              onChange={(event) => setEditDraft(event.target.value)}
+              rows={3}
+              autoFocus
+              className={textareaClass}
+            />
+            <div className="flex items-center gap-2 text-xs">
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={!editDraft.trim()}
+                className="cursor-pointer rounded-full bg-[#f5b3c9] px-3 py-1 font-bold text-[#5e4c53] shadow-none transition-colors hover:bg-[#f8c3d5] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                保存
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="cursor-pointer rounded-full bg-transparent px-3 py-1 font-semibold text-[#9b8a91] shadow-none transition-colors hover:text-[#66535a]"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="m-0 mt-1.5 text-sm leading-relaxed break-words whitespace-pre-wrap text-[#66535a]">
+              {displayedContent}
+            </p>
+            {hasEdit && showOriginal && (
+              <p className="m-0 mt-1 text-xs leading-relaxed break-words whitespace-pre-wrap text-[#9b8a91]">
+                原文：{comment.content}
+              </p>
+            )}
+          </>
+        )}
+
+        <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-[#9b8a91]">
+          <span className="flex items-center gap-1">
+            <Icon icon="lucide:thumbs-up" width="13" height="13" aria-hidden="true" />
+            {comment.likes > 0 ? formatCount(comment.likes) : "赞"}
+          </span>
+          <button
+            type="button"
+            onClick={() => setReplyOpen((value) => !value)}
+            className={actionButtonClass(replyOpen)}
+          >
+            <Icon icon="lucide:message-circle" width="13" height="13" aria-hidden="true" />
+            回复
+          </button>
+          <button type="button" onClick={startEdit} className={actionButtonClass()}>
+            <Icon icon="lucide:pencil" width="13" height="13" aria-hidden="true" />
+            修改
+          </button>
+          {hasEdit && (
+            <>
+              <button
+                type="button"
+                title="显示 B 站上的原始内容"
+                onClick={() => setShowOriginal((value) => !value)}
+                className={actionButtonClass()}
+              >
+                <Icon icon="lucide:eye" width="13" height="13" aria-hidden="true" />
+                {showOriginal ? "收起原文" : "查看原文"}
+              </button>
+              <button
+                type="button"
+                title="去掉本地修改，恢复显示原始内容"
+                onClick={() => onSetEdit(comment.rpid, null)}
+                className={actionButtonClass()}
+              >
+                <Icon icon="lucide:eraser" width="13" height="13" aria-hidden="true" />
+                还原
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            aria-pressed={comment.isMarked}
+            title={comment.isMarked ? "取消标记" : "标记这条评论"}
+            onClick={() => onToggleMark(comment.rpid, !comment.isMarked)}
+            className={actionButtonClass(comment.isMarked)}
+          >
+            <Icon
+              icon="lucide:bookmark"
+              width="13"
+              height="13"
+              aria-hidden="true"
+              className={comment.isMarked ? "fill-current" : ""}
+            />
+            {comment.isMarked ? "已标记" : "标记"}
+          </button>
         </div>
+
+        {replyOpen && (
+          <div className="mt-2 flex flex-col gap-1.5">
+            <textarea
+              value={replyDraft}
+              onChange={(event) => setReplyDraft(event.target.value)}
+              rows={2}
+              placeholder="写下仅本地显示的回复…"
+              className={textareaClass}
+            />
+            <div className="flex items-center gap-2 text-xs">
+              <button
+                type="button"
+                onClick={submitReply}
+                disabled={!replyDraft.trim()}
+                className="cursor-pointer rounded-full bg-[#f5b3c9] px-3 py-1 font-bold text-[#5e4c53] shadow-none transition-colors hover:bg-[#f8c3d5] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                回复
+              </button>
+              <button
+                type="button"
+                onClick={() => setReplyOpen(false)}
+                className="cursor-pointer rounded-full bg-transparent px-3 py-1 font-semibold text-[#9b8a91] shadow-none transition-colors hover:text-[#66535a]"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        )}
+
+        {comment.replies.length > 0 && (
+          <ul className="m-0 mt-2.5 flex list-none flex-col gap-2 border-l-2 border-[#fb7299]/25 pl-3">
+            {comment.replies.map((reply) => (
+              <LocalReplyRow
+                key={reply.id}
+                reply={reply}
+                onUpdate={onUpdateReply}
+                onRemove={onRemoveReply}
+              />
+            ))}
+          </ul>
+        )}
       </div>
+    </li>
+  );
+}
+
+/** 原评论下方的单条本地回复 */
+function LocalReplyRow({
+  reply,
+  onUpdate,
+  onRemove,
+}: {
+  reply: LocalReply;
+  onUpdate: (id: string, content: string) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(reply.content);
+
+  const save = () => {
+    const text = draft.trim();
+    if (!text) return;
+    onUpdate(reply.id, text);
+    setEditing(false);
+  };
+
+  return (
+    <li className="rounded-xl border border-[#fb7299]/25 bg-[#fff4f8]/70 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <span
+          title="这条回复只保存在本地并显示在这里，不会同步到 B 站"
+          className="flex items-center gap-0.5 rounded-full bg-[#fb7299]/12 px-1.5 py-px text-[10px] font-bold text-[#fb7299]"
+        >
+          <Icon icon="lucide:message-circle" width="11" height="11" aria-hidden="true" />
+          本地回复
+        </span>
+        <span className="ml-auto text-xs text-[#9b8a91]">
+          {formatRelative(reply.createdAt)}
+        </span>
+      </div>
+
+      {editing ? (
+        <div className="mt-1.5 flex flex-col gap-1.5">
+          <textarea
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            rows={2}
+            className={textareaClass}
+          />
+          <div className="flex items-center gap-2 text-xs">
+            <button
+              type="button"
+              onClick={save}
+              disabled={!draft.trim()}
+              className="cursor-pointer rounded-full bg-[#f5b3c9] px-3 py-1 font-bold text-[#5e4c53] shadow-none transition-colors hover:bg-[#f8c3d5] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              保存
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDraft(reply.content);
+                setEditing(false);
+              }}
+              className="cursor-pointer rounded-full bg-transparent px-3 py-1 font-semibold text-[#9b8a91] shadow-none transition-colors hover:text-[#66535a]"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="m-0 mt-1 text-sm leading-relaxed break-words whitespace-pre-wrap text-[#66535a]">
+            {reply.content}
+          </p>
+          <div className="mt-1 flex items-center gap-3 text-xs text-[#9b8a91]">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className={actionButtonClass()}
+            >
+              <Icon icon="lucide:pencil" width="13" height="13" aria-hidden="true" />
+              修改
+            </button>
+            <button
+              type="button"
+              onClick={() => onRemove(reply.id)}
+              className={actionButtonClass()}
+            >
+              <Icon icon="lucide:trash" width="13" height="13" aria-hidden="true" />
+              删除
+            </button>
+          </div>
+        </>
+      )}
     </li>
   );
 }

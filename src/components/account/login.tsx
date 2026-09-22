@@ -1,0 +1,323 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Icon } from "@iconify/react";
+import { tauriInvoke } from "../../lib/tauriInvoke";
+import { DouyinQrLogin } from "./DouyinQrLogin";
+
+/** 账号登录面板：平台切换（B 站 / 抖音）+ 极验 + B 站扫码/短信登录。
+ *  抖音扫码登录（含二次验证状态机）见同目录 DouyinQrLogin.tsx。 */
+
+type LoginTab = "qr" | "sms";
+type LoginPlatform = "bilibili" | "douyin";
+
+interface QrStart {
+  qrImage: string;
+  qrcodeKey: string;
+}
+
+type QrState = "waiting" | "scanned" | "success" | "expired";
+
+interface QrPoll {
+  status: QrState;
+  message: string;
+}
+
+interface CaptchaInfo {
+  token: string;
+  gt: string;
+  challenge: string;
+}
+
+interface CaptchaResult {
+  token: string;
+  challenge: string;
+  validate: string;
+  seccode: string;
+}
+
+interface SmsSendResult {
+  captchaKey: string;
+}
+
+interface GeetestValidate {
+  geetest_challenge: string;
+  geetest_validate: string;
+  geetest_seccode: string;
+}
+
+interface GeetestInstance {
+  appendTo(element: HTMLElement): void;
+  onReady(callback: () => void): void;
+  onSuccess(callback: () => void): void;
+  onError(callback: () => void): void;
+  getValidate(): GeetestValidate | false;
+  destroy(): void;
+}
+
+declare global {
+  interface Window {
+    initGeetest?: (
+      config: Record<string, string | boolean>,
+      callback: (instance: GeetestInstance) => void,
+    ) => void;
+  }
+}
+
+const GEETEST_SCRIPT = "https://static.geetest.com/static/tools/gt.js";
+let geetestScriptPromise: Promise<void> | undefined;
+
+function loadGeetestScript() {
+  if (window.initGeetest) return Promise.resolve();
+  if (geetestScriptPromise) return geetestScriptPromise;
+
+  geetestScriptPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${GEETEST_SCRIPT}"]`);
+    if (existing) {
+      if (existing.dataset.loaded === "true") {
+        reject(new Error("人机验证组件初始化失败"));
+        return;
+      }
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("人机验证组件加载失败")), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = GEETEST_SCRIPT;
+    script.async = true;
+    script.onload = () => {
+      script.dataset.loaded = "true";
+      resolve();
+    };
+    script.onerror = () => reject(new Error("人机验证组件加载失败"));
+    document.head.appendChild(script);
+  });
+  return geetestScriptPromise.catch((error) => {
+    geetestScriptPromise = undefined;
+    throw error;
+  });
+}
+
+export function PlatformMark({ platform }: { platform: LoginPlatform }) {
+  return <Icon icon={platform === "bilibili" ? "simple-icons:bilibili" : "simple-icons:tiktok"} className="size-6" aria-hidden="true" />;
+}
+
+function Geetest({ onVerified }: { onVerified: (result: CaptchaResult) => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [message, setMessage] = useState("正在加载人机验证…");
+
+  useEffect(() => {
+    let disposed = false;
+    let instance: GeetestInstance | undefined;
+    Promise.all([loadGeetestScript(), tauriInvoke<CaptchaInfo>("account_captcha")])
+      .then(([, info]) => {
+        if (disposed || !window.initGeetest || !containerRef.current) return;
+        window.initGeetest({ gt: info.gt, challenge: info.challenge, new_captcha: true, offline: false, product: "float", width: "100%", https: true }, (captcha) => {
+          if (disposed || !containerRef.current) return captcha.destroy();
+          instance = captcha;
+          captcha.appendTo(containerRef.current);
+          captcha.onReady(() => setMessage("请完成上方人机验证"));
+          captcha.onSuccess(() => {
+            const value = captcha.getValidate();
+            if (!value) return setMessage("验证结果无效，请重试");
+            setMessage("验证已通过");
+            onVerified({ token: info.token, challenge: value.geetest_challenge, validate: value.geetest_validate, seccode: value.geetest_seccode });
+          });
+          captcha.onError(() => setMessage("人机验证加载失败，请切换网络后重试"));
+        });
+      })
+      .catch((error) => setMessage(String(error)));
+    return () => { disposed = true; instance?.destroy(); };
+  }, [onVerified]);
+
+  return <div className="account-captcha"><div ref={containerRef} /><p aria-live="polite">{message}</p></div>;
+}
+
+export function LoginPanel({
+  onLoggedIn,
+  onCancel,
+}: {
+  onLoggedIn: () => void;
+  onCancel?: () => void;
+}) {
+  const [tab, setTab] = useState<LoginTab>("qr");
+  const [platform, setPlatform] = useState<LoginPlatform>("bilibili");
+  return (
+    <section className="account-card account-card--login">
+      <h1 className="account-title">{onCancel ? "添加账号" : "登录账号"}</h1>
+      <p className="account-hint">
+        {onCancel
+          ? "登录成功后会保存到账号列表，可随时切换。"
+          : "你还没有登录，登录后才能使用账号相关功能。"}
+      </p>
+      {onCancel && (
+        <button
+          type="button"
+          className="account-button account-button--ghost"
+          onClick={onCancel}
+        >
+          返回账号列表
+        </button>
+      )}
+
+      <div className="mt-5 inline-flex items-center rounded-full border border-pink-100 bg-pink-50/80 p-1 shadow-inner" role="group" aria-label="选择平台">
+        {(["bilibili", "douyin"] as const).map((value) => {
+          const selected = platform === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={selected}
+              aria-label={value === "bilibili" ? "切换到哔哩哔哩登录" : "切换到抖音登录"}
+              title={value === "bilibili" ? "哔哩哔哩" : "抖音"}
+              onClick={() => { setPlatform(value); setTab("qr"); }}
+              className={`flex size-10 items-center justify-center rounded-full border-0 p-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-400 ${selected ? "bg-white text-[#66535a] shadow-[0_2px_8px_rgb(133_77_96_/_14%)]" : "bg-transparent text-[#9b8a91] hover:text-[#66535a]"}`}
+            >
+              <PlatformMark platform={value} />
+            </button>
+          );
+        })}
+      </div>
+
+      {platform === "bilibili" && (
+        <nav className="account-tabs segment-tabs" aria-label="登录方式">
+          {(["qr", "sms"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={tab === value}
+              onClick={() => setTab(value)}
+            >
+              {{ qr: "扫码登录", sms: "短信登录" }[value]}
+            </button>
+          ))}
+        </nav>
+      )}
+      {platform === "bilibili" && tab === "qr" && <QrLogin onLoggedIn={onLoggedIn} />}
+      {platform === "bilibili" && tab === "sms" && <SmsLogin onLoggedIn={onLoggedIn} />}
+      {platform === "douyin" && <DouyinQrLogin onLoggedIn={onLoggedIn} />}
+    </section>
+  );
+}
+
+function SmsLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
+  const [tel, setTel] = useState("");
+  const [code, setCode] = useState("");
+  const [captcha, setCaptcha] = useState<CaptchaResult>();
+  const [captchaKey, setCaptchaKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const send = async () => {
+    if (!captcha || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await tauriInvoke<SmsSendResult>("account_sms_send", { tel, ...captcha });
+      setCaptchaKey(result.captchaKey);
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const login = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await tauriInvoke("account_sms_login", { tel, code, captchaKey });
+      onLoggedIn();
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="account-form">
+      <label className="account-field"><span>手机号</span><input inputMode="tel" autoComplete="tel" value={tel} onChange={(event) => setTel(event.target.value)} /></label>
+      <Geetest onVerified={setCaptcha} />
+      <button type="button" className="account-button" disabled={busy || !captcha || !tel.trim()} onClick={send}>{busy ? "请稍候…" : "发送短信"}</button>
+      {captchaKey && <><label className="account-field"><span>短信验证码</span><input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value)} /></label><button type="button" className="account-button" disabled={busy || !code.trim()} onClick={login}>{busy ? "登录中…" : "登录"}</button></>}
+      {error && <p className="account-error">{error}</p>}
+    </div>
+  );
+}
+
+function QrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
+  const [qr, setQr] = useState<QrStart | null>(null);
+  const [poll, setPoll] = useState<QrPoll | null>(null);
+  const [error, setError] = useState("");
+  const start = useCallback(() => {
+    setError("");
+    setPoll(null);
+    tauriInvoke<QrStart>("account_qr_start")
+      .then((data) => {
+        setQr(data);
+      })
+      .catch((e) => setError(String(e)));
+  }, []);
+
+  useEffect(start, [start]);
+
+  // 轮询扫码状态：成功/过期后停止
+  useEffect(() => {
+    if (!qr) return;
+    let stopped = false;
+    let timer: number | undefined;
+    const pollStatus = async () => {
+      try {
+        const data = await tauriInvoke<QrPoll>("account_qr_poll", {
+          qrcodeKey: qr.qrcodeKey,
+        });
+        if (stopped) return;
+        setPoll(data);
+        if (data.status === "success") {
+          onLoggedIn();
+        } else if (data.status !== "expired") {
+          timer = window.setTimeout(pollStatus, 2000);
+        }
+      } catch (e) {
+        if (stopped) return;
+        setError(String(e));
+      }
+    };
+    timer = window.setTimeout(pollStatus, 2000);
+    return () => {
+      stopped = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [qr, onLoggedIn]);
+
+  if (error) {
+    return (
+      <div className="account-qr">
+        <p className="account-error">{error}</p>
+        <button type="button" className="account-button" onClick={start}>
+          重新加载二维码
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="account-qr">
+      {qr ? (
+        <img className="account-qr__image" src={qr.qrImage} alt="登录二维码" />
+      ) : (
+        <div className="account-qr__placeholder">正在生成二维码…</div>
+      )}
+      <p className="account-qr__status" aria-live="polite">
+        {poll
+          ? poll.message
+          : "请使用哔哩哔哩 App 扫一扫，扫描后请在手机上确认。"}
+      </p>
+      {poll?.status === "expired" && (
+        <button type="button" className="account-button" onClick={start}>
+          刷新二维码
+        </button>
+      )}
+    </div>
+  );
+}

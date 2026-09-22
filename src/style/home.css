@@ -33,18 +33,6 @@
    页面外壳与卡片网格的结构布局已迁至 home.tsx（@apvee/react-layout-kit），
    这里只保留视觉样式（阴影/圆角/hover/焦点态）。 */
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 .home-search {
   display: flex;
   align-items: center;

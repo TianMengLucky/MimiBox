@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, type MotionProps } from "motion/react";
 import { Button, ProgressBar } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check } from "@tauri-apps/plugin-updater";
 import type { Update } from "@tauri-apps/plugin-updater";
+import { errorMessage } from "../../lib/errors";
+import { formatBytes } from "../../lib/format";
 
 type Phase =
   | "idle" // 尚未检查
@@ -19,17 +22,14 @@ interface DownloadProgress {
   total: number | null;
 }
 
-/** 把字节数格式化成易读的 MB/KB 文本 */
-function formatBytes(bytes: number): string {
-  if (bytes >= 1024 * 1024) {
-    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  }
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-}
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
+/** 各阶段内容块共用的过渡：旧块淡出后新块从上方落下淡入（AnimatePresence mode="wait"）。
+    位移只用 -Y 方向：占满一屏的卡片底部不容许短暂溢出触发滚动条（见 style/motion.css 说明） */
+const phaseTransition: MotionProps = {
+  initial: { opacity: 0, y: -8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -6 },
+  transition: { duration: 0.18, ease: "easeOut" },
+};
 
 /**
  * 「应用更新」设置区：检查更新 → 下载（带进度）→ 安装并重启。
@@ -127,66 +127,114 @@ export function UpdateSection() {
           </Button>
         </div>
 
-        {phase === "latest" && (
-          <p className="m-0 flex items-center gap-1.5 py-3 text-sm text-[#9b8a91]">
-            <Icon icon="lucide:circle-check" width="16" height="16" aria-hidden="true" />
-            已是最新版本
-          </p>
-        )}
-
-        {phase === "available" && update && (
-          <div className="flex flex-col gap-2.5 py-3">
-            <p className="m-0 flex items-center gap-1.5 text-sm font-semibold text-[#66535a]">
-              <Icon icon="lucide:party-popper" width="16" height="16" aria-hidden="true" />
-              发现新版本 v{update.version}
-            </p>
-            {update.body?.trim() && (
-              <div className="max-h-40 overflow-y-auto rounded-2xl bg-white/60 px-4 py-3 text-xs whitespace-pre-line text-[#66535a]">
-                {update.body.trim()}
-              </div>
-            )}
-            <Button
-              variant="primary"
-              size="sm"
-              onPress={() => void handleDownload()}
-              className="self-start rounded-full px-5 font-semibold"
+        <AnimatePresence initial={false} mode="wait">
+          {phase === "latest" && (
+            <motion.p
+              key="latest"
+              {...phaseTransition}
+              className="m-0 flex items-center gap-1.5 py-3 text-sm text-[#9b8a91]"
             >
-              <Icon icon="lucide:download" width="16" height="16" aria-hidden="true" />
-              下载并安装
-            </Button>
-          </div>
-        )}
+              <motion.span
+                className="flex"
+                initial={{ scale: 0, rotate: -90 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 420, damping: 16 }}
+              >
+                <Icon
+                  icon="lucide:circle-check"
+                  width="16"
+                  height="16"
+                  aria-hidden="true"
+                />
+              </motion.span>
+              已是最新版本
+            </motion.p>
+          )}
 
-        {phase === "downloading" && (
-          <div className="py-3">
-            <ProgressBar
-              aria-label="下载进度"
-              size="sm"
-              color="accent"
-              value={percent}
-              maxValue={100}
-              isIndeterminate={!progress.total}
-              valueLabel={
-                progress.total
-                  ? `${formatBytes(progress.downloaded)} / ${formatBytes(progress.total)}`
-                  : undefined
-              }
-            />
-          </div>
-        )}
+          {phase === "available" && update && (
+            <motion.div
+              key="available"
+              {...phaseTransition}
+              className="flex flex-col gap-2.5 py-3"
+            >
+              <p className="m-0 flex items-center gap-1.5 text-sm font-semibold text-[#66535a]">
+                <motion.span
+                  className="flex"
+                  initial={{ scale: 0, y: -8 }}
+                  animate={{ scale: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 380, damping: 12 }}
+                >
+                  <Icon
+                    icon="lucide:party-popper"
+                    width="16"
+                    height="16"
+                    aria-hidden="true"
+                  />
+                </motion.span>
+                发现新版本 v{update.version}
+              </p>
+              {update.body?.trim() && (
+                <div className="max-h-40 overflow-y-auto rounded-2xl bg-white/60 px-4 py-3 text-xs whitespace-pre-line text-[#66535a]">
+                  {update.body.trim()}
+                </div>
+              )}
+              <Button
+                variant="primary"
+                size="sm"
+                onPress={() => void handleDownload()}
+                className="self-start rounded-full px-5 font-semibold"
+              >
+                <Icon icon="lucide:download" width="16" height="16" aria-hidden="true" />
+                下载并安装
+              </Button>
+            </motion.div>
+          )}
 
-        {phase === "restarting" && (
-          <p className="m-0 flex items-center gap-1.5 py-3 text-sm text-[#9b8a91]">
-            <Icon icon="lucide:loader-circle" width="16" height="16" aria-hidden="true" />
-            下载完成，正在重启应用…
-          </p>
-        )}
+          {phase === "downloading" && (
+            <motion.div key="downloading" {...phaseTransition} className="py-3">
+              <ProgressBar
+                aria-label="下载进度"
+                size="sm"
+                color="accent"
+                value={percent}
+                maxValue={100}
+                isIndeterminate={!progress.total}
+                valueLabel={
+                  progress.total
+                    ? `${percent}% · ${formatBytes(progress.downloaded)} / ${formatBytes(progress.total)}`
+                    : formatBytes(progress.downloaded)
+                }
+              />
+            </motion.div>
+          )}
 
-        {phase === "error" && (
-          <p className="m-0 py-3 text-xs break-all text-[#c0444e]">
-            更新失败：{message || "未知错误"}
-          </p>
-        )}
+          {phase === "restarting" && (
+            <motion.p
+              key="restarting"
+              {...phaseTransition}
+              className="m-0 flex items-center gap-1.5 py-3 text-sm text-[#9b8a91]"
+            >
+              <Icon
+                icon="lucide:loader-circle"
+                width="16"
+                height="16"
+                aria-hidden="true"
+                className="animate-spin motion-reduce:animate-none"
+              />
+              下载完成，正在重启应用…
+            </motion.p>
+          )}
+
+          {phase === "error" && (
+            <motion.p
+              key="error"
+              {...phaseTransition}
+              className="m-0 py-3 text-xs break-all text-[#c0444e]"
+            >
+              更新失败：{message || "未知错误"}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );

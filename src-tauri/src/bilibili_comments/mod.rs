@@ -1,5 +1,7 @@
 //! B 站评论区功能：获取当前登录账号的视频列表与指定视频的评论。
 
+pub(crate) mod marks;
+pub(crate) mod notes;
 mod spam;
 mod wbi;
 
@@ -35,6 +37,16 @@ pub struct VideosPage {
     pub total: u32,
 }
 
+/// 仅本地存储与显示的评论回复（comment_notes.json），挂在原评论下方
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalReply {
+    pub id: String,
+    pub content: String,
+    /// 创建时间（Unix 秒）
+    pub created_at: i64,
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommentItem {
@@ -50,6 +62,12 @@ pub struct CommentItem {
     pub is_top: bool,
     /// 是否灌水评论（纯表情/复读/口癖），由 spam 模块在解析时计算
     pub is_spam: bool,
+    /// 是否被用户标记，由 marks 持久化数据在返回前注入
+    pub is_marked: bool,
+    /// 本地修改后的内容（仅本地存储与显示），None 表示未修改
+    pub local_edit: Option<String>,
+    /// 本地回复（仅本地存储与显示），按创建时间升序由 notes 注入
+    pub replies: Vec<LocalReply>,
 }
 
 #[derive(Serialize)]
@@ -58,6 +76,9 @@ pub struct CommentsPage {
     pub comments: Vec<CommentItem>,
     pub total: u32,
     pub has_more: bool,
+    /// 时间排序（mode=2）的翻页游标：来自 cursor.pagination_reply.next_offset，
+    /// 下一次请求需原样回传；为空表示没有下一页
+    pub next_offset: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -185,12 +206,18 @@ fn parse_comment(item: &serde_json::Value, is_top: bool) -> CommentItem {
         ctime: item["ctime"].as_i64().unwrap_or(0),
         is_top,
         is_spam: false,
+        is_marked: false,
+        local_edit: None,
+        replies: Vec::new(),
     };
     result.is_spam = spam::is_spam_comment(&result.content);
     result
 }
 
-/// 指定视频的评论区（aid + 分页；mode: 2=最热 3=最新）
+/// 指定视频的评论区（aid + 分页；mode 对应 reply 接口语义：3=最热 2=时间）。
+/// 两种排序的翻页方式不同：最热用页码（next），时间用游标（pagination_str，
+/// 首页传空 offset，之后回传上一页响应里的 next_offset，见
+/// bilibili-API-collect 对 reply/wbi/main 的说明）。
 #[tauri::command]
 pub async fn bilibili_comments_list(
     app: AppHandle,
@@ -198,17 +225,29 @@ pub async fn bilibili_comments_list(
     aid: i64,
     page: u32,
     mode: u32,
+    next_offset: Option<String>,
 ) -> Result<CommentsPage, String> {
     let (_, cookie) = state
         .bilibili_session(&app)?
         .ok_or_else(|| "请先在账号页登录 B 站账号".to_string())?;
-    let params = [
+    let mode = mode.clamp(2, 3);
+    let mut params: Vec<(String, String)> = vec![
         ("oid".into(), aid.to_string()),
         ("type".into(), "1".into()),
-        ("mode".into(), mode.clamp(2, 3).to_string()),
-        ("next".into(), page.max(1).to_string()),
+        ("mode".into(), mode.to_string()),
         ("ps".into(), "20".into()),
+        ("plat".into(), "1".into()),
+        ("web_location".into(), "1315875".into()),
     ];
+    if mode == 2 {
+        let offset = next_offset.unwrap_or_default();
+        params.push((
+            "pagination_str".into(),
+            format!("{{\"offset\":\"{offset}\"}}"),
+        ));
+    } else {
+        params.push(("next".into(), page.max(1).to_string()));
+    }
 
     // 优先走 wbi 签名端点；风控或签名异常时回退旧端点
     let data = match wbi_get(
@@ -249,11 +288,28 @@ pub async fn bilibili_comments_list(
     // 旧端点已加载过的置顶在翻页时可能重复出现
     comments.dedup_by_key(|c| c.rpid);
 
+    // 注入用户的标记状态（按 rpid 匹配持久化的标记集合）
+    let marked = marks::load_set(&app);
+    // 注入本地修改与本地回复（仅本地存储与显示，不同步到 B 站）
+    let notes = notes::load_notes(&app);
+    for comment in &mut comments {
+        comment.is_marked = marked.contains(&comment.rpid);
+        comment.local_edit = notes::edit_for(&notes, comment.rpid);
+        comment.replies = notes::replies_for(&notes, comment.rpid);
+    }
+
     let total = data["cursor"]["all_count"].as_u64().unwrap_or(0) as u32;
-    let has_more = data["cursor"]["is_end"].as_i64() != Some(1);
+    // is_end 为 JSON 布尔；个别端点可能回退为 0/1 数字，两种都兼容
+    let is_end = data["cursor"]["is_end"].as_bool().unwrap_or(false)
+        || data["cursor"]["is_end"].as_i64() == Some(1);
+    let next_offset = data["cursor"]["pagination_reply"]["next_offset"]
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_string());
     Ok(CommentsPage {
         comments,
         total,
-        has_more,
+        has_more: !is_end,
+        next_offset,
     })
 }

@@ -5,6 +5,7 @@ import { Button, Input, Switch, TextArea } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { tauriInvoke, hasTauri } from "../../lib/tauriInvoke";
+import { errorMessage } from "../../lib/errors";
 import { CategoryPicker } from "@components/bilibili-upload/CategoryPicker";
 import { CoverPicker } from "@components/bilibili-upload/CoverPicker";
 import { ProgressPanel } from "@components/bilibili-upload/ProgressPanel";
@@ -130,7 +131,7 @@ function BilibiliUploadRoute() {
       });
       setOutcome(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(errorMessage(err));
     } finally {
       setSubmitting(false);
       setProgress(null);

@@ -1,9 +1,11 @@
 "use no memo";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Spinner } from "@heroui/react";
+import { Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { createFileRoute } from "@tanstack/react-router";
-import { tauriInvoke } from "../../lib/tauriInvoke";
+import { tauriInvoke, hasTauri } from "../../lib/tauriInvoke";
+import { errorMessage } from "../../lib/errors";
+import { PageLoading } from "@components/screen/PageLoading";
 import type {
   BangumiCalendarItem,
   BangumiWeekday,
@@ -12,8 +14,6 @@ import type {
 export const Route = createFileRoute("/feature/anime")({
   component: AnimeRoute,
 });
-
-const hasTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 /** 展示用的星期列表（id 与 Bangumi 星期编号一致：1=周一 … 7=周日） */
 const WEEKDAYS = [
@@ -58,7 +58,7 @@ function AnimeRoute() {
       setWeekdays(data);
     } catch (err) {
       setWeekdays(null);
-      setError(err instanceof Error ? err.message : String(err));
+      setError(errorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -116,12 +116,7 @@ function AnimeRoute() {
       </div>
 
       <div aria-live="polite" className="flex min-h-0 flex-1 flex-col">
-        {loading && (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-[#9b8a91]">
-            <Spinner size="lg" color="accent" />
-            正在获取时间表…
-          </div>
-        )}
+        {loading && <PageLoading label="正在获取时间表…" />}
 
         {!loading && error && (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">

@@ -12,7 +12,7 @@ export function PageShell({ children }: { children: ReactNode }) {
       $flexDirection="column"
       $alignItems="center"
     >
-      <main>{children}</main>
+      <main className="page-in">{children}</main>
     </Box>
   );
 }

@@ -8,10 +8,6 @@
   padding: clamp(56px, 8vh, 80px) 96px clamp(24px, 5vh, 48px);
 }
 
-.account-loading {
-  color: #9b8a91;
-}
-
 .account-card {
   box-sizing: border-box;
   width: min(420px, 100%);

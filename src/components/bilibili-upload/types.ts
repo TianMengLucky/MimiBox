@@ -1,5 +1,5 @@
-/** 投稿分区（子分区，提交稿件用的 tid 即子分区 id） */
-export interface UploadZone {
+/** 投稿分区（子分区，提交稿件用的 tid 即子分区 id）；仅被 UploadZoneMain 内部引用 */
+interface UploadZone {
   tid: number;
   name: string;
 }

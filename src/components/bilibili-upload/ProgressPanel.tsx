@@ -1,7 +1,7 @@
 import { Icon } from "@iconify/react";
 import { ProgressBar } from "@heroui/react";
 import type { UploadProgress } from "./types";
-import { formatBytes } from "./format";
+import { formatBytes } from "../../lib/format";
 
 /** 进度条面板：阶段文案 + 百分比 + 已传/总大小 + 取消按钮 */
 export function ProgressPanel({

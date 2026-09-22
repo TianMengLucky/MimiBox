@@ -5,6 +5,7 @@ import { Icon } from "@iconify/react";
 import { Spinner } from "@heroui/react";
 import { FileDropZone } from "@components/FileDropZone";
 import { tauriInvoke } from "../../lib/tauriInvoke";
+import { errorMessage } from "../../lib/errors";
 
 /** 封面图片选择过滤 */
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp";
@@ -60,7 +61,7 @@ export function CoverPicker({
       const { url } = await tauriInvoke<{ url: string }>("bilibili_upload_cover", { dataUri });
       onUploaded(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(errorMessage(err));
     } finally {
       setBusy(false);
     }
