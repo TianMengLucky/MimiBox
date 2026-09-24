@@ -5,6 +5,27 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.2.2-x] - 2026-09-24
+
+> 注：安装包/应用内版本号为 `0.2.2`——MSI 打包要求版本号 pre-release 标识只能是纯数字，因此 X 产品线版本号使用纯数字形式，与主分支的区分由产品名（MimiBox-X）与发布渠道承担。
+
+### Added
+
+- 新增插件导入：设置页支持从文件夹或 `.mip` 插件包（zip 格式）安装第三方插件，导入时校验插件清单与 ABI 版本，可删除已导入的插件（重启应用生效）
+- 插件加载支持双目录合并：用户导入目录（应用数据目录 `plugins/`）优先于随应用分发的插件目录，可用导入的插件升级官方插件
+- 插件存放位置可自定义：设置页可更改插件目录（自动迁移已导入的插件，支持跨盘移动），可一键恢复默认位置
+- CI 双发行版发布：完整版安装包（内置全部插件）与 Lite 精简版（`MimiBox-X-Lite`，不含插件、禁用应用内更新，通过 .mip 安装）同时产出
+- 每个插件独立打包为 `.mip` 分发包并上传到 Release，可在设置页单独安装或升级
+- CI 增量发布：应用本体按 latest.json 版本、插件按各自 `plugin.json` 的 `version` 字段与 Release 现有资产对比，未变化的部分自动跳过构建与上传
+- 每个插件 `plugin.json` 新增独立 `version` 字段，作为增量发布与 `.mip` 分发的版本依据
+
+### Fixed
+
+- 修复 CI 构建失败：pnpm 12 构建脚本批准迁移到 `allowBuilds`（旧 `onlyBuiltDependencies` 已废弃被忽略）
+- 修复 CI 构建失败：`@tauri-apps/plugin-updater` 升级到 2.12.0 与 Rust 侧版本对齐
+- 修复 CI 构建失败：版本号改为纯数字 `0.2.2`（MSI 打包要求 pre-release 标识只能为纯数字，含字母的 `0.2.1-x` 无法通过 WiX 校验）
+- 清除部分源文件误带的 UTF-8 BOM（会导致插件清单解析失败）
+
 ## [0.2.1-x] - 2026-09-24
 
 本分支（`plugin-architecture`）将应用重构为「宿主内核 + 插件」架构，并更名为 **MimiBox-X**（版本号带 `-x` 后缀，与主分支构建区分）。
@@ -18,18 +39,13 @@
 - 插件宿主能力（HostApi）：应用数据目录读写、Tauri 事件广播、B 站账号凭据获取、独立窗口创建与聚焦、资源管理器文件定位
 - 前端插件运行时：功能注册表 + 共享模块表（插件与宿主共享单一 React 实例，杜绝双 React），插件以 `defineMbPlugin` 注册功能页面与独立窗口组件
 - 主页与资料库改为按插件清单数据驱动渲染，新增 `/feature/$plugin` 通用功能页与 `/w/$plugin` 通用窗口路由，新增功能无需改动宿主界面与路由代码
-- 插件构建管线：`pnpm build:plugins`（cargo cdylib + esbuild → `Plugins/<id>/`）、`pnpm plugins:watch` 前端增量监听；`pnpm build` 已包含插件构建，安装包经 tauri resources 打包 `Plugins/` 目录
+- 插件构建管线：`pnpm build:plugins`（cargo cdylib + esbuild → `Plugins/<id>/`）、`pnpm plugins:watch` 前端增量监听；`pnpm build` 已包含插件构建
 - 新增插件 SDK crate `mimibox-plugin`（C ABI + 类型化命令注册 + JSON 存储工具），插件与宿主同仓库同工具链构建
-- 新增插件导入：设置页支持从文件夹或 `.mip` 插件包（zip 格式）安装第三方插件，导入时校验插件清单与 ABI 版本，可删除已导入的插件（重启应用生效）
-- 插件加载支持双目录合并：用户导入目录（应用数据目录 `plugins/`）优先于随应用分发的插件目录，可用导入的插件升级官方插件
-- 插件存放位置可自定义：设置页可更改插件目录（自动迁移已导入的插件，支持跨盘移动），可一键恢复默认位置
-- CI 双发行版发布：完整版安装包（内置全部插件）与 Lite 精简版（不含插件，通过 .mip 安装）同时产出；每个插件独立打包为 `.mip` 上传到 Release
-- CI 增量发布：应用本体按 latest.json 版本、插件按 plugin.json 的 version 字段与 Release 现有资产对比，未变化的部分自动跳过构建与上传
 - 应用图标更换为全新粉色花环形象
 
 ### Changed
 
-- 应用更名为 **MimiBox-X**（`productName`），界面品牌名同步为「美美工具箱 X」，版本号使用 `0.2.0-x` 与主分支构建区分（安装包名自动跟随）
+- 应用更名为 **MimiBox-X**（`productName`），界面品牌名同步为「美美工具箱 X」，版本号使用 `-x` 后缀与主分支构建区分（安装包名自动跟随）
 - Rust 端静态命令收敛为 4 个（首启标记、欢迎已读、插件网关、插件清单），原 52 个功能命令全部改为经网关动态分发
 - 插件前端以 esbuild CJS 工厂注入运行，React / HeroUI / motion 等依赖由宿主共享模块表提供
 - pnpm 依赖构建脚本批准配置迁移至 `pnpm-workspace.yaml`（pnpm 12 新约定）
@@ -88,6 +104,7 @@
 - 许可证确定为 GPLv3，README 添加免责声明
 
 [Unreleased]: https://github.com/TianMengLucky/MimiBox/compare/v0.2.0...HEAD
+[0.2.2-x]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.2-x
 [0.2.1-x]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.1-x
 [0.2.0]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.0
 [0.1.0]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.1.0
