@@ -51,10 +51,15 @@
 | 🎁 抽奖 | 自定义奖品（含图片上传、文件名导入）、幸运转盘、抽奖历史 |
 | 🏆 夯到拉 | 图片拖拽排名表（Tier List），支持导出成图分享 |
 | 🏅 赛事预测 | 电竞赛程晋级节点图，选项拖拽编排、比分编辑与多方案保存 |
+| ⭐ 评分 | 批量打 1-10 分，支持按时间排序 |
+| 💬 B站评论区 | 查询视频评论与垃圾灌水识别，最热/最新排序、点赞筛选；支持标记、本地备注、楼中楼回复、B 站表情与图片评论 |
+| ⬆️ B站投稿 | 上传视频一键投稿（自制/转载） |
+| 📡 弹幕直播姬 | 连接直播间实时弹幕 |
+| 🖍️ 白板 | 上传背景图，在背景上自由拖动、缩放摆放贴图 |
 | 🎲 博饼 | 中秋传统掷骰游戏，骰子动画与掷骰历史 |
 | 📺 番剧 | Bangumi 每日放送时间表，按星期浏览、评分速览与条目页跳转 |
 | 📚 资料库 | 番剧时间表已上线，更多内容规划中 |
-| ⬆️ 应用内更新 | 设置页一键检查更新，新版本通过 GitHub Releases 自动分发 |
+| 🔄 应用内更新 | 设置页一键检查更新，新版本通过 GitHub Releases 自动分发 |
 
 ---
 
@@ -81,12 +86,17 @@ MimiBox/
 │   ├── assets/              # 静态资源（图标、背景图）
 │   ├── components/          # React 组件
 │   │   ├── bobing/          # 博饼骰子、规则与历史
+│   │   ├── bilibili-comments/ # 评论卡片、楼中楼、标记与本地备注
+│   │   ├── bilibili-upload/ # B 站投稿表单
+│   │   ├── danmaku/         # 弹幕直播姬连接与弹幕展示
 │   │   ├── home/            # 主页功能卡片
 │   │   ├── lottery/         # 抽奖奖品编辑与历史
 │   │   ├── prediction/      # 赛事预测节点图、拖拽与方案存储
 │   │   ├── bangumi/         # Bangumi 每日放送类型
+│   │   ├── rating/          # 评分排序与条目
 │   │   ├── settings/        # 设置页应用更新
 │   │   ├── tierlist/        # 夯到拉拖拽排名与导出
+│   │   ├── whiteboard/      # 白板画布与贴图
 │   │   ├── screen/          # 欢迎页、闲置屏保与空状态
 │   │   ├── CornerDock.tsx   # 左下角悬浮操作坞
 │   │   ├── ErrorFallback.tsx # 错误降级界面
@@ -102,6 +112,11 @@ MimiBox/
 │   │   │   ├── lottery.tsx  # 抽奖转盘
 │   │   │   ├── tier-list.tsx # 夯到拉图片排名
 │   │   │   ├── prediction.tsx # 赛事晋级预测图
+│   │   │   ├── rating.tsx   # 批量评分
+│   │   │   ├── bilibili-comments.tsx # B 站评论查询与筛选
+│   │   │   ├── bilibili-upload.tsx # B 站视频投稿
+│   │   │   ├── danmaku.tsx  # 弹幕直播姬
+│   │   │   ├── whiteboard.tsx # 白板贴图
 │   │   │   ├── anime.tsx    # 番剧每日放送时间表
 │   │   │   └── bobing.tsx   # 博饼掷骰
 │   │   ├── library.tsx      # 资料库（规划中）
@@ -115,6 +130,9 @@ MimiBox/
 ├── src-tauri/               # Tauri Rust 后端
 │   ├── src/
 │   │   ├── account/         # 多账号：Bilibili/抖音登录、凭据存储与头像代理
+│   │   ├── bilibili_comments/ # 评论抓取、垃圾识别、标记与备注存储
+│   │   ├── bilibili_danmaku/ # 直播弹幕连接（WebSocket）
+│   │   ├── bilibili_upload/ # B 站投稿
 │   │   ├── douyin_web/      # 抖音 web 扫码登录（协议参数 + 短信 MFA）
 │   │   ├── douyin_signer/   # 抖音 a_bogus 签名 + DTrait 指纹（QuickJS）
 │   │   ├── lottery/         # 抽奖奖品存储
@@ -205,7 +223,8 @@ pnpm dev
 | `pnpm build` | 构建前端生产版本 |
 | `pnpm preview` | 预览前端构建结果 |
 | `pnpm tauri dev` | 启动 Tauri 开发模式（含热更新） |
-| `pnpm tauri build` | 构建桌面应用安装包 |
+| `pnpm tauri build` | 构建桌面应用安装包（含更新器签名产物，需要签名私钥） |
+| `pnpm tauri:local` | 本地构建完整安装包（关闭更新器产物，无需签名私钥） |
 | `pnpm icons` | 重新生成 Iconify 图标离线子集（新增图标后必须执行，否则线上图标加载失败） |
 
 ---

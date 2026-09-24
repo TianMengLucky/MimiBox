@@ -1,5 +1,16 @@
 name: release
 
+# 双产品线发布约定（与 plugin-architecture 分支的 workflow 保持一致）：
+# - `vX.Y.Z`   → 主分支（main）：构建 mimibox，发布到 tag 对应的 Release，
+#                更新源走 releases/latest/download/latest.json
+# - `vX.Y.Z-x` → 插件化分支（plugin-architecture）：构建 MimiBox-X，
+#                发布到固定 tag `x-latest` 的 prerelease Release，
+#                更新源走 releases/download/x-latest/latest.json
+#
+# 本文件只负责主产品线：`-x` 结尾的 tag 一律快速失败，
+# 插件产品线（含插件打包 / Lite 版构建）由 plugin-architecture
+# 分支上的 workflow 负责，两者互不干扰。
+
 on:
   push:
     tags:
@@ -13,6 +24,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      # `-x` tag 属于插件产品线，应指向 plugin-architecture 分支的提交；
+      # 若误打到 main 提交上，这里立即失败，避免把主产品线产物发错线
+      - name: Reject plugin-line tags
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" == *-x ]]; then
+            echo "::error::tag ${GITHUB_REF_NAME} 属于插件产品线（MimiBox-X），请从 plugin-architecture 分支打 tag 发布"
+            exit 1
+          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6

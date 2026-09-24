@@ -5,6 +5,20 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.2.1] - 2026-09-24
+
+### Added
+
+- B 站评论区支持展开楼中楼回复：评论下方「共 N 条回复」按钮按需拉取该楼的 B 站回复列表（每页 20 条，可继续「加载更多」），楼中楼回复只读展示头像、昵称、内容与时间/点赞
+- 评论正文支持 B 站表情：`[dog]` 等表情文本自动替换为官方表情图片，并按 B 站尺寸档位（小/大/超大）渲染
+- 支持图片评论：评论附带的图片直接内联展示（单图大图查看、多图平铺）
+- 本地备注的显示内容同样支持表情与图片渲染
+- 新增 `pnpm tauri:local` 脚本：本地构建完整安装包时通过 `src-tauri/tauri.local.json` 关闭更新器产物生成，无需签名私钥；正式发布仍走 CI 签名构建
+
+### Changed
+
+- 发布流水线明确双产品线约定：`vX.Y.Z` tag 走主产品线（mimibox，更新源 `releases/latest`），`-x` 后缀 tag 属于插件产品线（MimiBox-X，从 plugin-architecture 分支发布到固定 `x-latest` prerelease，更新源互不干扰）；主分支工作流遇到 `-x` tag 立即失败并提示，避免两条产品线互相覆盖
+
 ## [0.2.0] - 2026-09-22
 
 ### Added
@@ -52,6 +66,7 @@
 - 网络层由 wreq 迁移到 reqwest
 - 许可证确定为 GPLv3，README 添加免责声明
 
-[Unreleased]: https://github.com/TianMengLucky/MimiBox/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/TianMengLucky/MimiBox/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.1
 [0.2.0]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.0
 [0.1.0]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.1.0
