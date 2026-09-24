@@ -19,6 +19,8 @@ pub struct MbRuntime {
     pub(crate) root: Context,
     pub(crate) host: Arc<host::HostImpl>,
     plugins: RwLock<Vec<LoadedPlugin>>,
+    /// 已停止插件的保底引用（持有 dll 句柄防运行中 FreeLibrary，直至进程退出）
+    retired: RwLock<Vec<LoadedPlugin>>,
     /// 插件扫描目录（按优先级：用户导入目录在前；mbplugin:// 协议按此查找）
     pub plugin_dirs: Vec<PathBuf>,
 }
@@ -57,6 +59,7 @@ impl MbRuntime {
             root,
             host,
             plugins: RwLock::new(Vec::new()),
+            retired: RwLock::new(Vec::new()),
             plugin_dirs,
         }
     }
@@ -86,6 +89,25 @@ impl MbRuntime {
             self.plugins.write().unwrap().push(item);
         }
         (ids, errors)
+    }
+
+    /// 热卸载：终态处置插件 Fiber（dispose 过程执行清理 effect，从命令
+    /// 注册表注销），并把实例移入 retired 列表——保住 dll 引用，避免
+    /// 运行中 FreeLibrary。返回是否找到并停止了该插件。
+    pub(crate) async fn stop_plugin(&self, id: &str) -> bool {
+        let removed = {
+            let mut plugins = self.plugins.write().unwrap();
+            match plugins.iter().position(|p| p.manifest.id == id) {
+                Some(index) => Some(plugins.remove(index)),
+                None => None,
+            }
+        };
+        let Some(item) = removed else {
+            return false;
+        };
+        let _ = item.handle.dispose().await;
+        self.retired.write().unwrap().push(item);
+        true
     }
 
     /// 已加载插件清单

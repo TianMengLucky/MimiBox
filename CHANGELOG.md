@@ -13,10 +13,12 @@
 
 - `.miz` / `.mip` 文件类型图标：安装包注册文件关联，资源管理器中 `.mip` 插件包与 `.miz` 方案包分别显示专属图标（图标随安装包分发，NSIS 安装器通过 installer hooks 覆盖关联的 DefaultIcon）
 - 固定 Release（x-latest）发布完成后自动清理文件名带旧版本号的安装包资产，避免多版本资源混在一起误导下载（latest.json 与 .mip 文件名不带版本，不受影响）
-- 插件导入热加载：导入新插件后自动加载并即时生效，主页/资料库卡片与功能页即时出现，无需重启；升级/替换同 id 插件与删除已加载插件仍需重启（Windows 运行中动态库无法覆盖）
+- 插件导入自动热加载、删除插件自动热卸载，主页/资料库卡片与功能页即时增减，无需重启；升级/替换同 id 插件仍需重启（Windows 运行中动态库无法覆盖，删除时被驻留的 dll 文件经改名隔离、下次启动自动清理）
 
 ### Fixed
 
+- 修复 Windows 发布态插件前端脚本经 `mbplugin://` 裸协议注入失败（`ERR_UNKNOWN_URL_SCHEME`，卡片全部不显示）的问题：改用 `convertFileSrc` 按平台生成正确 URL（Windows 经 `http://mbplugin.localhost`），宿主端对应做百分号解码
+- 修复设置过自定义插件存放位置时导入的插件永不加载的问题：加载器扫描目录误用默认目录（appdata/plugins），与导入目录（生效目录）不一致；现统一使用生效目录
 - 修复 `.mip` 分发包格式错误导致应用内导入报「不是有效的 zip 插件包」的问题：系统 tar 在 Windows 上行为不一（bsdtar 的 `-a` 按扩展名静默回退为 tar 格式、GNU tar 不支持 `--format zip`），改用 fflate 在 Node 内直接生成/解析 zip；增量发布检测到 Release 上非 zip 的旧资产时按「版本未知」处理，重建并以正确格式覆盖上传
 - 修复 MSI 打包失败（light.exe `LGHT0311`）：文件关联的中文描述超出 en-US 数据库代码页 1252，改用自定义 WixLocalization（数据库代码页 936）支持中文
 

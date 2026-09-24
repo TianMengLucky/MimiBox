@@ -32,8 +32,8 @@ interface ReloadOutcome {
 /**
  * 「插件管理」设置区：展示已加载插件清单，支持从文件夹或 .mip 插件包
  * （zip 格式）导入第三方插件到用户插件目录；可自定义插件存放位置
- * （切换时自动迁移已导入插件）。导入新插件后经 plugin_reload 热加载、
- * 即时生效；升级/替换同 id 插件与删除已加载插件需重启应用（dll 被占用）。
+ * （切换时自动迁移已导入插件）。导入新插件与删除插件均热加载/热卸载、
+ * 即时生效；升级/替换同 id 插件需重启应用（dll 被占用）。
  */
 export function PluginsSection() {
   const [plugins, setPlugins] = useState<MbPluginManifest[]>([]);
@@ -118,11 +118,12 @@ export function PluginsSection() {
     setNeedsRestart(false);
     try {
       await tauriInvoke("plugin_remove", { id });
-      showNotice(`已删除「${id}」，重启应用后生效`, true);
+      refresh();
+      showNotice(`已删除「${id}」，插件已停止`, false);
     } catch (err) {
       setError(errorMessage(err));
     }
-  }, [showNotice]);
+  }, [refresh, showNotice]);
 
   /** 更改插件存放位置：选择新目录后自动迁移已导入的插件 */
   const changeDir = useCallback(async () => {

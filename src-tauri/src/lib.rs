@@ -81,6 +81,7 @@ pub fn run() {
             setup_tray(app)?;
 
             // 插件运行时：cordis 根上下文 + 内置插件 + 磁盘插件加载
+            plugin_manager::cleanup_user_dir_trash(app.handle());
             let host = Arc::new(runtime::host::HostImpl::new(app.handle().clone()));
             runtime::vtable::install_host(host.clone())?;
             let plugin_dirs = loader::plugin_dirs(app.handle())?;
@@ -133,12 +134,16 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
-/// mbplugin:// 请求处理：`mbplugin://localhost/<id>/<相对路径>` → 插件目录文件。
-/// 仅允许安全的 id 与相对路径（防目录穿越），JS 用正确 MIME 返回。
+/// mbplugin:// 请求处理：`mbplugin://localhost/<id>/<相对路径>` → 插件目录文件
+/// （Windows/Android 实际经 `http://mbplugin.localhost/<路径>` 访问，路径
+/// 为百分号编码）。仅允许安全的 id 与相对路径（防目录穿越），JS 用正确
+/// MIME 返回。
 fn serve_mbplugin(
     app: &AppHandle,
     request: &tauri::http::Request<Vec<u8>>,
 ) -> tauri::http::Response<Vec<u8>> {
+    use percent_encoding::percent_decode_str;
+
     let not_found = |msg: &str| match tauri::http::Response::builder()
         .status(404)
         .body(msg.as_bytes().to_vec())
@@ -146,8 +151,12 @@ fn serve_mbplugin(
         Ok(response) => response,
         Err(_) => tauri::http::Response::new(Vec::new()),
     };
-    let path = request.uri().path().trim_start_matches('/');
-    let Some((id, relative)) = path.split_once('/') else {
+    // convertFileSrc 会把整个相对路径百分号编码（含分隔符），先还原
+    let raw_path = request.uri().path().trim_start_matches('/');
+    let Ok(decoded) = percent_decode_str(raw_path).decode_utf8() else {
+        return not_found("invalid plugin path");
+    };
+    let Some((id, relative)) = decoded.split_once('/') else {
         return not_found("invalid plugin path");
     };
     if !loader::valid_id(id) || relative.contains("..") || relative.contains('\\') {

@@ -65,6 +65,12 @@ pub(crate) struct LoadedPlugin {
     /// 插件是否来自用户导入目录（设置页据此展示「删除」）
     pub user_installed: bool,
     pub handle: FiberHandle,
+    /// 保底引用：插件停止后由运行时 retired 列表继续持有，避免
+    /// libloading Drop 触发 FreeLibrary（插件内部线程存活时卸载代码
+    /// 不安全）。dll 文件随进程退出释放；目录删除用「改名隔离 +
+    /// 启动清理」兜底。
+    #[allow(dead_code)]
+    pub(crate) lib: Arc<PluginLibrary>,
 }
 
 /// 内置插件目录：开发态取仓库根 `Plugins/`（编译期定位，发布态取资源目录）。
@@ -136,6 +142,10 @@ fn scan_unique(dirs: &[PathBuf], errors: &mut Vec<String>) -> HashMap<String, Pa
             let Some(name) = plugin_dir.file_name().and_then(|n| n.to_str()) else {
                 continue;
             };
+            // 跳过隐藏/隔离目录（删除操作留下的 .trash-* 隔离目录）
+            if name.starts_with('.') {
+                continue;
+            }
             // 靠前目录优先：已存在时保留，不覆盖
             unique.entry(name.to_string()).or_insert(plugin_dir);
         }
@@ -241,6 +251,8 @@ async fn load_one(
 
     let manifest_clone = manifest.clone();
     let user_installed = plugin_dir.starts_with(user_dir);
+    // 保底引用留给 LoadedPlugin：运行中绝不 FreeLibrary（retired 持有）
+    let lib_for_retire = Arc::clone(&lib);
     let plugin = DiskPlugin {
         manifest,
         commands,
@@ -255,5 +267,6 @@ async fn load_one(
         manifest: manifest_clone,
         user_installed,
         handle,
+        lib: lib_for_retire,
     })
 }

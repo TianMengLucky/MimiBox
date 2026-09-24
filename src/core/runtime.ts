@@ -5,10 +5,12 @@
  */
 
 import { Context } from "@cordisjs/core";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
 import { tauriInvoke, hasTauri } from "../lib/tauriInvoke";
 import { createPluginContext } from "./plugin-api";
+import { featureRegistry } from "./registry";
 import type { MbPluginDef } from "./plugin-api";
 import type { MbPluginManifest } from "./types";
 import { hostRequire, installSharedModules } from "./shared";
@@ -19,8 +21,10 @@ type RuntimeState = "loading" | "ready";
 let state: RuntimeState = "loading";
 /** 本窗口的 cordis 根上下文（热加载新插件时复用） */
 let rootCtx: Context | null = null;
-/** 本窗口已处理过前端加载的插件 id（热加载时跳过，避免重复注册） */
+/** 本窗口已处理过前端加载的插件 id（热同步时跳过，避免重复注册） */
 const processedIds = new Set<string>();
+/** 已加载插件的前端 Fiber（热卸载时 dispose） */
+const pluginFibers = new Map<string, { dispose?: () => unknown }>();
 const stateListeners = new Set<() => void>();
 
 function setState(next: RuntimeState) {
@@ -67,7 +71,10 @@ async function loadPlugin(ctx: Context, manifest: MbPluginManifest): Promise<voi
   const { id } = manifest;
   if (!manifest.entry?.frontend) return;
 
-  await injectScript(`mbplugin://localhost/${id}/${manifest.entry.frontend}`);
+  // Windows/Android 的自定义协议要经 http://mbplugin.localhost 访问，
+  // convertFileSrc 按平台生成正确 URL（路径整体百分号编码，宿主端解码）
+  const url = convertFileSrc(`${id}/${manifest.entry.frontend}`, "mbplugin");
+  await injectScript(url);
   const factory = window.__mb_plugins?.[id];
   if (!factory) {
     throw new Error("bundle 未注册插件工厂（__mb_plugins）");
@@ -80,13 +87,14 @@ async function loadPlugin(ctx: Context, manifest: MbPluginManifest): Promise<voi
   }
 
   // cordis 管插件生命周期；apply 内通过 createPluginContext 拿宿主能力
-  ctx.plugin({
+  const fiber = ctx.plugin({
     name: `mb-plugin:${id}`,
     apply: (cordisCtx) => {
       void cordisCtx;
       return def.apply(createPluginContext(manifest));
     },
   });
+  pluginFibers.set(id, fiber as unknown as { dispose?: () => unknown });
 }
 
 /** 加载并登记单个插件：跳过失败与已处理的插件 */
@@ -101,11 +109,28 @@ async function loadSingle(ctx: Context, manifest: MbPluginManifest): Promise<voi
   }
 }
 
-/** 热加载：重新读取插件清单，只处理本窗口尚未加载过的插件
- * （宿主 plugin_reload 导入新插件后广播 plugins-changed 触发） */
-async function reloadNewPlugins(): Promise<void> {
+/** 与宿主清单同步：加载新增插件、移除已删除/卸载的插件
+ * （宿主 plugin_reload / plugin_remove 后广播 plugins-changed 触发） */
+async function syncPlugins(): Promise<void> {
   if (!rootCtx || state !== "ready" || !hasTauri) return;
   const manifests = await listPlugins();
+  const active = new Set(
+    manifests.filter((m) => m.state !== "Failed").map((m) => m.id),
+  );
+  // 移除已删除/卸载的插件：dispose 前端 Fiber 并清理功能注册表
+  for (const id of [...processedIds]) {
+    if (active.has(id)) continue;
+    processedIds.delete(id);
+    const fiber = pluginFibers.get(id);
+    pluginFibers.delete(id);
+    try {
+      await fiber?.dispose?.();
+    } catch (err) {
+      console.warn(`插件「${id}」前端卸载失败`, err);
+    }
+    featureRegistry.remove(id);
+  }
+  // 加载新增插件
   for (const manifest of manifests) {
     await loadSingle(rootCtx, manifest);
   }
@@ -124,7 +149,7 @@ export async function startPluginRuntime(): Promise<void> {
     }
     if (hasTauri) {
       await listen("plugins-changed", () => {
-        void reloadNewPlugins();
+        void syncPlugins();
       });
     }
   } finally {

@@ -30,6 +30,13 @@ export const featureRegistry = {
     emit();
   },
 
+  /** 移除一个已注册功能（插件热卸载/删除时调用） */
+  remove(id: string) {
+    if (entries.delete(id)) {
+      emit();
+    }
+  },
+
   get(id: string): FeatureEntry | undefined {
     return entries.get(id);
   },

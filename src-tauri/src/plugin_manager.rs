@@ -389,23 +389,74 @@ pub fn plugin_import_mip(app: AppHandle, path: String) -> Result<ImportOutcome, 
     })
 }
 
-/// 删除一个用户导入的插件（仅用户插件目录中的插件可删除；
-/// 重启应用后不再加载）
+/// 删除一个用户导入的插件：先热卸载（停止插件 Fiber 并注销命令，即时
+/// 生效），再删除插件目录。dll 文件按设计驻留内存（不主动 FreeLibrary），
+/// 若删除时仍被占用，则把目录改名隔离为 `.trash-*`，剩余文件由下次
+/// 启动时的 [`cleanup_user_dir_trash`] 清理。
 #[tauri::command]
-pub fn plugin_remove(app: AppHandle, id: String) -> Result<(), String> {
+pub async fn plugin_remove(app: AppHandle, id: String) -> Result<(), String> {
+    use tauri::Emitter;
+
     if !valid_id(&id) {
         return Err("无效的插件 id".to_string());
     }
-    let dir = effective_user_dir(&app)?.join(&id);
+    let user_dir = effective_user_dir(&app)?;
+    let dir = user_dir.join(&id);
     if !dir.is_dir() {
         return Err("该插件不是用户导入的插件（随应用分发的插件不可删除）".to_string());
     }
-    fs::remove_dir_all(&dir).map_err(|_| {
-        format!(
-            "插件「{id}」正在使用中，无法删除：请先重启应用再试"
-        )
-    })?;
+
+    // 1. 热卸载：停止插件 Fiber 并从运行时清单移除（尚未加载时跳过）
+    if let Some(runtime) = app.try_state::<crate::runtime::MbRuntime>() {
+        runtime.stop_plugin(&id).await;
+    }
+
+    // 2. 删除目录；backend.dll 仍驻留内存时改名隔离，留给下次启动清理
+    if let Err(_e) = fs::remove_dir_all(&dir) {
+        let trash = user_dir.join(format!(".trash-{}-{}", id, std::process::id()));
+        let _ = fs::remove_dir_all(&trash);
+        fs::rename(&dir, &trash).map_err(|e| {
+            format!("插件「{id}」已停止，但文件清理失败：{e}（请重启应用后重试）")
+        })?;
+        cleanup_trash_dir(&trash);
+    }
+
+    // 3. 广播：前端同步移除对应卡片与功能页
+    let _ = app.emit("plugins-changed", &Vec::<String>::new());
     Ok(())
+}
+
+/// 清理隔离目录：递归删除其中内容；backend.dll 可能仍被驻留内存的句柄
+/// 锁定则忽略失败，留待下次启动清理。
+fn cleanup_trash_dir(trash: &Path) {
+    let Ok(entries) = fs::read_dir(trash) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            let _ = fs::remove_dir_all(&path);
+        } else {
+            let _ = fs::remove_file(&path);
+        }
+    }
+    let _ = fs::remove_dir(trash);
+}
+
+/// 启动时清理上次删除操作留下的 `.trash-*` 隔离目录（此时 dll 尚未加载）
+pub fn cleanup_user_dir_trash(app: &AppHandle) {
+    let Ok(user_dir) = effective_user_dir(app) else {
+        return;
+    };
+    let Ok(entries) = fs::read_dir(&user_dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if name.starts_with(".trash-") {
+            let _ = fs::remove_dir_all(entry.path());
+        }
+    }
 }
 
 /// 热加载结果
