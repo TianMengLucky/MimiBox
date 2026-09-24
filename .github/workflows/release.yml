@@ -180,3 +180,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release edit "${{ steps.variant.outputs.tag_name }}" --notes-file release_notes.md -R "$GITHUB_REPOSITORY"
+
+      # 固定 Release（x-latest）跨 tag 复用：清理文件名带旧版本号的安装包资产，
+      # 避免不同版本资源混在一起（latest.json 与 *.mip 文件名不带版本，不受影响）
+      - name: Clean stale versioned assets
+        if: steps.variant.outputs.variant == 'x'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/clean-release-assets.mjs "${{ steps.variant.outputs.tag_name }}" "$(node -p "require('./src-tauri/tauri.conf.json').version")"

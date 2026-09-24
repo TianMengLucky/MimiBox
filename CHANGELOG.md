@@ -12,6 +12,7 @@
 ### Added
 
 - `.miz` / `.mip` 文件类型图标：安装包注册文件关联，资源管理器中 `.mip` 插件包与 `.miz` 方案包分别显示专属图标（图标随安装包分发，NSIS 安装器通过 installer hooks 覆盖关联的 DefaultIcon）
+- 固定 Release（x-latest）发布完成后自动清理文件名带旧版本号的安装包资产，避免多版本资源混在一起误导下载（latest.json 与 .mip 文件名不带版本，不受影响）
 
 ### Fixed
 
