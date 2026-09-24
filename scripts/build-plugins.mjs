@@ -39,11 +39,46 @@ async function buildFrontend(plugin) {
   console.log(`[plugin:${plugin.id}] frontend/index.js 已更新`);
 }
 
-const only = process.argv[2]; // 可选：只构建某个插件（pnpm build:plugins lottery）
+/**
+ * 把构建产物打包为 .mip 分发包（zip，经系统 tar 的自动压缩模式）。
+ * 包内只含清单与运行时产物：plugin.json、entry.backend（backend.dll）、
+ * frontend/index.js；不含 Rust/TS 源码。
+ */
+function packMip(plugin) {
+  const dir = path.join(pluginsRoot, plugin.id);
+  const manifest = JSON.parse(fs.readFileSync(path.join(dir, "plugin.json"), "utf8"));
+  const files = ["plugin.json", manifest.entry.backend];
+  if (
+    manifest.entry.frontend &&
+    fs.existsSync(path.join(dir, manifest.entry.frontend))
+  ) {
+    files.push(manifest.entry.frontend);
+  }
+  const out = path.join(pluginsRoot, `${plugin.id}.mip`);
+  fs.rmSync(out, { force: true });
+  // tar -a 按扩展名选择 zip 格式（Windows/macOS/Linux 自带 bsdtar 均支持）
+  execSync(`tar -a -cf "${out}" ${files.map((f) => `"${f}"`).join(" ")}`, {
+    cwd: dir,
+    stdio: "inherit",
+  });
+  console.log(`[plugin:${plugin.id}] ${plugin.id}.mip 已生成`);
+}
+
+const args = process.argv.slice(2);
+const mipOnly = args.includes("--mip-only"); // 跳过编译，仅打包现有构建产物
+const only = args.find((arg) => !arg.startsWith("--")); // 可选：只构建某个插件
 const targets = PLUGINS.filter((plugin) => !only || plugin.id === only);
 if (targets.length === 0) {
   console.error(`没有匹配的插件: ${only}（可选: ${PLUGINS.map((p) => p.id).join(", ")}）`);
   process.exit(1);
+}
+
+if (mipOnly) {
+  for (const plugin of targets) {
+    packMip(plugin);
+  }
+  console.log("\n全部 .mip 分发包打包完成");
+  process.exit(0);
 }
 
 for (const plugin of targets) {
@@ -52,5 +87,6 @@ for (const plugin of targets) {
   if (plugin.frontend) {
     await buildFrontend(plugin);
   }
+  packMip(plugin);
 }
 console.log("\n全部插件构建完成");

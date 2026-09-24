@@ -5,6 +5,7 @@
   "description": "背景图上自由摆放贴图",
   "category": "video",
   "abi": 1,
+  "version": "0.2.1",
   "requires": [],
   "entry": {
     "backend": "backend.dll",

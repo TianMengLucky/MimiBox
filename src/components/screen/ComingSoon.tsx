@@ -1,4 +1,4 @@
-﻿import appIcon from "@assets/app-icon.png";
+import appIcon from "@assets/app-icon.png";
 
 /** 敬请期待：主页占位画面 */
 export default function ComingSoon() {

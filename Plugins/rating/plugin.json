@@ -5,6 +5,7 @@
   "description": "批量打 1-10 分",
   "category": "video",
   "abi": 1,
+  "version": "0.2.1",
   "requires": [],
   "entry": {
     "backend": "backend.dll",

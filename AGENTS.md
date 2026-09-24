@@ -67,6 +67,13 @@
   - 插件的复杂外接 CSS 放 `Plugins/<id>/frontend/*.css` 并在宿主
     `src/style/index.css` `@import`；插件类名靠 `@source "../../Plugins/*/frontend"`
     进宿主样式表，插件源码不要 import css。
+  - 插件版本与增量发布：每个 plugin.json 携带独立 `version` 字段；CI
+    （release.yml）按「本体比 latest.json version、插件比各 mip 内 version」
+    增量发布——更新某插件后必须递增其 version 才会被重新打包上传。
+    `.mip` 打包走 `node scripts/build-plugins.mjs [--mip-only]`（系统 tar
+    zip 模式，只含 plugin.json/backend.dll/frontend/index.js），CI 双发行版：
+    完整版（resources 内置插件）与 Lite 版（tauri.lite.json 覆盖：无
+    resources、禁用更新器）。
   - 验证：`cargo check --workspace` + `pnpm build`（tsc + vite + 插件构建）。
     dll 改动需重启应用（Windows 锁定已加载 dll）；前端改动 `pnpm plugins:watch`
     + 刷新即生效。

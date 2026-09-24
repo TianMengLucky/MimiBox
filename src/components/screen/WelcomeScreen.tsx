@@ -1,4 +1,4 @@
-﻿import { Button } from "@heroui/react";
+import { Button } from "@heroui/react";
 import appIcon from "@assets/app-icon.png";
 
 type WelcomeScreenProps = {

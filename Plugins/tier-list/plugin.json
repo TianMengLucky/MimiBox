@@ -5,6 +5,7 @@
   "description": "图片排名表",
   "category": "video",
   "abi": 1,
+  "version": "0.2.1",
   "requires": [],
   "entry": {
     "backend": "backend.dll",

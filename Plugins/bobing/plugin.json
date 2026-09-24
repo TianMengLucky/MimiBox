@@ -5,6 +5,7 @@
   "description": "掷骰夺状元",
   "category": "fun",
   "abi": 1,
+  "version": "0.2.1",
   "requires": [],
   "entry": {
     "backend": "backend.dll",

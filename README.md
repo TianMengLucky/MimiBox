@@ -257,7 +257,16 @@ pnpm dev
 2. 在根 `Cargo.toml` 的 workspace members 与 `scripts/plugin-config.mjs` 的 `PLUGINS` 中登记。
 3. 运行 `pnpm build:plugins` 后启动应用，主页/资料库卡片与 `/feature/<id>` 页面会自动出现。
 
-把插件目录打包为 `.mip` 分发包：将 `plugin.json` + `backend.dll` + `frontend/index.js`（保持相对结构，可带一层根目录）用 zip 压缩并改后缀为 `.mip`，即可通过设置页分发给其他用户。
+把插件目录打包为 `.mip` 分发包：运行 `node scripts/build-plugins.mjs --mip-only`（或任意一次 `pnpm build:plugins`），每个插件会在 `Plugins/` 下生成 `<id>.mip`（zip 格式，仅含 plugin.json、backend.dll、frontend/index.js）。CI 发布时会把全部 `.mip` 与安装包一起上传到 Release 供下载。
+
+### 发行版与增量发布
+
+CI（tag 触发）每次产出两类安装包：
+
+- **完整版**（`MimiBox-X_版本_x64-setup.exe`）：内置全部插件，开箱即用；
+- **Lite 精简版**（`MimiBox-X-Lite_版本_x64-setup.exe`）：不含插件、禁用应用内更新，安装后通过设置页导入所需的 `.mip`。
+
+增量规则：应用本体按 Release 上 `latest.json` 的版本对比，插件按各自 `plugin.json` 的 `version` 字段对比——未变化的组件自动跳过构建与上传，因此更新单个插件只需在对应 `plugin.json` 里递增 `version` 后打 tag。
 
 ---
 

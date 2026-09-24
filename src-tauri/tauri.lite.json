@@ -1,0 +1,15 @@
+{
+  "productName": "MimiBox-X-Lite",
+  "build": {
+    "beforeBuildCommand": ""
+  },
+  "bundle": {
+    "createUpdaterArtifacts": false,
+    "resources": []
+  },
+  "plugins": {
+    "updater": {
+      "active": false
+    }
+  }
+}

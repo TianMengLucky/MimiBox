@@ -1,14 +1,20 @@
 name: release
 
-# 双分支发布约定（tag 后缀区分产品线）：
+# 双产品线增量发布（tag 后缀区分）：
 # - `vX.Y.Z`        → 主分支（main）：构建 mimibox，发布到 tag 对应的 Release，
 #                      更新源走 releases/latest/download/latest.json
 # - `vX.Y.Z-x`      → 插件化分支（plugin-architecture）：构建 MimiBox-X，
 #                      发布到固定 tag `x-latest` 的 prerelease Release（资产每次覆盖），
 #                      更新源走 releases/download/x-latest/latest.json，
 #                      与主分支的 releases/latest 互不干扰
-# 两个变体共用同一 tag 前缀 `v*`，由 tag 是否以 `-x` 结尾在步骤内分流；
-# 发布说明从 CHANGELOG.md 提取对应 `## [版本号]` 小节（x 变体缺失时回退 Unreleased）。
+# 两个变体共用同一 tag 前缀 `v*`，由 tag 是否以 `-x` 结尾在步骤内分流。
+#
+# 增量规则：
+# - 应用本体：对比 Release 上 latest.json 的 version 与 tauri.conf.json 的
+#   version，相同则跳过完整版与 Lite 版安装包的构建与上传；
+# - 插件：对比 Release 上 <id>.mip 内 plugin.json 的 version 与本地清单，
+#   只重建并上传有变化的插件（scripts/release-plugins.mjs）；
+# - 仅插件更新（本体跳过）时，仍会刷新 Release 说明文字。
 
 on:
   push:
@@ -107,7 +113,31 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           cat release_notes.md
 
-      - name: Build and release
+      # 应用本体增量检查：Release 上 latest.json 的 version 与本地一致时
+      # 跳过安装包构建（首次发布时 latest.json 不存在 → 必然构建）
+      - name: Check app version against release
+        id: appcheck
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          CURRENT=""
+          if gh release view "${{ steps.variant.outputs.tag_name }}" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release download "${{ steps.variant.outputs.tag_name }}" -p latest.json -O latest_remote.json --clobber -R "$GITHUB_REPOSITORY" || true
+            if [ -f latest_remote.json ]; then
+              CURRENT=$(node -p "JSON.parse(require('fs').readFileSync('latest_remote.json','utf8')).version")
+            fi
+          fi
+          echo "本地版本: $VERSION / Release 版本: ${CURRENT:-（无）}"
+          if [ "$CURRENT" = "$VERSION" ]; then
+            echo "need=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "need=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and release (full, with bundled plugins)
+        if: steps.appcheck.outputs.need == 'true'
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -119,3 +149,34 @@ jobs:
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: ${{ steps.variant.outputs.prerelease == 'true' }}
+
+      # Lite 版：productName 区分文件名；resources 清空（RFC 7396 数组替换）
+      # 不内置插件；跳过前端重复构建（dist 已由完整版构建生成）与更新器
+      - name: Build and release (lite, without bundled plugins)
+        if: steps.appcheck.outputs.need == 'true'
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: "--config src-tauri/tauri.lite.json"
+          tagName: ${{ steps.variant.outputs.tag_name }}
+          releaseName: ${{ steps.variant.outputs.release_name }}
+          releaseBody: ${{ steps.notes.outputs.body }}
+          releaseDraft: false
+          prerelease: ${{ steps.variant.outputs.prerelease == 'true' }}
+
+      # 插件增量发布：只重建并上传 version 有变化的 .mip（始终执行——
+      # 插件可与本体独立发版）
+      - name: Pack and upload changed plugins
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/release-plugins.mjs "${{ steps.variant.outputs.tag_name }}"
+
+      # 本体跳过构建时，Release 说明仍刷新为当前 CHANGELOG 内容
+      - name: Refresh release notes when app build skipped
+        if: steps.appcheck.outputs.need == 'false'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ steps.variant.outputs.tag_name }}" --notes-file release_notes.md -R "$GITHUB_REPOSITORY"

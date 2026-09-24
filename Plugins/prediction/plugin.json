@@ -5,6 +5,7 @@
   "description": "晋级节点预测图",
   "category": "video",
   "abi": 1,
+  "version": "0.2.1",
   "requires": [],
   "entry": {
     "backend": "backend.dll",

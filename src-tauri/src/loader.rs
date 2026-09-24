@@ -37,6 +37,9 @@ pub struct PluginManifest {
     pub category: String,
     /// 插件 ABI 版本，必须与宿主一致才会加载
     pub abi: u32,
+    /// 插件独立版本（CI 增量发布与 .mip 分发对比用）
+    #[serde(default)]
+    pub version: String,
     /// 依赖的宿主服务（如 "account"），未就绪时插件保持 Pending
     #[serde(default)]
     pub requires: Vec<String>,

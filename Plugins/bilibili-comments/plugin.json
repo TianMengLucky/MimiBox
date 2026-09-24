@@ -5,6 +5,7 @@
   "description": "查看并筛选投稿评论",
   "category": "video",
   "abi": 1,
+  "version": "0.2.1",
   "requires": ["account"],
   "entry": {
     "backend": "backend.dll",
