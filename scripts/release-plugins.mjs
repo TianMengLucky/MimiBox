@@ -29,6 +29,15 @@ function gh(cmd) {
  * cwd 切到文件所在目录、只用文件名传给 tar：bsdtar 会把绝对路径里的
  * `D:` 盘符当作「远程主机:路径」语法导致读取失败。 */
 function readMipVersion(mipPath) {
+  // 非 zip（PK 头）的旧资产无法被应用导入，按「版本未知」处理以触发重发布
+  const head = Buffer.alloc(4);
+  const fd = fs.openSync(mipPath, "r");
+  try {
+    fs.readSync(fd, head, 0, 4, 0);
+  } finally {
+    fs.closeSync(fd);
+  }
+  if (head.toString("latin1") !== "PK\u0003\u0004") return "";
   const dir = path.dirname(mipPath);
   const name = path.basename(mipPath);
   const json = execSync(`tar -xOf "${name}" plugin.json`, {
