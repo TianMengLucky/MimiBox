@@ -25,9 +25,16 @@ function gh(cmd) {
   });
 }
 
-/** 读取 .mip 包内 plugin.json 的 version（bsdtar -O 输出到 stdout） */
+/** 读取 .mip 包内 plugin.json 的 version（bsdtar -O 输出到 stdout）。
+ * cwd 切到文件所在目录、只用文件名传给 tar：bsdtar 会把绝对路径里的
+ * `D:` 盘符当作「远程主机:路径」语法导致读取失败。 */
 function readMipVersion(mipPath) {
-  const json = execSync(`tar -xOf "${mipPath}" plugin.json`, { encoding: "utf8" });
+  const dir = path.dirname(mipPath);
+  const name = path.basename(mipPath);
+  const json = execSync(`tar -xOf "${name}" plugin.json`, {
+    encoding: "utf8",
+    cwd: dir,
+  });
   return JSON.parse(json).version ?? "";
 }
 
@@ -57,7 +64,8 @@ for (const plugin of PLUGINS) {
     `[plugin:${plugin.id}] 版本 ${remoteVersions[plugin.id] || "（新插件）"} → ${localVersion}，构建中…`,
   );
   execSync(`node scripts/build-plugins.mjs ${plugin.id}`, { stdio: "inherit" });
-  uploads.push(path.join("Plugins", plugin.id, `${plugin.id}.mip`));
+  // .mip 由 build-plugins.mjs 生成在 Plugins/ 直下（Plugins/<id>.mip，非插件子目录）
+  uploads.push(`Plugins/${plugin.id}.mip`);
 }
 
 // 3. 上传有变化的 .mip（--clobber 覆盖同名旧资产）
