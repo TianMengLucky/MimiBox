@@ -47,6 +47,14 @@ async function buildFrontend(plugin) {
 function packMip(plugin) {
   const dir = path.join(pluginsRoot, plugin.id);
   const manifest = JSON.parse(fs.readFileSync(path.join(dir, "plugin.json"), "utf8"));
+  // 打包前校验运行时产物齐全（--mip-only 跳过编译时尤其重要）
+  const missing = ["plugin.json", manifest.entry.backend, ...(manifest.entry.frontend ? [manifest.entry.frontend] : [])]
+    .filter((f) => !fs.existsSync(path.join(dir, f)));
+  if (missing.length > 0) {
+    throw new Error(
+      `[plugin:${plugin.id}] 缺少构建产物 ${missing.join("、")}——请先运行 pnpm build:plugins`,
+    );
+  }
   const files = ["plugin.json", manifest.entry.backend];
   if (
     manifest.entry.frontend &&
@@ -56,8 +64,11 @@ function packMip(plugin) {
   }
   const out = path.join(pluginsRoot, `${plugin.id}.mip`);
   fs.rmSync(out, { force: true });
-  // tar -a 按扩展名选择 zip 格式（Windows/macOS/Linux 自带 bsdtar 均支持）
-  execSync(`tar -a -cf "${out}" ${files.map((f) => `"${f}"`).join(" ")}`, {
+  // tar -a 按扩展名选择 zip 格式（Windows/macOS/Linux 自带 bsdtar 均支持）。
+  // 输出必须用相对路径（cwd 为插件目录）：bsdtar 会把绝对路径里的
+  // `D:` 盘符当作「远程主机:路径」语法导致构建失败（tar: Cannot connect to D）。
+  const outRelative = `../${plugin.id}.mip`;
+  execSync(`tar -a -cf "${outRelative}" ${files.map((f) => `"${f}"`).join(" ")}`, {
     cwd: dir,
     stdio: "inherit",
   });
