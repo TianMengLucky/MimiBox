@@ -37,6 +37,26 @@ pub struct VideosPage {
     pub total: u32,
 }
 
+/// 评论里的 B 站表情（[dog] 等），前端把 message 里的同名文本替换为图片
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CommentEmote {
+    /// 表情文本，如 "[dog]"
+    pub text: String,
+    pub url: String,
+    /// 表情尺寸档位（1=小 2=大 3=超大），决定前端渲染大小
+    pub size: i32,
+}
+
+/// 图片评论（内容里的图片，独立于文字）
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CommentPicture {
+    pub url: String,
+    pub width: i64,
+    pub height: i64,
+}
+
 /// 仅本地存储与显示的评论回复（comment_notes.json），挂在原评论下方
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -60,6 +80,12 @@ pub struct CommentItem {
     /// 发布时间（Unix 秒）
     pub ctime: i64,
     pub is_top: bool,
+    /// B 站回复总数（楼中楼条数，不含主楼）
+    pub reply_count: i64,
+    /// 评论内表情：message 里的 [xxx] 文本对应这里的图片
+    pub emotes: Vec<CommentEmote>,
+    /// 图片评论的图片列表
+    pub pictures: Vec<CommentPicture>,
     /// 是否灌水评论（纯表情/复读/口癖），由 spam 模块在解析时计算
     pub is_spam: bool,
     /// 是否被用户标记，由 marks 持久化数据在返回前注入
@@ -184,7 +210,46 @@ pub async fn bilibili_comments_videos(
     })
 }
 
-/// 解析单条评论（wbi/main 与 reply/main 的回复结构一致）
+/// 解析评论内容里的表情映射（content.emote 是 text -> {url, meta:{size}} 结构）
+fn parse_emotes(item: &serde_json::Value) -> Vec<CommentEmote> {
+    item["content"]["emote"]
+        .as_object()
+        .map(|map| {
+            map.values()
+                .filter_map(|emote| {
+                    let text = emote["text"].as_str()?.to_string();
+                    let url = emote["url"].as_str()?.replace("http://", "https://");
+                    Some(CommentEmote {
+                        text,
+                        url,
+                        size: emote["meta"]["size"].as_i64().unwrap_or(1) as i32,
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// 解析图片评论（content.pictures 数组，含图片地址与原始尺寸）
+fn parse_pictures(item: &serde_json::Value) -> Vec<CommentPicture> {
+    item["content"]["pictures"]
+        .as_array()
+        .map(|list| {
+            list.iter()
+                .filter_map(|pic| {
+                    let url = pic["img_src"].as_str()?.replace("http://", "https://");
+                    Some(CommentPicture {
+                        url,
+                        width: pic["img_width"].as_i64().unwrap_or(0),
+                        height: pic["img_height"].as_i64().unwrap_or(0),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// 解析单条评论（wbi/main、reply/main 与 reply/reply 的结构一致）
 fn parse_comment(item: &serde_json::Value, is_top: bool) -> CommentItem {
     let member = &item["member"];
     let mut result = CommentItem {
@@ -205,6 +270,9 @@ fn parse_comment(item: &serde_json::Value, is_top: bool) -> CommentItem {
         likes: item["like"].as_i64().unwrap_or(0),
         ctime: item["ctime"].as_i64().unwrap_or(0),
         is_top,
+        reply_count: item["rcount"].as_i64().unwrap_or(0),
+        emotes: parse_emotes(item),
+        pictures: parse_pictures(item),
         is_spam: false,
         is_marked: false,
         local_edit: None,
@@ -312,4 +380,55 @@ pub async fn bilibili_comments_list(
         has_more: !is_end,
         next_offset,
     })
+}
+
+/// 回复楼中楼的分页结果（与主评论共用 CommentItem 结构；
+/// is_marked/local_edit/replies 仅主评论注入，楼中楼里为默认值）
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepliesPage {
+    pub replies: Vec<CommentItem>,
+    /// B 站返回的该楼回复总数
+    pub total: i64,
+}
+
+/// 指定评论的 B 站回复楼中楼（pn/ps 分页）。
+/// 走旧版 reply/reply 端点（无需 dialog id）；wbi_get 的签名参数对
+/// 非 wbi 端点会被忽略，不影响响应。
+#[tauri::command]
+pub async fn bilibili_comments_replies(
+    app: AppHandle,
+    state: State<'_, AccountState>,
+    oid: i64,
+    root: i64,
+    page: u32,
+) -> Result<RepliesPage, String> {
+    let (_, cookie) = state
+        .bilibili_session(&app)?
+        .ok_or_else(|| "请先在账号页登录 B 站账号".to_string())?;
+    let page = page.max(1);
+    let data = wbi_get(
+        &state,
+        Some(&cookie),
+        "https://api.bilibili.com/x/v2/reply/reply",
+        &[
+            ("oid".into(), oid.to_string()),
+            ("type".into(), "1".into()),
+            ("root".into(), root.to_string()),
+            ("pn".into(), page.to_string()),
+            ("ps".into(), "20".into()),
+        ],
+    )
+    .await?;
+
+    let replies = data["replies"]
+        .as_array()
+        .map(|list| {
+            list.iter()
+                .map(|item| parse_comment(item, false))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let total = data["page"]["count"].as_i64().unwrap_or(0);
+    Ok(RepliesPage { replies, total })
 }

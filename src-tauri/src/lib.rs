@@ -118,6 +118,7 @@ pub fn run() {
             bangumi::bangumi_calendar,
             bilibili_comments::bilibili_comments_videos,
             bilibili_comments::bilibili_comments_list,
+            bilibili_comments::bilibili_comments_replies,
             bilibili_comments::marks::bilibili_comments_set_mark,
             bilibili_comments::notes::bilibili_comments_set_edit,
             bilibili_comments::notes::bilibili_comments_add_reply,

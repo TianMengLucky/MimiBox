@@ -1,9 +1,12 @@
 "use no memo";
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Icon } from "@iconify/react";
+import { tauriInvoke } from "../../lib/tauriInvoke";
+import { errorMessage } from "../../lib/errors";
 import { formatCount, formatRelative } from "./format";
-import type { CommentItem, LocalReply } from "./types";
+import type { BiliEmote, BiliPicture, CommentItem, LocalReply, RepliesPage } from "./types";
 
 /** 硬币等级徽章配色：0-1 灰 / 2-3 绿 / 4-5 琥珀 / 6+ B 站粉 */
 function levelBadgeClass(level: number): string {
@@ -24,10 +27,87 @@ function actionButtonClass(active?: boolean): string {
 const textareaClass =
   "w-full resize-y rounded-xl border border-white/70 bg-white/85 p-2.5 text-sm leading-relaxed text-[#66535a] outline-none placeholder:text-[#bfa9b2] focus:border-[#fb7299]/50";
 
+/** 表情尺寸档位：1=小(24px) 2=大(40px) 3=超大(64px) */
+function emoteClass(size: number): string {
+  if (size >= 3) return "h-16 max-w-24 w-auto";
+  if (size === 2) return "h-10 w-auto";
+  return "h-6 w-auto";
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** 把 message 里的 [表情] 文本替换为 B 站表情图片；无表情时返回原文 */
+function renderMessage(content: string, emotes: BiliEmote[]): ReactNode {
+  if (emotes.length === 0) return content;
+  const map = new Map(emotes.map((emote) => [emote.text, emote]));
+  const pattern = emotes.map((emote) => escapeRegExp(emote.text)).join("|");
+  let regex: RegExp;
+  try {
+    regex = new RegExp(`(${pattern})`, "g");
+  } catch {
+    return content;
+  }
+  return content
+    .split(regex)
+    .map((part, index) => {
+      const emote = map.get(part);
+      if (!emote) return <span key={index}>{part}</span>;
+      return (
+        <img
+          key={index}
+          src={emote.url}
+          alt={emote.text}
+          title={emote.text}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className={`inline-block align-text-bottom ${emoteClass(emote.size)}`}
+        />
+      );
+    });
+}
+
+/** 图片评论的图片列表（多图换行平铺，单图限制最大宽度） */
+function PictureList({ pictures }: { pictures: BiliPicture[] }) {
+  if (pictures.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {pictures.map((pic) => (
+        <img
+          key={pic.url}
+          src={pic.url}
+          alt="评论图片"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className={
+            pictures.length === 1
+              ? "max-h-72 max-w-full rounded-xl border border-white/70 bg-white/60 object-contain"
+              : "h-40 w-auto max-w-full rounded-lg border border-white/70 bg-white/60 object-cover"
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+/** 评论正文（含表情替换与图片展示），修改后的文本也复用同一渲染 */
+function CommentBody({ content, emotes, pictures }: { content: string; emotes: BiliEmote[]; pictures: BiliPicture[] }) {
+  return (
+    <>
+      <p className="m-0 mt-1.5 text-sm leading-relaxed break-words whitespace-pre-wrap text-[#66535a]">
+        {renderMessage(content, emotes)}
+      </p>
+      <PictureList pictures={pictures} />
+    </>
+  );
+}
+
 /** 单条评论：圆头像 + 昵称 + 等级徽章 + 时间 + 内容 + 点赞 + 标记 +
- *  仅本地的修改与回复（修改覆盖显示原内容，回复嵌在原评论下方） */
+ *  B 站回复楼中楼 + 仅本地的修改与回复（修改覆盖显示原内容） */
 export default function CommentCard({
   comment,
+  aid,
   onToggleMark,
   onSetEdit,
   onAddReply,
@@ -35,6 +115,8 @@ export default function CommentCard({
   onRemoveReply,
 }: {
   comment: CommentItem;
+  /** 评论所属视频的 aid（拉取楼中楼用） */
+  aid: number;
   onToggleMark: (rpid: number, marked: boolean) => void;
   onSetEdit: (rpid: number, content: string | null) => void;
   onAddReply: (rpid: number, content: string) => void;
@@ -47,6 +129,14 @@ export default function CommentCard({
   const [showOriginal, setShowOriginal] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyDraft, setReplyDraft] = useState("");
+
+  /** B 站回复楼中楼（按需从 reply/reply 接口分页拉取） */
+  const [thread, setThread] = useState<CommentItem[]>([]);
+  const [threadTotal, setThreadTotal] = useState(0);
+  const [threadPage, setThreadPage] = useState(0);
+  const [threadOpen, setThreadOpen] = useState(false);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [threadError, setThreadError] = useState("");
 
   const hasEdit = comment.localEdit != null;
   const displayedContent = comment.localEdit ?? comment.content;
@@ -69,6 +159,27 @@ export default function CommentCard({
     onAddReply(comment.rpid, text);
     setReplyDraft("");
     setReplyOpen(false);
+  };
+
+  /** 拉取楼中楼（append=false 首次加载，true 加载下一页） */
+  const loadThread = async (page: number, append: boolean) => {
+    setThreadLoading(true);
+    setThreadError("");
+    try {
+      const data = await tauriInvoke<RepliesPage>(
+        "bilibili_comments_replies",
+        { oid: aid, root: comment.rpid, page },
+        { defaultValue: { replies: [], total: 0 } },
+      );
+      setThread((prev) => (append ? [...prev, ...data.replies] : data.replies));
+      setThreadTotal(data.total);
+      setThreadPage(page);
+      setThreadOpen(true);
+    } catch (err) {
+      setThreadError(errorMessage(err));
+    } finally {
+      setThreadLoading(false);
+    }
   };
 
   return (
@@ -160,9 +271,7 @@ export default function CommentCard({
           </div>
         ) : (
           <>
-            <p className="m-0 mt-1.5 text-sm leading-relaxed break-words whitespace-pre-wrap text-[#66535a]">
-              {displayedContent}
-            </p>
+            <CommentBody content={displayedContent} emotes={comment.emotes} pictures={comment.pictures} />
             {hasEdit && showOriginal && (
               <p className="m-0 mt-1 text-xs leading-relaxed break-words whitespace-pre-wrap text-[#9b8a91]">
                 原文：{comment.content}
@@ -257,6 +366,65 @@ export default function CommentCard({
           </div>
         )}
 
+        {comment.replyCount > 0 && (
+          <div className="mt-2">
+            <button
+              type="button"
+              aria-expanded={threadOpen}
+              disabled={threadLoading}
+              onClick={() => {
+                if (threadOpen) {
+                  setThreadOpen(false);
+                } else if (thread.length === 0) {
+                  void loadThread(1, false);
+                } else {
+                  setThreadOpen(true);
+                }
+              }}
+              className={actionButtonClass()}
+            >
+              <Icon
+                icon={threadOpen ? "lucide:chevron-up" : "lucide:chevron-down"}
+                width="13"
+                height="13"
+                aria-hidden="true"
+              />
+              {threadLoading
+                ? "正在加载回复…"
+                : threadOpen
+                  ? "收起回复"
+                  : `共 ${formatCount(comment.replyCount)} 条回复`}
+            </button>
+          </div>
+        )}
+
+        {threadOpen && thread.length > 0 && (
+          <ul className="m-0 mt-2 flex list-none flex-col gap-2 border-l-2 border-[#e7d5dd] pl-3">
+            {thread.map((reply) => (
+              <BiliReplyRow key={reply.rpid} reply={reply} />
+            ))}
+            {thread.length < threadTotal && (
+              <li className="pt-0.5">
+                <button
+                  type="button"
+                  disabled={threadLoading}
+                  onClick={() => void loadThread(threadPage + 1, true)}
+                  className={actionButtonClass()}
+                >
+                  <Icon icon="lucide:chevron-down" width="13" height="13" aria-hidden="true" />
+                  {threadLoading ? "正在加载…" : `加载更多（已显示 ${thread.length}/${threadTotal}）`}
+                </button>
+              </li>
+            )}
+          </ul>
+        )}
+        {threadError && (
+          <p className="m-0 mt-1.5 flex items-center gap-1 text-xs text-[#d26d9a]">
+            <Icon icon="lucide:circle-alert" width="13" height="13" aria-hidden="true" />
+            {threadError}
+          </p>
+        )}
+
         {comment.replies.length > 0 && (
           <ul className="m-0 mt-2.5 flex list-none flex-col gap-2 border-l-2 border-[#fb7299]/25 pl-3">
             {comment.replies.map((reply) => (
@@ -268,6 +436,56 @@ export default function CommentCard({
               />
             ))}
           </ul>
+        )}
+      </div>
+    </li>
+  );
+}
+
+/** B 站楼中楼里的一条回复：只读展示（头像 + 昵称 + 内容 + 时间/点赞） */
+function BiliReplyRow({ reply }: { reply: CommentItem }) {
+  const [avatarFailed, setAvatarFailed] = useState(false);
+
+  return (
+    <li className="flex gap-2 rounded-xl border border-white/50 bg-white/55 px-2.5 py-2">
+      <span className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-white">
+        {reply.avatar && !avatarFailed ? (
+          <img
+            src={reply.avatar}
+            alt=""
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={() => setAvatarFailed(true)}
+            className="h-full w-full rounded-full object-cover"
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center bg-[#f6eef2]">
+            <Icon icon="lucide:user-round" width="14" height="14" aria-hidden="true" className="text-[#d8c7cf]" />
+          </span>
+        )}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className="text-xs font-bold text-[#66535a]">{reply.uname}</span>
+          <span
+            aria-label={`等级 Lv${reply.level}`}
+            className={`rounded px-1 py-px text-[10px] leading-tight font-bold italic ${levelBadgeClass(reply.level)}`}
+          >
+            Lv{reply.level}
+          </span>
+          <span className="ml-auto text-[11px] text-[#9b8a91]">
+            {formatRelative(reply.ctime)}
+          </span>
+        </div>
+        <p className="m-0 mt-1 text-sm leading-relaxed break-words whitespace-pre-wrap text-[#66535a]">
+          {renderMessage(reply.content, reply.emotes)}
+        </p>
+        <PictureList pictures={reply.pictures} />
+        {reply.likes > 0 && (
+          <span className="mt-1 flex items-center gap-1 text-[11px] text-[#9b8a91]">
+            <Icon icon="lucide:thumbs-up" width="12" height="12" aria-hidden="true" />
+            {formatCount(reply.likes)}
+          </span>
         )}
       </div>
     </li>

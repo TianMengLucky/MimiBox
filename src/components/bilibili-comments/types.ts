@@ -28,6 +28,22 @@ export type LocalReply = {
   createdAt: number;
 };
 
+/** 评论里的 B 站表情（[dog] 等），渲染时替换 message 里的同名文本 */
+export type BiliEmote = {
+  /** 表情文本，如 "[dog]" */
+  text: string;
+  url: string;
+  /** 尺寸档位（1=小 2=大 3=超大） */
+  size: number;
+};
+
+/** 图片评论里的图片 */
+export type BiliPicture = {
+  url: string;
+  width: number;
+  height: number;
+};
+
 export type CommentItem = {
   rpid: number;
   mid: number;
@@ -38,6 +54,12 @@ export type CommentItem = {
   likes: number;
   ctime: number;
   isTop: boolean;
+  /** B 站回复总数（楼中楼条数，不含主楼） */
+  replyCount: number;
+  /** 评论内表情：content 里 [xxx] 文本对应这里的图片 */
+  emotes: BiliEmote[];
+  /** 图片评论的图片列表 */
+  pictures: BiliPicture[];
   /** 是否灌水评论（纯表情/复读/口癖），由 Rust 端解析时计算 */
   isSpam: boolean;
   /** 是否被用户标记，由 Rust 端按持久化标记集合注入 */
@@ -46,6 +68,12 @@ export type CommentItem = {
   localEdit: string | null;
   /** 本地回复（仅本地存储与显示），挂在原评论下方 */
   replies: LocalReply[];
+};
+
+/** 回复楼中楼的分页结果（复用 CommentItem 结构，本地字段为默认值） */
+export type RepliesPage = {
+  replies: CommentItem[];
+  total: number;
 };
 
 export type CommentsPage = {

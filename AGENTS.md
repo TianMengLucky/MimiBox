@@ -114,6 +114,10 @@
 - 修复 Rust 端相关报错后，重启编辑器的 rust-analyzer 服务器（VS Code
   命令面板：`Rust Analyzer: Restart Server`），以清除 LSP 缓存的错误状态，
   确保编辑器显示的诊断与最新代码一致。
+- 本地构建完整安装包用 `pnpm tauri:local`：它通过合并配置
+  `src-tauri/tauri.local.json` 关闭 `createUpdaterArtifacts`，无需签名私钥。
+  正式发布仍用 `pnpm tauri build`（需要 `TAURI_SIGNING_PRIVATE_KEY`，
+  仅 CI 提供），不要为绕过签名修改 tauri.conf.json。
 
 ## Data storage & migration (数据存储与迁移处理方法)
 

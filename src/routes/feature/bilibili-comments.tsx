@@ -475,6 +475,7 @@ function BilibiliCommentsRoute() {
                     <CommentCard
                       key={comment.rpid}
                       comment={comment}
+                      aid={video.aid}
                       onToggleMark={toggleMark}
                       onSetEdit={setEdit}
                       onAddReply={addReply}
