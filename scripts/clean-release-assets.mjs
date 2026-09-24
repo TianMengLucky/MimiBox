@@ -40,5 +40,11 @@ if (stale.length === 0) {
   process.exit(0);
 }
 
-gh(`release delete ${tag} ${stale.map((n) => `"${n}"`).join(" ")} --yes -R ${repo}`);
-console.log(`已删除 ${stale.length} 个旧版本资产:\n${stale.map((n) => `  - ${n}`).join("\n")}`);
+let deleted = 0;
+for (const name of stale) {
+  // gh 的 release delete 只接受 1 个参数（删整个 Release），删单个资产用 delete-asset
+  gh(`release delete-asset ${tag} "${name}" --yes -R ${repo}`);
+  deleted++;
+  console.log(`  已删除 ${name}`);
+}
+console.log(`共删除 ${deleted} 个旧版本资产`);
