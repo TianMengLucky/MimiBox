@@ -97,10 +97,13 @@ pub fn user_plugins_dir(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 /// 插件扫描目录（按优先级排序，靠前的目录中同名 id 优先）：
-/// 用户导入目录在前，内置目录在后。
+/// 用户插件目录在前，内置目录在后。
+/// 必须用「生效目录」（`effective_user_dir`，含设置中的自定义目录）——
+/// 导入写到哪里，扫描就要查哪里；此前误用默认目录导致自定义目录下
+/// 的插件永远不被加载。
 pub fn plugin_dirs(app: &AppHandle) -> Result<Vec<PathBuf>, String> {
     Ok(vec![
-        user_plugins_dir(app)?,
+        crate::plugin_manager::effective_user_dir(app)?,
         builtin_plugins_dir(app)?,
     ])
 }
