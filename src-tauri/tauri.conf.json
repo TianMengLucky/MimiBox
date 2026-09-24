@@ -58,6 +58,13 @@
     "windows": {
       "nsis": {
         "installerHooks": "./windows/installer-hooks.nsh"
+      },
+      "wix": {
+        "language": {
+          "en-US": {
+            "localePath": "./windows/msi-en-US.wxl"
+          }
+        }
       }
     }
   },

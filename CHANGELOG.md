@@ -16,6 +16,7 @@
 ### Fixed
 
 - 修复 `.mip` 分发包被 tar 工具按扩展名静默打包成 tar/pax 格式、应用内导入报「不是有效的 zip 插件包」的问题：打包显式指定 `--format zip`；增量发布检测到 Release 上非 zip 的旧资产时按「版本未知」处理，重建并以正确格式覆盖上传
+- 修复 MSI 打包失败（light.exe `LGHT0311`）：文件关联的中文描述超出 en-US 数据库代码页 1252，改用自定义 WixLocalization（数据库代码页 936）支持中文
 
 ### Changed
 
