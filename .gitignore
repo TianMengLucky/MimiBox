@@ -44,5 +44,6 @@ src-tauri/keys/
 # 插件构建产物（源码 plugin.json / backend/ / frontend/*.tsx 仍提交）
 Plugins/*/backend.dll
 Plugins/*/frontend/index.js
+Plugins/*.mip
 # 插件导入的暂存目录（位于用户插件目录，防御性忽略）
 .import-staging-*/
