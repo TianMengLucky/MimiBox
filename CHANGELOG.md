@@ -15,7 +15,7 @@
 
 ### Fixed
 
-- 修复 `.mip` 分发包被 tar 工具按扩展名静默打包成 tar/pax 格式、应用内导入报「不是有效的 zip 插件包」的问题：打包显式指定 `--format zip`；增量发布检测到 Release 上非 zip 的旧资产时按「版本未知」处理，重建并以正确格式覆盖上传
+- 修复 `.mip` 分发包格式错误导致应用内导入报「不是有效的 zip 插件包」的问题：系统 tar 在 Windows 上行为不一（bsdtar 的 `-a` 按扩展名静默回退为 tar 格式、GNU tar 不支持 `--format zip`），改用 fflate 在 Node 内直接生成/解析 zip；增量发布检测到 Release 上非 zip 的旧资产时按「版本未知」处理，重建并以正确格式覆盖上传
 - 修复 MSI 打包失败（light.exe `LGHT0311`）：文件关联的中文描述超出 en-US 数据库代码页 1252，改用自定义 WixLocalization（数据库代码页 936）支持中文
 
 ### Changed

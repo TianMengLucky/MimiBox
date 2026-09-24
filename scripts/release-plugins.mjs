@@ -3,8 +3,10 @@
 // 只重建并上传有变化的插件；未变化的插件复用 Release 现有资产，跳过构建。
 //
 // 用法（CI）：node scripts/release-plugins.mjs <release-tag>
-// 依赖：gh（GITHUB_TOKEN 由步骤 env 提供）、tar（bsdtar，读取 .mip 内清单）。
+// 依赖：gh（GITHUB_TOKEN 由步骤 env 提供）。zip 读写由 fflate 在 Node 内完成，
+// 不依赖系统 tar（Windows CI 的 GNU tar 不支持 zip）。
 
+import { unzipSync } from "fflate";
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -25,11 +27,9 @@ function gh(cmd) {
   });
 }
 
-/** 读取 .mip 包内 plugin.json 的 version（bsdtar -O 输出到 stdout）。
- * cwd 切到文件所在目录、只用文件名传给 tar：bsdtar 会把绝对路径里的
- * `D:` 盘符当作「远程主机:路径」语法导致读取失败。 */
+/** 读取 .mip 包内 plugin.json 的 version（zip 由 fflate 解析）。
+ * 非 zip（PK 头）的旧资产无法被应用导入，按「版本未知」处理以触发重发布。 */
 function readMipVersion(mipPath) {
-  // 非 zip（PK 头）的旧资产无法被应用导入，按「版本未知」处理以触发重发布
   const head = Buffer.alloc(4);
   const fd = fs.openSync(mipPath, "r");
   try {
@@ -38,13 +38,12 @@ function readMipVersion(mipPath) {
     fs.closeSync(fd);
   }
   if (head.toString("latin1") !== "PK\u0003\u0004") return "";
-  const dir = path.dirname(mipPath);
-  const name = path.basename(mipPath);
-  const json = execSync(`tar -xOf "${name}" plugin.json`, {
-    encoding: "utf8",
-    cwd: dir,
-  });
-  return JSON.parse(json).version ?? "";
+  const entries = unzipSync(fs.readFileSync(mipPath));
+  const name = Object.keys(entries).find(
+    (n) => n === "plugin.json" || (n.startsWith("/") === false && n.endsWith("/plugin.json")),
+  );
+  if (!name) return "";
+  return JSON.parse(Buffer.from(entries[name]).toString("utf8")).version ?? "";
 }
 
 // 1. 下载 Release 上现有的 .mip（首次发布时 Release 尚不存在 → 全部按需发布）

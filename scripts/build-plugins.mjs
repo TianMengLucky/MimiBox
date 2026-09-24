@@ -9,6 +9,7 @@
 // （Rust dll 改动需重启应用，Windows 下已加载的 dll 无法覆盖）。
 
 import { build } from "esbuild";
+import { zipSync } from "fflate";
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -40,9 +41,11 @@ async function buildFrontend(plugin) {
 }
 
 /**
- * 把构建产物打包为 .mip 分发包（zip，经系统 tar 的自动压缩模式）。
+ * 把构建产物打包为 .mip 分发包（zip，由 Node 内 fflate 直接生成）。
  * 包内只含清单与运行时产物：plugin.json、entry.backend（backend.dll）、
  * frontend/index.js；不含 Rust/TS 源码。
+ * 不用系统 tar：Windows CI 上 GNU tar 不支持 --format zip、bsdtar 的 -a
+ * 又会按扩展名静默回退为 tar 格式，跨平台行为不一致。
  */
 function packMip(plugin) {
   const dir = path.join(pluginsRoot, plugin.id);
@@ -55,24 +58,16 @@ function packMip(plugin) {
       `[plugin:${plugin.id}] 缺少构建产物 ${missing.join("、")}——请先运行 pnpm build:plugins`,
     );
   }
-  const files = ["plugin.json", manifest.entry.backend];
-  if (
-    manifest.entry.frontend &&
-    fs.existsSync(path.join(dir, manifest.entry.frontend))
-  ) {
-    files.push(manifest.entry.frontend);
+  const files = {
+    "plugin.json": fs.readFileSync(path.join(dir, "plugin.json")),
+    [manifest.entry.backend]: fs.readFileSync(path.join(dir, manifest.entry.backend)),
+  };
+  if (manifest.entry.frontend && fs.existsSync(path.join(dir, manifest.entry.frontend))) {
+    files[manifest.entry.frontend] = fs.readFileSync(path.join(dir, manifest.entry.frontend));
   }
   const out = path.join(pluginsRoot, `${plugin.id}.mip`);
   fs.rmSync(out, { force: true });
-  // 必须显式 --format zip：tar -a 按扩展名选格式，.mip 不在识别列表会静默回退
-  // 为 tar 格式（应用导入时检测 zip 头失败）。
-  // 输出必须用相对路径（cwd 为插件目录）：bsdtar 会把绝对路径里的
-  // `D:` 盘符当作「远程主机:路径」语法导致构建失败（tar: Cannot connect to D）。
-  const outRelative = `../${plugin.id}.mip`;
-  execSync(`tar --format zip -cf "${outRelative}" ${files.map((f) => `"${f}"`).join(" ")}`, {
-    cwd: dir,
-    stdio: "inherit",
-  });
+  fs.writeFileSync(out, zipSync(files));
   console.log(`[plugin:${plugin.id}] ${plugin.id}.mip 已生成`);
 }
 
