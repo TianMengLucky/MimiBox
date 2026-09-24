@@ -23,17 +23,32 @@ interface PluginDirInfo {
   isCustom: boolean;
 }
 
+/** 热加载结果（plugin_reload 返回） */
+interface ReloadOutcome {
+  loaded: string[];
+  errors: string[];
+}
+
 /**
  * 「插件管理」设置区：展示已加载插件清单，支持从文件夹或 .mip 插件包
  * （zip 格式）导入第三方插件到用户插件目录；可自定义插件存放位置
- * （切换时自动迁移已导入插件）；导入/删除/改目录后重启应用生效。
+ * （切换时自动迁移已导入插件）。导入新插件后经 plugin_reload 热加载、
+ * 即时生效；升级/替换同 id 插件与删除已加载插件需重启应用（dll 被占用）。
  */
 export function PluginsSection() {
   const [plugins, setPlugins] = useState<MbPluginManifest[]>([]);
   const [dirInfo, setDirInfo] = useState<PluginDirInfo | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  /** 当前 notice 是否需要重启应用才能生效（决定是否展示「立即重启」按钮） */
+  const [needsRestart, setNeedsRestart] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  /** 清除提示并记录新提示（restart=false 时不展示重启按钮） */
+  const showNotice = useCallback((text: string, restart: boolean) => {
+    setNotice(text);
+    setNeedsRestart(restart);
+  }, []);
 
   const refresh = useCallback(() => {
     tauriInvoke<MbPluginManifest[]>("plugin_list", undefined, { defaultValue: [] })
@@ -50,6 +65,7 @@ export function PluginsSection() {
     async (kind: "folder" | "mip") => {
       setError("");
       setNotice(null);
+      setNeedsRestart(false);
       const selection =
         kind === "folder"
           ? await open({
@@ -74,32 +90,45 @@ export function PluginsSection() {
         }>(kind === "folder" ? "plugin_import_folder" : "plugin_import_mip", {
           path: selection,
         });
-        setNotice(`已导入「${manifest.manifest.title}」，重启应用后生效`);
+        // 热加载：新 id 插件即时生效；升级/替换已加载的插件需重启（dll 被占用）
+        const reload = await tauriInvoke<ReloadOutcome>("plugin_reload", undefined, {
+          defaultValue: { loaded: [], errors: [] },
+        });
         refresh();
+        if (reload.loaded.includes(manifest.manifest.id)) {
+          showNotice(`已导入「${manifest.manifest.title}」，插件已生效`, false);
+        } else {
+          showNotice(`已导入「${manifest.manifest.title}」，重启应用后生效`, true);
+        }
+        if (reload.errors.length > 0) {
+          setError(reload.errors.join("\n"));
+        }
       } catch (err) {
         setError(errorMessage(err));
       } finally {
         setBusy(false);
       }
     },
-    [refresh],
+    [refresh, showNotice],
   );
 
   const remove = useCallback(async (id: string) => {
     setError("");
     setNotice(null);
+    setNeedsRestart(false);
     try {
       await tauriInvoke("plugin_remove", { id });
-      setNotice(`已删除「${id}」，重启应用后生效`);
+      showNotice(`已删除「${id}」，重启应用后生效`, true);
     } catch (err) {
       setError(errorMessage(err));
     }
-  }, []);
+  }, [showNotice]);
 
   /** 更改插件存放位置：选择新目录后自动迁移已导入的插件 */
   const changeDir = useCallback(async () => {
     setError("");
     setNotice(null);
+    setNeedsRestart(false);
     const selection = await open({
       directory: true,
       multiple: false,
@@ -113,31 +142,32 @@ export function PluginsSection() {
         path: selection,
       });
       setDirInfo(info);
-      setNotice("插件目录已更新，重启应用后生效");
+      showNotice("插件目录已更新，重启应用后生效", true);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
       setBusy(false);
     }
-  }, [dirInfo]);
+  }, [dirInfo, showNotice]);
 
   /** 恢复默认插件目录（应用数据目录 plugins/） */
   const resetDir = useCallback(async () => {
     setError("");
     setNotice(null);
+    setNeedsRestart(false);
     setBusy(true);
     try {
       const info = await tauriInvoke<PluginDirInfo>("plugin_set_dir", {
         path: null,
       });
       setDirInfo(info);
-      setNotice("已恢复默认插件目录，重启应用后生效");
+      showNotice("已恢复默认插件目录，重启应用后生效", true);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [showNotice]);
 
   return (
     <section aria-label="插件管理">
@@ -228,15 +258,17 @@ export function PluginsSection() {
                 <Icon icon="lucide:circle-check" width="16" height="16" className="text-[#b0577f]" aria-hidden="true" />
                 {notice}
               </p>
-              <Button
-                variant="primary"
-                size="sm"
-                onPress={() => void relaunch()}
-                className="self-start rounded-full px-5 font-semibold"
-              >
-                <Icon icon="lucide:rotate-ccw" width="14" height="14" aria-hidden="true" />
-                立即重启
-              </Button>
+              {needsRestart && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onPress={() => void relaunch()}
+                  className="self-start rounded-full px-5 font-semibold"
+                >
+                  <Icon icon="lucide:rotate-ccw" width="14" height="14" aria-hidden="true" />
+                  立即重启
+                </Button>
+              )}
             </motion.div>
           )}
           {error && (

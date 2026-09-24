@@ -124,6 +124,7 @@ pub fn run() {
             gateway::plugin_list,
             plugin_manager::plugin_import_folder,
             plugin_manager::plugin_import_mip,
+            plugin_manager::plugin_reload,
             plugin_manager::plugin_remove,
             plugin_manager::plugin_get_dir,
             plugin_manager::plugin_set_dir,

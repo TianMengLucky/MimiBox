@@ -6,7 +6,7 @@ pub mod host;
 pub mod services;
 pub mod vtable;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
 use cordis::Context;
@@ -64,6 +64,28 @@ impl MbRuntime {
     /// 登记一个已加载插件（供 plugin_list 展示）
     pub(crate) fn add_plugin(&self, loaded: LoadedPlugin) {
         self.plugins.write().unwrap().push(loaded);
+    }
+
+    /// 热加载新导入的插件：扫描目录并加载尚未加载的插件（已加载的跳过，
+    /// Windows 下运行中的 dll 无法覆盖，升级同 id 插件仍需重启）。
+    /// 返回（新加载的插件 id，失败摘要）。
+    pub(crate) async fn reload_new(
+        &self,
+        dirs: &[PathBuf],
+        user_dir: &Path,
+    ) -> (Vec<String>, Vec<String>) {
+        let loaded_ids: Vec<String> = {
+            let plugins = self.plugins.read().unwrap();
+            plugins.iter().map(|p| p.manifest.id.clone()).collect()
+        };
+        let (mut new_plugins, errors) =
+            crate::loader::load_new(&self.root, dirs, user_dir, &loaded_ids).await;
+        let mut ids = Vec::with_capacity(new_plugins.len());
+        for item in new_plugins.drain(..) {
+            ids.push(item.manifest.id.clone());
+            self.plugins.write().unwrap().push(item);
+        }
+        (ids, errors)
     }
 
     /// 已加载插件清单

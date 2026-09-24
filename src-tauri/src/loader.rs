@@ -113,16 +113,8 @@ pub(crate) fn valid_id(id: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
-/// 扫描并加载全部插件目录。返回（成功清单，失败摘要）。
-/// 同名 id 只加载一份：靠前的目录（用户导入）优先。
-pub(crate) async fn load_all(
-    root: &Context,
-    dirs: &[PathBuf],
-    user_dir: &Path,
-) -> (Vec<LoadedPlugin>, Vec<String>) {
-    let mut errors = Vec::new();
-    // 按目录名去重：dirs 按优先级排序（用户目录在前），
-    // or_insert 保证同名 id 保留优先目录中的那份
+/// 扫描全部插件目录：按目录优先级去重（同名 id 保留优先目录中的那份）。
+fn scan_unique(dirs: &[PathBuf], errors: &mut Vec<String>) -> HashMap<String, PathBuf> {
     let mut unique: HashMap<String, PathBuf> = HashMap::new();
     for dir in dirs {
         let entries = match fs::read_dir(dir) {
@@ -145,11 +137,48 @@ pub(crate) async fn load_all(
             unique.entry(name.to_string()).or_insert(plugin_dir);
         }
     }
+    unique
+}
 
+/// 扫描并加载全部插件目录。返回（成功清单，失败摘要）。
+/// 同名 id 只加载一份：靠前的目录（用户导入）优先。
+pub(crate) async fn load_all(
+    root: &Context,
+    dirs: &[PathBuf],
+    user_dir: &Path,
+) -> (Vec<LoadedPlugin>, Vec<String>) {
+    let mut errors = Vec::new();
+    let unique = scan_unique(dirs, &mut errors);
     let mut loaded = Vec::new();
     let mut names: Vec<_> = unique.keys().cloned().collect();
     names.sort();
     for name in names {
+        let plugin_dir = &unique[&name];
+        match load_one(root, plugin_dir, user_dir).await {
+            Ok(item) => loaded.push(item),
+            Err(e) => errors.push(format!("插件「{}」加载失败: {e}", plugin_dir.display())),
+        }
+    }
+    (loaded, errors)
+}
+
+/// 热加载：扫描插件目录，跳过 already_loaded 中的 id，只加载新出现的插件。
+/// （Windows 下运行中的 dll 无法覆盖，升级/替换同 id 插件仍需重启。）
+pub(crate) async fn load_new(
+    root: &Context,
+    dirs: &[PathBuf],
+    user_dir: &Path,
+    already_loaded: &[String],
+) -> (Vec<LoadedPlugin>, Vec<String>) {
+    let mut errors = Vec::new();
+    let unique = scan_unique(dirs, &mut errors);
+    let mut loaded = Vec::new();
+    let mut names: Vec<_> = unique.keys().cloned().collect();
+    names.sort();
+    for name in names {
+        if already_loaded.iter().any(|id| id == &name) {
+            continue;
+        }
         let plugin_dir = &unique[&name];
         match load_one(root, plugin_dir, user_dir).await {
             Ok(item) => loaded.push(item),

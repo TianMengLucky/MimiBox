@@ -5,6 +5,7 @@
  */
 
 import { Context } from "@cordisjs/core";
+import { listen } from "@tauri-apps/api/event";
 
 import { tauriInvoke, hasTauri } from "../lib/tauriInvoke";
 import { createPluginContext } from "./plugin-api";
@@ -16,6 +17,10 @@ import { hostRequire, installSharedModules } from "./shared";
 type RuntimeState = "loading" | "ready";
 
 let state: RuntimeState = "loading";
+/** 本窗口的 cordis 根上下文（热加载新插件时复用） */
+let rootCtx: Context | null = null;
+/** 本窗口已处理过前端加载的插件 id（热加载时跳过，避免重复注册） */
+const processedIds = new Set<string>();
 const stateListeners = new Set<() => void>();
 
 function setState(next: RuntimeState) {
@@ -84,6 +89,28 @@ async function loadPlugin(ctx: Context, manifest: MbPluginManifest): Promise<voi
   });
 }
 
+/** 加载并登记单个插件：跳过失败与已处理的插件 */
+async function loadSingle(ctx: Context, manifest: MbPluginManifest): Promise<void> {
+  if (manifest.state === "Failed" || processedIds.has(manifest.id)) return;
+  try {
+    await loadPlugin(ctx, manifest);
+    processedIds.add(manifest.id);
+  } catch (err) {
+    // 加载失败的插件不计入 processedIds，后续热加载事件到来时可重试
+    console.error(`插件「${manifest.id}」前端加载失败`, err);
+  }
+}
+
+/** 热加载：重新读取插件清单，只处理本窗口尚未加载过的插件
+ * （宿主 plugin_reload 导入新插件后广播 plugins-changed 触发） */
+async function reloadNewPlugins(): Promise<void> {
+  if (!rootCtx || state !== "ready" || !hasTauri) return;
+  const manifests = await listPlugins();
+  for (const manifest of manifests) {
+    await loadSingle(rootCtx, manifest);
+  }
+}
+
 /** 启动插件运行时（main.tsx 调用一次；不阻塞首屏渲染） */
 export async function startPluginRuntime(): Promise<void> {
   if (state === "ready") return;
@@ -91,14 +118,14 @@ export async function startPluginRuntime(): Promise<void> {
 
   try {
     const manifests = await listPlugins();
-    const ctx = new Context();
+    rootCtx = new Context();
     for (const manifest of manifests) {
-      if (manifest.state === "Failed") continue;
-      try {
-        await loadPlugin(ctx, manifest);
-      } catch (err) {
-        console.error(`插件「${manifest.id}」前端加载失败`, err);
-      }
+      await loadSingle(rootCtx, manifest);
+    }
+    if (hasTauri) {
+      await listen("plugins-changed", () => {
+        void reloadNewPlugins();
+      });
     }
   } finally {
     setState("ready");

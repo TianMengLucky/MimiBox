@@ -1,17 +1,17 @@
 //! 插件导入管理：从文件夹或 `.mip` 包（zip 格式）导入第三方插件。
 //!
 //! 导入目标为用户插件目录（应用数据目录 `plugins/`），加载器按
-//! 「用户目录覆盖内置目录」合并加载。导入成功后**重启应用生效**
-//! （Windows 下运行中无法覆盖已加载的 dll）。只有用户目录中的插件
-//! 可以删除；随应用分发的插件与导入包是信任代码，不做沙箱。
+//! 「用户目录覆盖内置目录」合并加载。导入新 id 的插件后经
+//! [`plugin_reload`] 热加载，无需重启；升级/替换同 id 插件与删除
+//! 已加载插件受 Windows dll 锁限制，仍需重启应用。只有用户目录中
+//! 的插件可以删除；导入包是信任代码，不做沙箱。
 
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use serde::Deserialize;
-use serde::Serialize;
-use tauri::AppHandle;
+use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Manager};
 
 use crate::loader::{user_plugins_dir, valid_id, PluginManifest};
 use mimibox_plugin::MB_ABI_VERSION;
@@ -406,4 +406,34 @@ pub fn plugin_remove(app: AppHandle, id: String) -> Result<(), String> {
         )
     })?;
     Ok(())
+}
+
+/// 热加载结果
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReloadOutcome {
+    /// 本次新加载并已生效的插件 id
+    pub loaded: Vec<String>,
+    /// 加载失败摘要（每插件一条，前端展示）
+    pub errors: Vec<String>,
+}
+
+/// 热加载新导入的插件：扫描插件目录并加载尚未加载的插件，无需重启。
+/// 已加载的插件不受影响（Windows 下运行中的 dll 无法覆盖，
+/// 升级/替换同 id 插件仍需重启）。新插件加载完成后广播
+/// `plugins-changed` 事件，前端运行时据此加载新插件前端并刷新功能页。
+#[tauri::command]
+pub async fn plugin_reload(app: AppHandle) -> Result<ReloadOutcome, String> {
+    use tauri::Emitter;
+
+    let dirs = crate::loader::plugin_dirs(&app)?;
+    let user_dir = dirs[0].clone();
+    let runtime = app
+        .try_state::<crate::runtime::MbRuntime>()
+        .ok_or_else(|| "插件运行时未初始化".to_string())?;
+    let (loaded, errors) = runtime.reload_new(&dirs, &user_dir).await;
+    if !loaded.is_empty() {
+        let _ = app.emit("plugins-changed", &loaded);
+    }
+    Ok(ReloadOutcome { loaded, errors })
 }
