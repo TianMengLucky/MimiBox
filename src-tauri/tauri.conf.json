@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "MimiBox-X",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "identifier": "com.TianMengLuckey.MimiBox",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -37,8 +37,29 @@
     "resources": [
       "../Plugins/*/plugin.json",
       "../Plugins/*/backend.dll",
-      "../Plugins/*/frontend/index.js"
-    ]
+      "../Plugins/*/frontend/index.js",
+      "icons/file-miz.ico",
+      "icons/file-mip.ico"
+    ],
+    "fileAssociations": [
+      {
+        "ext": ["miz"],
+        "name": "MimiBox.X.SchemePackage",
+        "description": "美美工具箱方案包",
+        "role": "Editor"
+      },
+      {
+        "ext": ["mip"],
+        "name": "MimiBox.X.PluginPackage",
+        "description": "美美工具箱插件包",
+        "role": "Editor"
+      }
+    ],
+    "windows": {
+      "nsis": {
+        "installerHooks": "./windows/installer-hooks.nsh"
+      }
+    }
   },
   "plugins": {
     "updater": {

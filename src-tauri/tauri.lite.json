@@ -5,7 +5,7 @@
   },
   "bundle": {
     "createUpdaterArtifacts": false,
-    "resources": []
+    "resources": ["icons/file-miz.ico", "icons/file-mip.ico"]
   },
   "plugins": {
     "updater": {

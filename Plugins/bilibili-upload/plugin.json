@@ -5,7 +5,7 @@
   "description": "上传视频一键投稿",
   "category": "video",
   "abi": 1,
-  "version": "0.2.1",
+  "version": "0.2.3",
   "requires": ["account"],
   "entry": {
     "backend": "backend.dll",

@@ -5,6 +5,23 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.2.3-x] - 2026-09-25
+
+> 注：安装包/应用内版本号为 `0.2.3`（X 产品线使用纯数字版本号，与主分支的区分由产品名 MimiBox-X 与发布渠道承担）。
+
+### Added
+
+- `.miz` / `.mip` 文件类型图标：安装包注册文件关联，资源管理器中 `.mip` 插件包与 `.miz` 方案包分别显示专属图标（图标随安装包分发，NSIS 安装器通过 installer hooks 覆盖关联的 DefaultIcon）
+
+### Fixed
+
+- 修复 `.mip` 分发包被 tar 工具按扩展名静默打包成 tar/pax 格式、应用内导入报「不是有效的 zip 插件包」的问题：打包显式指定 `--format zip`；增量发布检测到 Release 上非 zip 的旧资产时按「版本未知」处理，重建并以正确格式覆盖上传
+
+### Changed
+
+- 应用与全部插件版本号统一升级到 `0.2.3`，触发全量插件 `.mip` 重发布，覆盖 x-latest 上损坏的旧资产
+- `@tauri-apps/cli` 2.11.4 → 2.11.5
+
 ## [0.2.2-x] - 2026-09-24
 
 > 注：安装包/应用内版本号为 `0.2.2`——MSI 打包要求版本号 pre-release 标识只能是纯数字，因此 X 产品线版本号使用纯数字形式，与主分支的区分由产品名（MimiBox-X）与发布渠道承担。
@@ -103,7 +120,8 @@
 - 网络层由 wreq 迁移到 reqwest
 - 许可证确定为 GPLv3，README 添加免责声明
 
-[Unreleased]: https://github.com/TianMengLucky/MimiBox/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/TianMengLucky/MimiBox/compare/v0.2.3-x...HEAD
+[0.2.3-x]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.3-x
 [0.2.2-x]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.2-x
 [0.2.1-x]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.1-x
 [0.2.0]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.0
