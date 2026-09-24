@@ -5,6 +5,39 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.2.1-x] - 2026-09-24
+
+本分支（`plugin-architecture`）将应用重构为「宿主内核 + 插件」架构，并更名为 **MimiBox-X**（版本号带 `-x` 后缀，与主分支构建区分）。
+
+### Added
+
+- 全新插件化架构：应用拆分为「宿主内核 + 插件」，Rust 端引入 cordis 运行时（生命周期 / 服务依赖 / 事件收敛），插件以独立 cdylib + 前端 bundle 形式从 `Plugins/` 目录动态加载，带 ABI 版本校验与 panic 隔离
+- 全部 10 个功能迁移为独立插件：抽奖（lottery）、夯到拉（tier-list）、赛事预测（prediction）、评分（rating）、博饼（bobing）、白板（whiteboard）、B站评论区（bilibili-comments）、B站投稿（bilibili-upload）、弹幕直播姬（danmaku）、番剧（anime）；命令名、行为与数据文件全部保持不变，升级零数据迁移
+- 内置插件机制：account（多账号管理，向其他插件发布账号就绪服务）与 scheme-io（`.miz` 方案包导入导出）随宿主进程内加载，B 站内容类插件在账号服务就绪前自动等待（Pending → Active 收敛）
+- 动态网关命令 `plugin_invoke` / `plugin_list`：前端统一经网关调用任意插件命令；`mbplugin://` 自定义协议向各窗口提供插件前端 bundle
+- 插件宿主能力（HostApi）：应用数据目录读写、Tauri 事件广播、B 站账号凭据获取、独立窗口创建与聚焦、资源管理器文件定位
+- 前端插件运行时：功能注册表 + 共享模块表（插件与宿主共享单一 React 实例，杜绝双 React），插件以 `defineMbPlugin` 注册功能页面与独立窗口组件
+- 主页与资料库改为按插件清单数据驱动渲染，新增 `/feature/$plugin` 通用功能页与 `/w/$plugin` 通用窗口路由，新增功能无需改动宿主界面与路由代码
+- 插件构建管线：`pnpm build:plugins`（cargo cdylib + esbuild → `Plugins/<id>/`）、`pnpm plugins:watch` 前端增量监听；`pnpm build` 已包含插件构建，安装包经 tauri resources 打包 `Plugins/` 目录
+- 新增插件 SDK crate `mimibox-plugin`（C ABI + 类型化命令注册 + JSON 存储工具），插件与宿主同仓库同工具链构建
+- 新增插件导入：设置页支持从文件夹或 `.mip` 插件包（zip 格式）安装第三方插件，导入时校验插件清单与 ABI 版本，可删除已导入的插件（重启应用生效）
+- 插件加载支持双目录合并：用户导入目录（应用数据目录 `plugins/`）优先于随应用分发的插件目录，可用导入的插件升级官方插件
+- 插件存放位置可自定义：设置页可更改插件目录（自动迁移已导入的插件，支持跨盘移动），可一键恢复默认位置
+- 应用图标更换为全新粉色花环形象
+
+### Changed
+
+- 应用更名为 **MimiBox-X**（`productName`），界面品牌名同步为「美美工具箱 X」，版本号使用 `0.2.0-x` 与主分支构建区分（安装包名自动跟随）
+- Rust 端静态命令收敛为 4 个（首启标记、欢迎已读、插件网关、插件清单），原 52 个功能命令全部改为经网关动态分发
+- 插件前端以 esbuild CJS 工厂注入运行，React / HeroUI / motion 等依赖由宿主共享模块表提供
+- pnpm 依赖构建脚本批准配置迁移至 `pnpm-workspace.yaml`（pnpm 12 新约定）
+- CI 支持双分支发布：tag `vX.Y.Z` 构建主分支 MimiBox，tag `vX.Y.Z-x` 构建 MimiBox-X 并发布到固定 Release `x-latest`（prerelease），两条产品线的应用内更新源互相隔离
+
+### Removed
+
+- 移除宿主内嵌的全部功能模块代码（`src-tauri/src/{lottery,tierlist,prediction,rating,bobing,whiteboard,bangumi,bilibili_comments,bilibili_upload,bilibili_danmaku}` 与对应前端页面/组件），改由 `Plugins/` 目录的插件提供
+- 移除旧静态功能路由 `/feature/<功能名>` 与 `/danmaku`，统一为 `/feature/$plugin`、`/w/$plugin` 通用路由
+
 ## [0.2.0] - 2026-09-22
 
 ### Added
@@ -53,5 +86,6 @@
 - 许可证确定为 GPLv3，README 添加免责声明
 
 [Unreleased]: https://github.com/TianMengLucky/MimiBox/compare/v0.2.0...HEAD
+[0.2.1-x]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.1-x
 [0.2.0]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.0
 [0.1.0]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.1.0

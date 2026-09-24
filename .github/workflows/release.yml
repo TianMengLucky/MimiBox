@@ -1,5 +1,15 @@
 name: release
 
+# 双分支发布约定（tag 后缀区分产品线）：
+# - `vX.Y.Z`        → 主分支（main）：构建 mimibox，发布到 tag 对应的 Release，
+#                      更新源走 releases/latest/download/latest.json
+# - `vX.Y.Z-x`      → 插件化分支（plugin-architecture）：构建 MimiBox-X，
+#                      发布到固定 tag `x-latest` 的 prerelease Release（资产每次覆盖），
+#                      更新源走 releases/download/x-latest/latest.json，
+#                      与主分支的 releases/latest 互不干扰
+# 两个变体共用同一 tag 前缀 `v*`，由 tag 是否以 `-x` 结尾在步骤内分流；
+# 发布说明从 CHANGELOG.md 提取对应 `## [版本号]` 小节（x 变体缺失时回退 Unreleased）。
+
 on:
   push:
     tags:
@@ -13,6 +23,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Determine release variant
+        id: variant
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" == *-x ]]; then
+            echo "variant=x" >> "$GITHUB_OUTPUT"
+            echo "tag_name=x-latest" >> "$GITHUB_OUTPUT"
+            echo "release_name=MimiBox-X $GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "variant=main" >> "$GITHUB_OUTPUT"
+            echo "tag_name=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "release_name=MimiBox $GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+          cat "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -31,23 +58,42 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Rust cache
+      # 主分支：src-tauri 单包布局；插件化分支：仓库根 Cargo workspace
+      # （缓存覆盖 src-tauri + crates + Plugins 全部成员）
+      - name: Rust cache (main layout)
+        if: steps.variant.outputs.variant == 'main'
         uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+
+      - name: Rust cache (workspace layout)
+        if: steps.variant.outputs.variant == 'x'
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: .
 
       - name: Extract release notes from CHANGELOG
         id: notes
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          awk -v ver="$VERSION" '
-            { sub(/\r$/, "") }
-            BEGIN { head = "## [" ver "]" }
-            !found && index($0, head) == 1 { found = 1; next }
-            found && (substr($0, 1, 3) == "## " || substr($0, 1, 1) == "[") { exit }
-            found { print }
-          ' CHANGELOG.md > release_notes.md
+          VARIANT="${{ steps.variant.outputs.variant }}"
+
+          extract() {
+            awk -v ver="$1" '
+              { sub(/\r$/, "") }
+              BEGIN { head = "## [" ver "]" }
+              !found && index($0, head) == 1 { found = 1; next }
+              found && (substr($0, 1, 3) == "## " || substr($0, 1, 1) == "[") { exit }
+              found { print }
+            ' CHANGELOG.md
+          }
+
+          extract "$VERSION" > release_notes.md
+          # x 变体允许回退到 Unreleased（发版前未把条目改写为版本号小节时）
+          if [ ! -s release_notes.md ] && [ "$VARIANT" = "x" ]; then
+            extract "Unreleased" > release_notes.md
+          fi
           sed -i -e '/./,$!d' release_notes.md
           printf '%s\n' "$(cat release_notes.md)" > release_notes.md
           if [ ! -s release_notes.md ]; then
@@ -68,8 +114,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'MimiBox ${{ github.ref_name }}'
+          tagName: ${{ steps.variant.outputs.tag_name }}
+          releaseName: ${{ steps.variant.outputs.release_name }}
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ steps.variant.outputs.prerelease == 'true' }}

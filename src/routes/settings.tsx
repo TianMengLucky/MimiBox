@@ -1,6 +1,7 @@
 import { Flex, Box } from "@apvee/react-layout-kit";
 import { createFileRoute } from "@tanstack/react-router";
 import { UpdateSection } from "@components/settings/UpdateSection";
+import { PluginsSection } from "@components/settings/PluginsSection";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsRoute,
@@ -19,6 +20,7 @@ function SettingsRoute() {
         px={28}
       >
         <section aria-label="设置">
+          <PluginsSection />
           <UpdateSection />
         </section>
       </Box>

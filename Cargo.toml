@@ -1,0 +1,45 @@
+[workspace]
+resolver = "2"
+members = [
+    "src-tauri",
+    "crates/mimibox-plugin",
+    # 插件后端 crate：随迁移逐个加入
+    "Plugins/lottery/backend",
+    "Plugins/tier-list/backend",
+    "Plugins/prediction/backend",
+    "Plugins/rating/backend",
+    "Plugins/bobing/backend",
+    "Plugins/whiteboard/backend",
+    "Plugins/bilibili-comments/backend",
+    "Plugins/bilibili-upload/backend",
+    "Plugins/danmaku/backend",
+    "Plugins/anime/backend",
+]
+
+[workspace.package]
+edition = "2021"
+license = "GPL-3.0-only"
+
+[workspace.dependencies]
+mimibox-plugin = { path = "crates/mimibox-plugin" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# 开发构建:增量编译 + 较多 codegen-units 以缩短单次编译时间
+[profile.dev]
+incremental = true
+codegen-units = 16
+debug = 1  # 仅行号,无完整 debug info,首次编译显著更快
+
+# 依赖以 release 模式编译一次后缓存,后续 dev 改动只重编本项目代码
+# (clean build 略慢,但增量编译极快)
+[profile.dev.package."*"]
+opt-level = 3
+codegen-units = 16
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

@@ -29,17 +29,59 @@
 - 模块间共享项用最小可见性（Rust `pub(crate)`/`pub(super)`）限定，
   不扩大公开面。
 
+## Plugin architecture (插件化架构约定)
+
+应用为「宿主内核 + 插件」架构（2026-09 改造）：
+
+- **宿主（src-tauri + src/）**：Tauri 外壳、cordis 运行时（`src-tauri/src/runtime/`，
+  cordis-rs 0.8）、磁盘插件加载器（`loader.rs`，libloading）、动态网关命令
+  `plugin_invoke`/`plugin_list`、`mbplugin://` 协议（向窗口提供插件前端 bundle），
+  以及两个内置插件 account（账号服务，发布 `account` 就绪标记）与 scheme-io。
+  静态命令仅剩 `is_first_launch`/`mark_welcome_seen` + 两个网关命令。
+- **插件（Plugins/<id>/）**：每个功能一个插件 = `plugin.json`（清单，abi=1，
+  `requires` 声明依赖如 `["account"]`，未就绪时 cordis 保持 Pending）+
+  `backend/`（Rust cdylib，workspace 成员，实现 `mimibox_plugin::PluginBackend`，
+  `export_plugin!` 导出 C ABI）+ `frontend/`（TS/TSX，esbuild 打成 CJS 工厂）。
+  构建产物 `backend.dll` 与 `frontend/index.js` 由 `pnpm build:plugins` 生成
+  （git 忽略），前端 bundle 的 react/HeroUI 等依赖经宿主共享模块表
+  （`src/core/shared.ts`）require，单一 React 实例。
+- **前端宿主运行时（src/core/）**：功能注册表（registry）+ 插件加载器
+  （runtime，@cordisjs/core 管生命周期）+ 插件 API（`defineMbPlugin` /
+  `ctx.registerFeature`/`ctx.invoke`/`ctx.listen`）。home/library 卡片与
+  `/feature/$plugin`、`/w/$plugin` 通用路由全部数据驱动，新插件无需改路由。
+- **新增/修改插件时**：
+  - 新增插件：建 `Plugins/<id>/{plugin.json,backend,frontend}`，在根
+    `Cargo.toml` members、`scripts/plugin-config.mjs` PLUGINS 中登记；前端用
+    `defineMbPlugin` 注册（主页卡片 area 缺省、资料库 area:"library"、独立
+    窗口注册 `windowComponent`）；命令走 SDK `Registry::handle`（JSON 入参/
+    出参，camelCase），前端经 `ctx.invoke` 调用，不要绕过网关直连。
+  - 数据文件沿用 `store::load/save`（SDK 内置，放应用数据目录，文件名不变
+    即无迁移）；插件需要的宿主能力（数据目录/事件/凭据/开窗口/资源管理器
+    定位）走 `HostApi`，缺能力时先扩展 SDK trait + vtable + HostImpl 三处。
+  - 第三方插件分发：用户可在设置页从文件夹或 `.mip` 包（zip）导入插件，
+    落到用户插件目录（默认应用数据目录 `plugins/`，可在设置页自定义并
+    自动迁移，优先于内置目录加载；`plugin_manager.rs` 的
+    `plugin_import_folder/import_mip/remove/get_dir/set_dir` 命令，
+    生效目录以 `effective_user_dir` 为准）。修改加载/导入逻辑时保持
+    zip-slip 防护与 ABI 校验。
+  - 插件的复杂外接 CSS 放 `Plugins/<id>/frontend/*.css` 并在宿主
+    `src/style/index.css` `@import`；插件类名靠 `@source "../../Plugins/*/frontend"`
+    进宿主样式表，插件源码不要 import css。
+  - 验证：`cargo check --workspace` + `pnpm build`（tsc + vite + 插件构建）。
+    dll 改动需重启应用（Windows 锁定已加载 dll）；前端改动 `pnpm plugins:watch`
+    + 刷新即生效。
+
 ## Performance-bound work (性能敏感计算的归属)
 
-- 性能敏感的计算必须放在 Rust 端（`src-tauri/src/`）执行，前端只消费
-  结果。"性能敏感"指：数据量随业务增长（如评论可达数千条）、需要
-  正则/Unicode 分类等逐字符重计算、或批量统计/聚合。判断基准：几十到
+- 性能敏感的计算必须放在 Rust 端（各插件 `backend/` 或宿主 `src-tauri/src/`）
+  执行，前端只消费结果。"性能敏感"指：数据量随业务增长（如评论可达数千条）、
+  需要正则/Unicode 分类等逐字符重计算、或批量统计/聚合。判断基准：几十到
   几百条数据上的简单过滤排序留在前端即可，不必为小数据跨进程移动。
 - 实现方式：优先在 Rust 返回数据的 DTO 上直接携带计算结果字段
-  （如 `bilibili_comments::CommentItem::is_spam` 由 `spam.rs` 在解析时
-  计算），前端过滤只读布尔/数值标记；确有交互式重计算需求时才单独
-  暴露 `#[tauri::command]`。
-- 同步维护 Rust DTO 与前端 `types.ts`（camelCase 对应），字段语义变更
+  （如 B 站评论区插件的 `CommentItem::is_spam` 由后端 `spam.rs` 在解析时
+  计算），前端过滤只读布尔/数值标记；确有交互式重计算需求时才单独注册
+  插件命令。
+- 同步维护 Rust DTO 与插件前端 `types.ts`（camelCase 对应），字段语义变更
   时两侧一起改。
 
 ## Component reuse (组件复用约定)

@@ -1,0 +1,15 @@
+[package]
+name = "mimibox-plugin-bilibili-upload"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "B 站投稿插件后端：封面/视频分片上传与稿件提交"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+mimibox-plugin = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { version = "0.12", features = ["json", "gzip", "brotli"] }

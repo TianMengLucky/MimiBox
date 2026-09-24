@@ -49,7 +49,6 @@ fn chrono_like_now() -> u128 {
 /// 重置抖音 web 会话：剥离登录票据 cookie 并清空扫码会话上下文（模拟用户
 /// 刷新页面）。设备级 cookie（ttwid/passport_csrf_token 等）保留——抖音
 /// passport 据此识别已验证设备，避免每次登录都触发短信二次验证。
-#[tauri::command]
 pub async fn douyin_reset_session(state: State<'_, AccountState>) -> Result<(), String> {
     {
         let mut cookies = state.douyin_cookies.lock().map_err(|_| "Cookie锁定失败")?;
@@ -60,7 +59,6 @@ pub async fn douyin_reset_session(state: State<'_, AccountState>) -> Result<(), 
 }
 
 /// 在隔离的网页窗口中打开抖音，并注入当前账号的登录 Cookie。
-#[tauri::command]
 pub async fn douyin_open_web(app: AppHandle, state: State<'_, AccountState>) -> Result<(), String> {
     let session = state
         .douyin
@@ -133,7 +131,6 @@ pub async fn douyin_open_web(app: AppHandle, state: State<'_, AccountState>) -> 
         .map_err(|e| format!("无法显示抖音网页窗口: {e}"))
 }
 
-#[tauri::command]
 pub async fn douyin_qr_start(state: State<'_, AccountState>) -> Result<DouyinQrStart, String> {
     // 完整链路：ttwid（aid=10006 回调）→ get_qrcode（bdms a_bogus + X-Ms-Token）
     // → get_client_cert 握手 → DTrait d1 安全头（约 4 秒）
@@ -143,7 +140,6 @@ pub async fn douyin_qr_start(state: State<'_, AccountState>) -> Result<DouyinQrS
     Ok(DouyinQrStart { qr_image })
 }
 
-#[tauri::command]
 pub async fn douyin_qr_poll(app: AppHandle, state: State<'_, AccountState>) -> Result<DouyinQrPoll, String> {
     // 会话上下文（安全头/msToken/token）全部保存在服务端会话中，前端无需传参
     let outcome = {
@@ -255,7 +251,6 @@ pub async fn douyin_qr_poll(app: AppHandle, state: State<'_, AccountState>) -> R
 }
 
 /// 扫码二次验证：重新发送短信验证码（首次验证码在触发 2046 时已自动发送）
-#[tauri::command]
 pub async fn douyin_qr_sms_send(state: State<'_, AccountState>) -> Result<DouyinQrSmsSend, String> {
     let mut session = state
         .douyin_web
@@ -270,7 +265,6 @@ pub async fn douyin_qr_sms_send(state: State<'_, AccountState>) -> Result<Douyin
 }
 
 /// 扫码二次验证：校验短信验证码；成功后后续轮询自动携带 verify_ticket 完成登录
-#[tauri::command]
 pub async fn douyin_qr_sms_validate(state: State<'_, AccountState>, code: String) -> Result<(), String> {
     let mut session = state
         .douyin_web

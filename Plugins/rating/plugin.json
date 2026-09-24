@@ -1,0 +1,13 @@
+{
+  "id": "rating",
+  "title": "评分",
+  "emoji": "⭐",
+  "description": "批量打 1-10 分",
+  "category": "video",
+  "abi": 1,
+  "requires": [],
+  "entry": {
+    "backend": "backend.dll",
+    "frontend": "frontend/index.js"
+  }
+}

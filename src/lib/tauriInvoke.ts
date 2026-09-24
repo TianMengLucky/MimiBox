@@ -57,3 +57,16 @@ export async function tauriInvoke<T>(
     throw err;
   }
 }
+
+/**
+ * 插件命令调用入口：经宿主动态网关分发到对应插件（内置或磁盘）。
+ * 这是前端访问插件功能的唯一方式（账号/方案导入导出等内置插件同样走这里）。
+ */
+export async function pluginInvoke<T>(
+  plugin: string,
+  command: string,
+  args?: Record<string, unknown>,
+  options: { defaultValue?: T } = {},
+): Promise<T> {
+  return tauriInvoke<T>("plugin_invoke", { plugin, command, args: args ?? null }, options);
+}

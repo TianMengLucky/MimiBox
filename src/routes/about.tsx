@@ -1,4 +1,4 @@
-import { Box, Flex } from "@apvee/react-layout-kit";
+﻿import { Box, Flex } from "@apvee/react-layout-kit";
 import { useEffect, useState } from "react";
 import { Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
@@ -53,7 +53,7 @@ function AboutRoute() {
             />
             <Box $minWidth={0}>
               <h1 className="m-0 truncate text-left text-lg font-bold text-[#513844]">
-                美美工具箱
+                美美工具箱 X
               </h1>
               <p className="m-0 mt-0.5 text-sm text-[#9b8a91]">
                 粉色治愈系的桌面小工具箱

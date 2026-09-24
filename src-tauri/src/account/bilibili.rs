@@ -145,7 +145,6 @@ fn render_qr_png(text: &str) -> Result<String, String> {
 }
 
 /// 切换当前活动账号（凭据从本地列表恢复，无需重新登录）
-#[tauri::command]
 pub async fn account_switch(
     app: AppHandle,
     state: State<'_, AccountState>,
@@ -184,7 +183,6 @@ pub async fn account_switch(
 }
 
 /// 在隔离的网页窗口中打开 Bilibili，并注入当前账号的登录 Cookie。
-#[tauri::command]
 pub async fn account_open_web(
     app: AppHandle,
     state: State<'_, AccountState>,
@@ -270,7 +268,6 @@ pub async fn account_open_web(
         .map_err(|e| format!("无法显示 Bilibili 网页窗口: {e}"))
 }
 
-#[tauri::command]
 pub async fn account_qr_start(state: State<'_, AccountState>) -> Result<QrStart, String> {
     let generated = state
         .client
@@ -285,7 +282,6 @@ pub async fn account_qr_start(state: State<'_, AccountState>) -> Result<QrStart,
     })
 }
 
-#[tauri::command]
 pub async fn account_qr_poll(
     app: AppHandle,
     state: State<'_, AccountState>,
@@ -326,7 +322,6 @@ pub async fn account_qr_poll(
     }
 }
 
-#[tauri::command]
 pub async fn account_captcha(state: State<'_, AccountState>) -> Result<CaptchaInfo, String> {
     let response: ApiResponse = state
         .http
@@ -354,7 +349,6 @@ pub async fn account_captcha(state: State<'_, AccountState>) -> Result<CaptchaIn
     })
 }
 
-#[tauri::command]
 pub async fn account_sms_send(
     state: State<'_, AccountState>,
     tel: String,
@@ -392,7 +386,6 @@ pub async fn account_sms_send(
     Ok(SmsSendResult { captcha_key: key })
 }
 
-#[tauri::command]
 pub async fn account_sms_login(
     app: AppHandle,
     state: State<'_, AccountState>,

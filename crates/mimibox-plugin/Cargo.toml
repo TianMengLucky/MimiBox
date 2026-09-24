@@ -1,0 +1,11 @@
+[package]
+name = "mimibox-plugin"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "MimiBox 插件 SDK：宿主与插件共用的 C ABI、命令注册与持久化工具"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { version = "1", features = ["rt-multi-thread"] }

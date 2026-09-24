@@ -29,7 +29,10 @@ pub use bilibili::{
     account_captcha, account_open_web, account_qr_poll, account_qr_start, account_sms_login,
     account_sms_send, account_switch,
 };
-pub use douyin::{douyin_qr_poll, douyin_qr_sms_send, douyin_qr_sms_validate, douyin_qr_start, douyin_reset_session};
+pub use douyin::{
+    douyin_open_web, douyin_qr_poll, douyin_qr_sms_send, douyin_qr_sms_validate, douyin_qr_start,
+    douyin_reset_session,
+};
 pub use store::{AccountEntry, AccountStatus, CredentialStatus};
 
 pub struct AccountState {
@@ -54,24 +57,8 @@ pub struct DouyinSession {
 }
 
 impl AccountState {
-    /// 共享 HTTP 客户端（Cookie 存储 + 重定向），供 B 站内容类功能模块复用
-    pub(crate) fn http(&self) -> &reqwest::Client {
-        &self.http
-    }
-
-    /// 当前活动 B 站账号的 (mid, Cookie 请求头)，未登录返回 None
-    pub(crate) fn bilibili_session(&self, app: &AppHandle) -> Result<Option<(u64, String)>, String> {
-        let store = store::load_store(app)?;
-        Ok(store
-            .active_id
-            .as_deref()
-            .and_then(|id| store.accounts.iter().find(|a| a.dede_user_id == id))
-            .map(|a| (a.dede_user_id.parse().unwrap_or(0), cookie_header(a)))
-            .filter(|(mid, _)| *mid > 0))
-    }
-
     /// 指定 mid（None 时用活动账号）的 B 站凭据 (mid, Cookie 请求头)；
-    /// 供需要按账号（而非仅活动账号）取凭据的功能模块使用
+    /// 宿主 HostApi::bili_credentials 经此实现，供各 B 站内容插件取凭据
     pub(crate) fn bilibili_credentials(
         &self,
         app: &AppHandle,

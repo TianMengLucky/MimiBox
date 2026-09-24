@@ -3,27 +3,40 @@ import { useCallback, useEffect, useState } from "react";
 import { tauriInvoke } from "../lib/tauriInvoke";
 import { mergeSchemes } from "./schemeTransfer/io";
 
+/** 方案数据命令调用实现：宿主页用缺省的 tauriInvoke，
+ *  插件页传入 MbPluginContext.invoke（经网关限定插件名）。 */
+export type SchemeInvoke = (
+  command: string,
+  args?: Record<string, unknown>,
+  options?: { defaultValue?: unknown },
+) => Promise<unknown>;
+
 /**
  * 各功能模块方案数据（<功能>.json）的通用读写包装：
  * 读取失败（如纯浏览器预览、数据被手动改坏）时降级为空数据，不阻塞页面渲染。
- * Rust 端对应 crate::scheme_store 的 <功能>_load/<功能>_save 命令。
+ * 插件后端对应各插件 Registry 的 <功能>_load/<功能>_save 命令。
  */
 export function createSchemeStore<T>(config: {
   /** 应用数据目录下的文件名，仅用于日志标识 */
   file: string;
-  /** Rust 端读取命令名 */
+  /** 后端读取命令名 */
   loadCommand: string;
-  /** Rust 端整体保存命令名 */
+  /** 后端整体保存命令名 */
   saveCommand: string;
   /** 读取失败时降级返回的空数据 */
   empty: () => T;
+  /** 命令调用实现；缺省用全局 tauriInvoke */
+  invoke?: SchemeInvoke;
 }) {
+  const call = config.invoke ?? ((command, args, options) => tauriInvoke(command, args, options));
+
   async function load(): Promise<T> {
     try {
       // 浏览器开发预览时返回空数据，不依赖 Tauri
-      return await tauriInvoke<T>(config.loadCommand, undefined, {
+      const data = await call(config.loadCommand, undefined, {
         defaultValue: config.empty(),
       });
+      return data as T;
     } catch (err) {
       console.error(`读取${config.file}失败`, err);
       return config.empty();
@@ -31,7 +44,7 @@ export function createSchemeStore<T>(config: {
   }
 
   function save(data: T): Promise<void> {
-    return tauriInvoke(config.saveCommand, { data });
+    return call(config.saveCommand, { data }) as Promise<void>;
   }
 
   return { load, save };

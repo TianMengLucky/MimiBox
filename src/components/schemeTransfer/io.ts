@@ -1,4 +1,4 @@
-import { tauriInvoke } from "../../lib/tauriInvoke";
+import { pluginInvoke } from "../../lib/tauriInvoke";
 import { open, save } from "@tauri-apps/plugin-dialog";
 
 /** 支持方案导入导出的功能标识（与 .miz 包内 miz.json 的 kind 对应） */
@@ -45,7 +45,7 @@ export async function exportSchemes<T>(
     exportedAt: Date.now(),
     schemes,
   };
-  await tauriInvoke("scheme_io_write", { path, payload });
+  await pluginInvoke("scheme-io", "scheme_io_write", { path, payload });
   return "saved";
 }
 
@@ -59,6 +59,6 @@ export async function importSchemes<T>(kind: MizKind): Promise<T[] | null> {
     filters: [MIZ_FILTER, { name: "所有文件", extensions: ["*"] }],
   });
   if (!path) return null;
-  const payload = await tauriInvoke<MizPayload<T>>("scheme_io_read", { path, kind });
+  const payload = await pluginInvoke<MizPayload<T>>("scheme-io", "scheme_io_read", { path, kind });
   return payload.schemes;
 }

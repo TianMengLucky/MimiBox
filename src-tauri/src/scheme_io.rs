@@ -23,7 +23,6 @@ struct MizHeader {
 }
 
 /// 把方案包（payload 为完整 miz.json 内容）写入 path
-#[tauri::command]
 pub fn scheme_io_write(path: String, payload: Value) -> Result<(), String> {
     let json = serde_json::to_string_pretty(&payload).map_err(|e| e.to_string())?;
     let file =
@@ -40,7 +39,6 @@ pub fn scheme_io_write(path: String, payload: Value) -> Result<(), String> {
 }
 
 /// 读取方案包并校验应用标识与功能 kind，通过则返回 miz.json 的完整内容
-#[tauri::command]
 pub fn scheme_io_read(path: String, kind: String) -> Result<Value, String> {
     let file = fs::File::open(&path).map_err(|e| format!("无法打开文件 {path}: {e}"))?;
     let mut zip =

@@ -1,14 +1,22 @@
 @import "tailwindcss";
 @import "@heroui/styles";
 
+/* 插件前端源码也使用宿主样式表：扫描各插件 frontend 目录的类名
+   （第三方插件将来自带 CSS，不经此入口） */
+@source "../../Plugins/*/frontend";
+
+/* 插件外接样式：多级后代选择器等复杂规则随插件源码存放，由宿主样式表统一引入 */
+@import "../../Plugins/bobing/frontend/bobing.css";
+@import "../../Plugins/danmaku/frontend/danmaku.css";
+/* xyflow 画布基础样式（赛事预测/白板插件使用；插件 bundle 内的 import 会被忽略） */
+@import "@xyflow/react/dist/style.css";
+
 @import "./base.css";
 @import "./welcome.css";
 @import "./dock.css";
 @import "./titlebar.css";
 @import "./home.css";
 @import "./feature.css";
-@import "./bobing.css";
 @import "./account.css";
-@import "./danmaku.css";
 @import "./screensaver.css";
 @import "./motion.css";

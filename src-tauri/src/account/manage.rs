@@ -40,7 +40,6 @@ pub(super) async fn status_from_nav(state: &AccountState) -> Result<AccountStatu
 }
 
 /// 查询当前活动账号的登录状态（抖音会话优先，其次 B 站凭据）
-#[tauri::command]
 pub async fn account_get_status(
     app: AppHandle,
     state: State<'_, AccountState>,
@@ -65,7 +64,6 @@ pub async fn account_get_status(
 }
 
 /// 刷新并列出已保存账号的凭据状态（不向前端暴露凭据）
-#[tauri::command]
 pub async fn account_list(
     app: AppHandle,
     state: State<'_, AccountState>,
@@ -134,7 +132,6 @@ pub async fn account_list(
 
 /// 返回当前活动账号的浏览器 Cookie 请求头字符串（可直接粘贴到 curl/浏览器）。
 /// 抖音会话存在时返回抖音 Cookie，否则返回 B 站活动账号凭据。
-#[tauri::command]
 pub async fn account_copy_cookie(
     app: AppHandle,
     state: State<'_, AccountState>,
@@ -166,7 +163,6 @@ pub async fn account_copy_cookie(
 }
 
 /// 退出当前活动账号：从列表中移除并清除会话（其他保存的账号不受影响）
-#[tauri::command]
 pub async fn account_logout(app: AppHandle, state: State<'_, AccountState>) -> Result<(), String> {
     *state.douyin.lock().map_err(|_| "抖音会话锁定失败")? = None;
     // 清除抖音持久化会话并剥离登录票据 cookie（保留设备 cookie 维持设备信任）

@@ -1,0 +1,13 @@
+{
+  "id": "bobing",
+  "title": "博饼",
+  "emoji": "🎲",
+  "description": "掷骰夺状元",
+  "category": "fun",
+  "abi": 1,
+  "requires": [],
+  "entry": {
+    "backend": "backend.dll",
+    "frontend": "frontend/index.js"
+  }
+}

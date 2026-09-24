@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
-import { tauriInvoke } from "../../lib/tauriInvoke";
+import { pluginInvoke } from "../../lib/tauriInvoke";
 import { DouyinQrLogin } from "./DouyinQrLogin";
 
 /** 账号登录面板：平台切换（B 站 / 抖音）+ 极验 + B 站扫码/短信登录。
@@ -107,7 +107,7 @@ function Geetest({ onVerified }: { onVerified: (result: CaptchaResult) => void }
   useEffect(() => {
     let disposed = false;
     let instance: GeetestInstance | undefined;
-    Promise.all([loadGeetestScript(), tauriInvoke<CaptchaInfo>("account_captcha")])
+    Promise.all([loadGeetestScript(), pluginInvoke<CaptchaInfo>("account", "account_captcha")])
       .then(([, info]) => {
         if (disposed || !window.initGeetest || !containerRef.current) return;
         window.initGeetest({ gt: info.gt, challenge: info.challenge, new_captcha: true, offline: false, product: "float", width: "100%", https: true }, (captcha) => {
@@ -211,7 +211,7 @@ function SmsLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
     setBusy(true);
     setError("");
     try {
-      const result = await tauriInvoke<SmsSendResult>("account_sms_send", { tel, ...captcha });
+      const result = await pluginInvoke<SmsSendResult>("account", "account_sms_send", { tel, ...captcha });
       setCaptchaKey(result.captchaKey);
     } catch (reason) {
       setError(String(reason));
@@ -225,7 +225,7 @@ function SmsLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
     setBusy(true);
     setError("");
     try {
-      await tauriInvoke("account_sms_login", { tel, code, captchaKey });
+      await pluginInvoke("account", "account_sms_login", { tel, code, captchaKey });
       onLoggedIn();
     } catch (reason) {
       setError(String(reason));
@@ -252,7 +252,7 @@ function QrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
   const start = useCallback(() => {
     setError("");
     setPoll(null);
-    tauriInvoke<QrStart>("account_qr_start")
+    pluginInvoke<QrStart>("account", "account_qr_start")
       .then((data) => {
         setQr(data);
       })
@@ -268,7 +268,7 @@ function QrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
     let timer: number | undefined;
     const pollStatus = async () => {
       try {
-        const data = await tauriInvoke<QrPoll>("account_qr_poll", {
+        const data = await pluginInvoke<QrPoll>("account", "account_qr_poll", {
           qrcodeKey: qr.qrcodeKey,
         });
         if (stopped) return;

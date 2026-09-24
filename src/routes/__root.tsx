@@ -19,9 +19,9 @@ function RootComponent() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isWelcome = pathname === "/";
 
-  // 弹幕姬独立窗口（/danmaku）自带迷你标题栏，主窗口的外壳（标题栏/
+  // 弹幕姬插件独立窗口（/w/danmaku）自带迷你标题栏，主窗口的外壳（标题栏/
   // 悬浮坞/屏保/开发工具）一律不渲染，否则会叠加出两套界面
-  const isDanmakuWindow = pathname === "/danmaku";
+  const isDanmakuWindow = pathname === "/w/danmaku";
 
   // 极简（背景）模式：隐藏路径内容并解除路径按钮高亮，仅菜单栏按钮切换。
   const [minimal, setMinimal] = useState(false);

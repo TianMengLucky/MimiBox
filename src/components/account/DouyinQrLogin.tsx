@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
-import { tauriInvoke } from "../../lib/tauriInvoke";
+import { pluginInvoke } from "../../lib/tauriInvoke";
 
 /** 抖音扫码登录：二维码轮询 + 过期无感换码 + IP 限流指数退避冷却
  *  + 扫码触发短信二次验证（error 2046 / verification_required）的 MFA 状态机。 */
@@ -59,8 +59,8 @@ export function DouyinQrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
     lastQrStatusRef.current = "unknown";
     // 先重置 Rust 侧 web 会话（清空 cookie/指纹标识，强制重新预热首页与 ttwid），
     // 等价于浏览器里刷新页面换新环境，降低连续风控评分
-    tauriInvoke("douyin_reset_session").catch(() => undefined).finally(() => {
-      tauriInvoke<DouyinQrStart>("douyin_qr_start")
+    pluginInvoke("account", "douyin_reset_session").catch(() => undefined).finally(() => {
+      pluginInvoke<DouyinQrStart>("account", "douyin_qr_start")
         .then((data) => setQr(data))
         .catch((reason) => setError(String(reason)))
         .finally(() => { startingRef.current = false; });
@@ -130,7 +130,7 @@ export function DouyinQrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
           return;
         }
 
-        const result = await tauriInvoke<DouyinQrPoll>("douyin_qr_poll");
+        const result = await pluginInvoke<DouyinQrPoll>("account", "douyin_qr_poll");
         if (stopped) return;
 
         setPoll(result);
@@ -308,7 +308,7 @@ export function DouyinQrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
     setMfaBusy(true);
     setMfaError("");
     try {
-      await tauriInvoke("douyin_qr_sms_validate", { code: value });
+      await pluginInvoke("account", "douyin_qr_sms_validate", { code: value });
       setMfaCode("");
       setPoll({ status: "waiting", message: "验证成功，正在完成登录…" });
       checkRef.current?.();
@@ -325,7 +325,7 @@ export function DouyinQrLogin({ onLoggedIn }: { onLoggedIn: () => void }) {
     setMfaBusy(true);
     setMfaError("");
     try {
-      const result = await tauriInvoke<{ mobile: string | null }>("douyin_qr_sms_send");
+      const result = await pluginInvoke<{ mobile: string | null }>("account", "douyin_qr_sms_send");
       if (result.mobile) setMfaMobile(result.mobile);
       setMfaResendIn(60);
     } catch (reason) {

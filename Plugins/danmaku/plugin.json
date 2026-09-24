@@ -1,0 +1,13 @@
+{
+  "id": "danmaku",
+  "title": "弹幕直播姬",
+  "emoji": "🎀",
+  "description": "连接直播间实时弹幕",
+  "category": "video",
+  "abi": 1,
+  "requires": ["account"],
+  "entry": {
+    "backend": "backend.dll",
+    "frontend": "frontend/index.js"
+  }
+}

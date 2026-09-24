@@ -1,28 +1,25 @@
 pub mod account;
-pub mod bangumi;
-pub mod bilibili_comments;
-pub mod bilibili_danmaku;
-pub mod bilibili_upload;
-pub mod bobing;
+pub mod builtin;
 pub mod douyin_signer;
 pub mod douyin_web;
-pub mod lottery;
-pub mod prediction;
-pub mod rating;
+pub mod gateway;
+pub mod loader;
+pub mod plugin_manager;
 mod scheme_store;
 pub mod scheme_io;
-pub mod tierlist;
-pub mod whiteboard;
+pub mod runtime;
 
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use serde_json::json;
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, State};
+
+use runtime::MbRuntime;
 
 struct AppState {
     first_launch: Mutex<bool>,
@@ -61,6 +58,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        // mbplugin:// 自定义协议：向各窗口提供插件前端 bundle 与静态资源
+        .register_asynchronous_uri_scheme_protocol("mbplugin", |ctx, request, responder| {
+            responder.respond(serve_mbplugin(ctx.app_handle(), &request));
+        })
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             let first_launch = if dir.join("config.json").exists() {
@@ -77,67 +78,107 @@ pub fn run() {
                 first_launch: Mutex::new(first_launch),
             });
             app.manage(account::init_state(app.handle())?);
-            app.manage(bilibili_upload::UploadState::default());
-            app.manage(bilibili_danmaku::DanmakuState::default());
             setup_tray(app)?;
+
+            // 插件运行时：cordis 根上下文 + 内置插件 + 磁盘插件加载
+            let host = Arc::new(runtime::host::HostImpl::new(app.handle().clone()));
+            runtime::vtable::install_host(host.clone())?;
+            let plugin_dirs = loader::plugin_dirs(app.handle())?;
+            let user_plugins_dir = plugin_manager::effective_user_dir(app.handle())?;
+            let root = cordis::Context::new();
+            let block_result = tauri::async_runtime::block_on(async {
+                // 1. 基础设施：命令注册表 + 账号就绪服务
+                builtin::spawn_infra(&root)
+                    .await
+                    .map_err(|e| format!("{e}"))?;
+                // 2. 内置插件：账号管理（17 命令）与方案导入导出（2 命令）
+                builtin::spawn_builtin(&root, "account", &[], builtin::account::AccountPlugin::new(app.handle().clone()))
+                    .await
+                    .map_err(|e| format!("{e}"))?;
+                builtin::spawn_builtin(&root, "scheme-io", &[], builtin::scheme_io::SchemeIoPlugin)
+                    .await
+                    .map_err(|e| format!("{e}"))?;
+                // 3. 磁盘插件：单个失败只跳过，不阻断启动
+                let (loaded, errors) = loader::load_all(&root, &plugin_dirs, &user_plugins_dir).await;
+                Ok::<_, String>((loaded, errors))
+            });
+            let (loaded, errors) = match block_result {
+                Ok(value) => value,
+                Err(e) => return Err(Box::<dyn std::error::Error>::from(e)),
+            };
+
+            let mb_runtime = MbRuntime::new(root, host, plugin_dirs);
+            for item in loaded {
+                mb_runtime.add_plugin(item);
+            }
+            for error in errors {
+                eprintln!("[mimibox] {error}");
+            }
+            app.manage(mb_runtime);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             is_first_launch,
             mark_welcome_seen,
-            account::manage::account_get_status,
-            account::manage::account_list,
-            account::manage::account_copy_cookie,
-            account::manage::account_logout,
-            account::bilibili::account_switch,
-            account::bilibili::account_open_web,
-            account::bilibili::account_qr_start,
-            account::bilibili::account_qr_poll,
-            account::bilibili::account_captcha,
-            account::bilibili::account_sms_send,
-            account::bilibili::account_sms_login,
-            account::douyin::douyin_qr_start,
-            account::douyin::douyin_qr_poll,
-            account::douyin::douyin_qr_sms_send,
-            account::douyin::douyin_qr_sms_validate,
-            account::douyin::douyin_reset_session,
-            account::douyin::douyin_open_web,
-            lottery::lottery_load,
-            lottery::lottery_save,
-            bobing::bobing_load,
-            bobing::bobing_save,
-            tierlist::tierlist_load,
-            tierlist::tierlist_save,
-            tierlist::tierlist_export_image,
-            prediction::prediction_load,
-            prediction::prediction_save,
-            rating::rating_load,
-            rating::rating_save,
-            whiteboard::whiteboard_load,
-            whiteboard::whiteboard_save,
-            bangumi::bangumi_calendar,
-            bilibili_comments::bilibili_comments_videos,
-            bilibili_comments::bilibili_comments_list,
-            bilibili_comments::bilibili_comments_replies,
-            bilibili_comments::marks::bilibili_comments_set_mark,
-            bilibili_comments::notes::bilibili_comments_set_edit,
-            bilibili_comments::notes::bilibili_comments_add_reply,
-            bilibili_comments::notes::bilibili_comments_update_reply,
-            bilibili_comments::notes::bilibili_comments_remove_reply,
-            bilibili_danmaku::client::danmaku_open,
-            bilibili_danmaku::client::danmaku_connect,
-            bilibili_danmaku::client::danmaku_disconnect,
-            bilibili_danmaku::client::danmaku_snapshot,
-            bilibili_upload::bilibili_upload_cats,
-            bilibili_upload::bilibili_upload_probe,
-            bilibili_upload::bilibili_upload_cover,
-            bilibili_upload::bilibili_upload_start,
-            bilibili_upload::bilibili_upload_cancel,
-            scheme_io::scheme_io_write,
-            scheme_io::scheme_io_read,
+            gateway::plugin_invoke,
+            gateway::plugin_list,
+            plugin_manager::plugin_import_folder,
+            plugin_manager::plugin_import_mip,
+            plugin_manager::plugin_remove,
+            plugin_manager::plugin_get_dir,
+            plugin_manager::plugin_set_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// mbplugin:// 请求处理：`mbplugin://localhost/<id>/<相对路径>` → 插件目录文件。
+/// 仅允许安全的 id 与相对路径（防目录穿越），JS 用正确 MIME 返回。
+fn serve_mbplugin(
+    app: &AppHandle,
+    request: &tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<Vec<u8>> {
+    let not_found = |msg: &str| match tauri::http::Response::builder()
+        .status(404)
+        .body(msg.as_bytes().to_vec())
+    {
+        Ok(response) => response,
+        Err(_) => tauri::http::Response::new(Vec::new()),
+    };
+    let path = request.uri().path().trim_start_matches('/');
+    let Some((id, relative)) = path.split_once('/') else {
+        return not_found("invalid plugin path");
+    };
+    if !loader::valid_id(id) || relative.contains("..") || relative.contains('\\') {
+        return not_found("invalid plugin path");
+    }
+    // 按优先级在全部插件目录中查找（用户导入目录优先）
+    let dirs = app
+        .try_state::<MbRuntime>()
+        .map(|runtime| runtime.plugin_dirs.clone())
+        .unwrap_or_default();
+    for dir in dirs {
+        let file = dir.join(id).join(relative);
+        if let Ok(data) = fs::read(&file) {
+            let mime = match file.extension().and_then(|e| e.to_str()) {
+                Some("js" | "mjs") => "text/javascript",
+                Some("json") => "application/json",
+                Some("css") => "text/css",
+                Some("html") => "text/html",
+                Some("png") => "image/png",
+                Some("svg") => "image/svg+xml",
+                _ => "application/octet-stream",
+            };
+            match tauri::http::Response::builder()
+                .header("Content-Type", mime)
+                .body(data)
+            {
+                Ok(response) => return response,
+                Err(_) => return not_found("response build failed"),
+            }
+        }
+    }
+    not_found("plugin asset not found")
 }
 
 /// 系统托盘：右键菜单（显示主窗口 / 退出），左键单击显示并聚焦主窗口。
@@ -150,7 +191,7 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
 
     TrayIconBuilder::with_id("main-tray")
         .icon(icon)
-        .tooltip("美美工具箱")
+        .tooltip("美美工具箱 X")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {

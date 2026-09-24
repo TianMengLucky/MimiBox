@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Button, ButtonGroup } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useRouterState } from "@tanstack/react-router";
@@ -95,7 +95,7 @@ export function TitleBar() {
       <div className="titlebar__brand" aria-hidden="true">
         <img className="titlebar__brand-icon" src={appIcon} alt="" />
         <span className="titlebar__brand-text">
-          <span className="titlebar__brand-name">美美工具箱</span>
+          <span className="titlebar__brand-name">美美工具箱 X</span>
           <span className="titlebar__brand-version">{version}</span>
         </span>
       </div>

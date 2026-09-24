@@ -12,23 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccountRouteImport } from './routes/account'
-import { Route as DanmakuRouteImport } from './routes/danmaku'
 import { Route as FeatureRouteRouteImport } from './routes/feature/route'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TauriRequiredRouteImport } from './routes/tauri-required'
 import { Route as FeatureIndexRouteImport } from './routes/feature/index'
-import { Route as FeatureAnimeRouteImport } from './routes/feature/anime'
-import { Route as FeatureBilibiliCommentsRouteImport } from './routes/feature/bilibili-comments'
-import { Route as FeatureBilibiliUploadRouteImport } from './routes/feature/bilibili-upload'
-import { Route as FeatureBobingRouteImport } from './routes/feature/bobing'
-import { Route as FeatureDanmakuRouteImport } from './routes/feature/danmaku'
-import { Route as FeatureLotteryRouteImport } from './routes/feature/lottery'
-import { Route as FeaturePredictionRouteImport } from './routes/feature/prediction'
-import { Route as FeatureRatingRouteImport } from './routes/feature/rating'
-import { Route as FeatureTierListRouteImport } from './routes/feature/tier-list'
-import { Route as FeatureWhiteboardRouteImport } from './routes/feature/whiteboard'
+import { Route as FeaturePluginRouteImport } from './routes/feature/$plugin'
+import { Route as WPluginRouteImport } from './routes/w/$plugin'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -43,11 +34,6 @@ const AboutRoute = AboutRouteImport.update({
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DanmakuRoute = DanmakuRouteImport.update({
-  id: '/danmaku',
-  path: '/danmaku',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeatureRouteRoute = FeatureRouteRouteImport.update({
@@ -80,55 +66,15 @@ const FeatureIndexRoute = FeatureIndexRouteImport.update({
   path: '/',
   getParentRoute: () => FeatureRouteRoute,
 } as any)
-const FeatureAnimeRoute = FeatureAnimeRouteImport.update({
-  id: '/anime',
-  path: '/anime',
+const FeaturePluginRoute = FeaturePluginRouteImport.update({
+  id: '/$plugin',
+  path: '/$plugin',
   getParentRoute: () => FeatureRouteRoute,
 } as any)
-const FeatureBilibiliCommentsRoute = FeatureBilibiliCommentsRouteImport.update({
-  id: '/bilibili-comments',
-  path: '/bilibili-comments',
-  getParentRoute: () => FeatureRouteRoute,
-} as any)
-const FeatureBilibiliUploadRoute = FeatureBilibiliUploadRouteImport.update({
-  id: '/bilibili-upload',
-  path: '/bilibili-upload',
-  getParentRoute: () => FeatureRouteRoute,
-} as any)
-const FeatureBobingRoute = FeatureBobingRouteImport.update({
-  id: '/bobing',
-  path: '/bobing',
-  getParentRoute: () => FeatureRouteRoute,
-} as any)
-const FeatureDanmakuRoute = FeatureDanmakuRouteImport.update({
-  id: '/danmaku',
-  path: '/danmaku',
-  getParentRoute: () => FeatureRouteRoute,
-} as any)
-const FeatureLotteryRoute = FeatureLotteryRouteImport.update({
-  id: '/lottery',
-  path: '/lottery',
-  getParentRoute: () => FeatureRouteRoute,
-} as any)
-const FeaturePredictionRoute = FeaturePredictionRouteImport.update({
-  id: '/prediction',
-  path: '/prediction',
-  getParentRoute: () => FeatureRouteRoute,
-} as any)
-const FeatureRatingRoute = FeatureRatingRouteImport.update({
-  id: '/rating',
-  path: '/rating',
-  getParentRoute: () => FeatureRouteRoute,
-} as any)
-const FeatureTierListRoute = FeatureTierListRouteImport.update({
-  id: '/tier-list',
-  path: '/tier-list',
-  getParentRoute: () => FeatureRouteRoute,
-} as any)
-const FeatureWhiteboardRoute = FeatureWhiteboardRouteImport.update({
-  id: '/whiteboard',
-  path: '/whiteboard',
-  getParentRoute: () => FeatureRouteRoute,
+const WPluginRoute = WPluginRouteImport.update({
+  id: '/w/$plugin',
+  path: '/w/$plugin',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -136,42 +82,24 @@ export interface FileRoutesByFullPath {
   '/feature': typeof FeatureRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
-  '/danmaku': typeof DanmakuRoute
   '/home': typeof HomeRoute
   '/library': typeof LibraryRoute
   '/settings': typeof SettingsRoute
   '/tauri-required': typeof TauriRequiredRoute
-  '/feature/anime': typeof FeatureAnimeRoute
-  '/feature/bilibili-comments': typeof FeatureBilibiliCommentsRoute
-  '/feature/bilibili-upload': typeof FeatureBilibiliUploadRoute
-  '/feature/bobing': typeof FeatureBobingRoute
-  '/feature/danmaku': typeof FeatureDanmakuRoute
-  '/feature/lottery': typeof FeatureLotteryRoute
-  '/feature/prediction': typeof FeaturePredictionRoute
-  '/feature/rating': typeof FeatureRatingRoute
-  '/feature/tier-list': typeof FeatureTierListRoute
-  '/feature/whiteboard': typeof FeatureWhiteboardRoute
+  '/feature/$plugin': typeof FeaturePluginRoute
+  '/w/$plugin': typeof WPluginRoute
   '/feature/': typeof FeatureIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
-  '/danmaku': typeof DanmakuRoute
   '/home': typeof HomeRoute
   '/library': typeof LibraryRoute
   '/settings': typeof SettingsRoute
   '/tauri-required': typeof TauriRequiredRoute
-  '/feature/anime': typeof FeatureAnimeRoute
-  '/feature/bilibili-comments': typeof FeatureBilibiliCommentsRoute
-  '/feature/bilibili-upload': typeof FeatureBilibiliUploadRoute
-  '/feature/bobing': typeof FeatureBobingRoute
-  '/feature/danmaku': typeof FeatureDanmakuRoute
-  '/feature/lottery': typeof FeatureLotteryRoute
-  '/feature/prediction': typeof FeaturePredictionRoute
-  '/feature/rating': typeof FeatureRatingRoute
-  '/feature/tier-list': typeof FeatureTierListRoute
-  '/feature/whiteboard': typeof FeatureWhiteboardRoute
+  '/feature/$plugin': typeof FeaturePluginRoute
+  '/w/$plugin': typeof WPluginRoute
   '/feature': typeof FeatureIndexRoute
 }
 export interface FileRoutesById {
@@ -180,21 +108,12 @@ export interface FileRoutesById {
   '/feature': typeof FeatureRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
-  '/danmaku': typeof DanmakuRoute
   '/home': typeof HomeRoute
   '/library': typeof LibraryRoute
   '/settings': typeof SettingsRoute
   '/tauri-required': typeof TauriRequiredRoute
-  '/feature/anime': typeof FeatureAnimeRoute
-  '/feature/bilibili-comments': typeof FeatureBilibiliCommentsRoute
-  '/feature/bilibili-upload': typeof FeatureBilibiliUploadRoute
-  '/feature/bobing': typeof FeatureBobingRoute
-  '/feature/danmaku': typeof FeatureDanmakuRoute
-  '/feature/lottery': typeof FeatureLotteryRoute
-  '/feature/prediction': typeof FeaturePredictionRoute
-  '/feature/rating': typeof FeatureRatingRoute
-  '/feature/tier-list': typeof FeatureTierListRoute
-  '/feature/whiteboard': typeof FeatureWhiteboardRoute
+  '/feature/$plugin': typeof FeaturePluginRoute
+  '/w/$plugin': typeof WPluginRoute
   '/feature/': typeof FeatureIndexRoute
 }
 export interface FileRouteTypes {
@@ -204,42 +123,24 @@ export interface FileRouteTypes {
     | '/feature'
     | '/about'
     | '/account'
-    | '/danmaku'
     | '/home'
     | '/library'
     | '/settings'
     | '/tauri-required'
-    | '/feature/anime'
-    | '/feature/bilibili-comments'
-    | '/feature/bilibili-upload'
-    | '/feature/bobing'
-    | '/feature/danmaku'
-    | '/feature/lottery'
-    | '/feature/prediction'
-    | '/feature/rating'
-    | '/feature/tier-list'
-    | '/feature/whiteboard'
+    | '/feature/$plugin'
+    | '/w/$plugin'
     | '/feature/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/account'
-    | '/danmaku'
     | '/home'
     | '/library'
     | '/settings'
     | '/tauri-required'
-    | '/feature/anime'
-    | '/feature/bilibili-comments'
-    | '/feature/bilibili-upload'
-    | '/feature/bobing'
-    | '/feature/danmaku'
-    | '/feature/lottery'
-    | '/feature/prediction'
-    | '/feature/rating'
-    | '/feature/tier-list'
-    | '/feature/whiteboard'
+    | '/feature/$plugin'
+    | '/w/$plugin'
     | '/feature'
   id:
     | '__root__'
@@ -247,21 +148,12 @@ export interface FileRouteTypes {
     | '/feature'
     | '/about'
     | '/account'
-    | '/danmaku'
     | '/home'
     | '/library'
     | '/settings'
     | '/tauri-required'
-    | '/feature/anime'
-    | '/feature/bilibili-comments'
-    | '/feature/bilibili-upload'
-    | '/feature/bobing'
-    | '/feature/danmaku'
-    | '/feature/lottery'
-    | '/feature/prediction'
-    | '/feature/rating'
-    | '/feature/tier-list'
-    | '/feature/whiteboard'
+    | '/feature/$plugin'
+    | '/w/$plugin'
     | '/feature/'
   fileRoutesById: FileRoutesById
 }
@@ -270,11 +162,11 @@ export interface RootRouteChildren {
   FeatureRouteRoute: typeof FeatureRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
-  DanmakuRoute: typeof DanmakuRoute
   HomeRoute: typeof HomeRoute
   LibraryRoute: typeof LibraryRoute
   SettingsRoute: typeof SettingsRoute
   TauriRequiredRoute: typeof TauriRequiredRoute
+  WPluginRoute: typeof WPluginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -298,13 +190,6 @@ declare module '@tanstack/react-router' {
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/danmaku': {
-      id: '/danmaku'
-      path: '/danmaku'
-      fullPath: '/danmaku'
-      preLoaderRoute: typeof DanmakuRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/feature': {
@@ -349,104 +234,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeatureIndexRouteImport
       parentRoute: typeof FeatureRouteRoute
     }
-    '/feature/anime': {
-      id: '/feature/anime'
-      path: '/anime'
-      fullPath: '/feature/anime'
-      preLoaderRoute: typeof FeatureAnimeRouteImport
+    '/feature/$plugin': {
+      id: '/feature/$plugin'
+      path: '/$plugin'
+      fullPath: '/feature/$plugin'
+      preLoaderRoute: typeof FeaturePluginRouteImport
       parentRoute: typeof FeatureRouteRoute
     }
-    '/feature/bilibili-comments': {
-      id: '/feature/bilibili-comments'
-      path: '/bilibili-comments'
-      fullPath: '/feature/bilibili-comments'
-      preLoaderRoute: typeof FeatureBilibiliCommentsRouteImport
-      parentRoute: typeof FeatureRouteRoute
-    }
-    '/feature/bilibili-upload': {
-      id: '/feature/bilibili-upload'
-      path: '/bilibili-upload'
-      fullPath: '/feature/bilibili-upload'
-      preLoaderRoute: typeof FeatureBilibiliUploadRouteImport
-      parentRoute: typeof FeatureRouteRoute
-    }
-    '/feature/bobing': {
-      id: '/feature/bobing'
-      path: '/bobing'
-      fullPath: '/feature/bobing'
-      preLoaderRoute: typeof FeatureBobingRouteImport
-      parentRoute: typeof FeatureRouteRoute
-    }
-    '/feature/danmaku': {
-      id: '/feature/danmaku'
-      path: '/danmaku'
-      fullPath: '/feature/danmaku'
-      preLoaderRoute: typeof FeatureDanmakuRouteImport
-      parentRoute: typeof FeatureRouteRoute
-    }
-    '/feature/lottery': {
-      id: '/feature/lottery'
-      path: '/lottery'
-      fullPath: '/feature/lottery'
-      preLoaderRoute: typeof FeatureLotteryRouteImport
-      parentRoute: typeof FeatureRouteRoute
-    }
-    '/feature/prediction': {
-      id: '/feature/prediction'
-      path: '/prediction'
-      fullPath: '/feature/prediction'
-      preLoaderRoute: typeof FeaturePredictionRouteImport
-      parentRoute: typeof FeatureRouteRoute
-    }
-    '/feature/rating': {
-      id: '/feature/rating'
-      path: '/rating'
-      fullPath: '/feature/rating'
-      preLoaderRoute: typeof FeatureRatingRouteImport
-      parentRoute: typeof FeatureRouteRoute
-    }
-    '/feature/tier-list': {
-      id: '/feature/tier-list'
-      path: '/tier-list'
-      fullPath: '/feature/tier-list'
-      preLoaderRoute: typeof FeatureTierListRouteImport
-      parentRoute: typeof FeatureRouteRoute
-    }
-    '/feature/whiteboard': {
-      id: '/feature/whiteboard'
-      path: '/whiteboard'
-      fullPath: '/feature/whiteboard'
-      preLoaderRoute: typeof FeatureWhiteboardRouteImport
-      parentRoute: typeof FeatureRouteRoute
+    '/w/$plugin': {
+      id: '/w/$plugin'
+      path: '/w/$plugin'
+      fullPath: '/w/$plugin'
+      preLoaderRoute: typeof WPluginRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
 interface FeatureRouteRouteChildren {
-  FeatureAnimeRoute: typeof FeatureAnimeRoute
-  FeatureBilibiliCommentsRoute: typeof FeatureBilibiliCommentsRoute
-  FeatureBilibiliUploadRoute: typeof FeatureBilibiliUploadRoute
-  FeatureBobingRoute: typeof FeatureBobingRoute
-  FeatureDanmakuRoute: typeof FeatureDanmakuRoute
-  FeatureLotteryRoute: typeof FeatureLotteryRoute
-  FeaturePredictionRoute: typeof FeaturePredictionRoute
-  FeatureRatingRoute: typeof FeatureRatingRoute
-  FeatureTierListRoute: typeof FeatureTierListRoute
-  FeatureWhiteboardRoute: typeof FeatureWhiteboardRoute
+  FeaturePluginRoute: typeof FeaturePluginRoute
   FeatureIndexRoute: typeof FeatureIndexRoute
 }
 
 const FeatureRouteRouteChildren: FeatureRouteRouteChildren = {
-  FeatureAnimeRoute: FeatureAnimeRoute,
-  FeatureBilibiliCommentsRoute: FeatureBilibiliCommentsRoute,
-  FeatureBilibiliUploadRoute: FeatureBilibiliUploadRoute,
-  FeatureBobingRoute: FeatureBobingRoute,
-  FeatureDanmakuRoute: FeatureDanmakuRoute,
-  FeatureLotteryRoute: FeatureLotteryRoute,
-  FeaturePredictionRoute: FeaturePredictionRoute,
-  FeatureRatingRoute: FeatureRatingRoute,
-  FeatureTierListRoute: FeatureTierListRoute,
-  FeatureWhiteboardRoute: FeatureWhiteboardRoute,
+  FeaturePluginRoute: FeaturePluginRoute,
   FeatureIndexRoute: FeatureIndexRoute,
 }
 
@@ -459,11 +270,11 @@ const rootRouteChildren: RootRouteChildren = {
   FeatureRouteRoute: FeatureRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
-  DanmakuRoute: DanmakuRoute,
   HomeRoute: HomeRoute,
   LibraryRoute: LibraryRoute,
   SettingsRoute: SettingsRoute,
   TauriRequiredRoute: TauriRequiredRoute,
+  WPluginRoute: WPluginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

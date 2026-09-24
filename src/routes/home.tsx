@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Icon } from "@iconify/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import FeatureCard from "@components/home/FeatureCard";
 import { CardGrid, PageShell } from "@components/home/PageShell";
+import { featureRegistry } from "../core/registry";
+import { pluginRuntime } from "../core/runtime";
 
 export const Route = createFileRoute("/home")({
   component: HomeRoute,
@@ -10,113 +12,31 @@ export const Route = createFileRoute("/home")({
 
 type FeatureCategory = "video" | "fun";
 
-type FeatureEntry = {
+type HomeEntry = {
   key: string;
   title: string;
   emoji: string;
   description?: string;
   /** 所属功能分类 */
   category: FeatureCategory;
-  /** 目标路由；缺省时渲染为“敬请期待”占位卡片。新增功能页面后把路由字面量加进联合类型 */
-  to?:
-    | "/feature/lottery"
-    | "/feature/tier-list"
-    | "/feature/bobing"
-    | "/feature/prediction"
-    | "/feature/rating"
-    | "/feature/bilibili-comments"
-    | "/feature/bilibili-upload"
-    | "/feature/danmaku"
-    | "/feature/whiteboard";
+  /** plugin：经通用路由 /feature/$plugin；placeholder：「敬请期待」占位卡 */
+  source: "plugin" | "placeholder";
+};
+
+/** 「敬请期待」占位卡（保留在宿主） */
+const COMING_SOON: HomeEntry = {
+  key: "coming-soon",
+  title: "敬请期待",
+  emoji: "✦",
+  description: "更多功能陆续上线",
+  category: "fun",
+  source: "placeholder",
 };
 
 /** 主页功能分类标签：新增分类时在这里加一项 */
 const CATEGORY_TABS: { key: FeatureCategory; label: string }[] = [
   { key: "video", label: "视频制作" },
   { key: "fun", label: "娱乐功能" },
-];
-
-/** 主页功能入口列表：新增功能时在这里加一项 */
-const FEATURE_LIST: FeatureEntry[] = [
-  {
-    key: "lottery",
-    title: "抽奖",
-    emoji: "🎁",
-    description: "幸运转盘",
-    category: "fun",
-    to: "/feature/lottery",
-  },
-  {
-    key: "tier-list",
-    title: "夯到拉",
-    emoji: "🏆",
-    description: "图片排名表",
-    category: "video",
-    to: "/feature/tier-list",
-  },
-  {
-    key: "prediction",
-    title: "赛事预测",
-    emoji: "🏅",
-    description: "晋级节点预测图",
-    category: "video",
-    to: "/feature/prediction",
-  },
-  {
-    key: "rating",
-    title: "评分",
-    emoji: "⭐",
-    description: "批量打 1-10 分",
-    category: "video",
-    to: "/feature/rating",
-  },
-  {
-    key: "bilibili-comments",
-    title: "B站评论区",
-    emoji: "💬",
-    description: "查看并筛选投稿评论",
-    category: "video",
-    to: "/feature/bilibili-comments",
-  },
-  {
-    key: "bilibili-upload",
-    title: "B站投稿",
-    emoji: "📺",
-    description: "上传视频一键投稿",
-    category: "video",
-    to: "/feature/bilibili-upload",
-  },
-  {
-    key: "danmaku",
-    title: "弹幕直播姬",
-    emoji: "🎀",
-    description: "连接直播间实时弹幕",
-    category: "video",
-    to: "/feature/danmaku",
-  },
-  {
-    key: "whiteboard",
-    title: "白板",
-    emoji: "🖼️",
-    description: "背景图上自由摆放贴图",
-    category: "video",
-    to: "/feature/whiteboard",
-  },
-  {
-    key: "bobing",
-    title: "博饼",
-    emoji: "🎲",
-    description: "掷骰夺状元",
-    category: "fun",
-    to: "/feature/bobing",
-  },
-  {
-    key: "coming-soon",
-    title: "敬请期待",
-    emoji: "✦",
-    description: "更多功能陆续上线",
-    category: "fun",
-  },
 ];
 
 /** 上次选中的分类：主页路由卸载后仍保留，从功能页返回时恢复 */
@@ -126,14 +46,30 @@ function HomeRoute() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<FeatureCategory>(lastCategory);
   const navigate = useNavigate();
+  // 订阅插件注册表：插件异步加载完成后卡片自动出现
+  useSyncExternalStore(featureRegistry.subscribe, featureRegistry.getVersion);
+  useSyncExternalStore(pluginRuntime.subscribe, pluginRuntime.getState);
 
   const selectCategory = (key: FeatureCategory) => {
     lastCategory = key;
     setCategory(key);
   };
 
+  // 已插件化功能（注册表）+ 敬请期待占位
+  const entries: HomeEntry[] = [
+    ...featureRegistry.list("home").map((entry): HomeEntry => ({
+      key: entry.manifest.id,
+      title: entry.manifest.title,
+      emoji: entry.manifest.emoji || "🧩",
+      description: entry.manifest.description || undefined,
+      category: entry.manifest.category === "video" ? "video" : "fun",
+      source: "plugin",
+    })),
+    COMING_SOON,
+  ];
+
   const keyword = query.trim();
-  const visibleList = FEATURE_LIST.filter(
+  const visibleList = entries.filter(
     (entry) =>
       entry.category === category &&
       (keyword === "" || entry.title.includes(keyword)),
@@ -169,14 +105,22 @@ function HomeRoute() {
 
       {/* 功能卡片网格：auto-fill 自适应列数（共享 CardGrid） */}
       <CardGrid label="功能列表">
-        {visibleList.map(({ key, title, emoji, description, to }) => (
-          <li key={key}>
+        {visibleList.map((entry) => (
+          <li key={entry.key}>
             <FeatureCard
-              title={title}
-              emoji={emoji}
-              description={description}
-              placeholder={!to}
-              onPress={to ? () => navigate({ to }) : undefined}
+              title={entry.title}
+              emoji={entry.emoji}
+              description={entry.description}
+              placeholder={entry.source === "placeholder"}
+              onPress={
+                entry.source === "plugin"
+                  ? () =>
+                      navigate({
+                        to: "/feature/$plugin",
+                        params: { plugin: entry.key },
+                      })
+                  : undefined
+              }
             />
           </li>
         ))}

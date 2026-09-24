@@ -1,0 +1,13 @@
+{
+  "id": "bilibili-upload",
+  "title": "B站投稿",
+  "emoji": "📺",
+  "description": "上传视频一键投稿",
+  "category": "video",
+  "abi": 1,
+  "requires": ["account"],
+  "entry": {
+    "backend": "backend.dll",
+    "frontend": "frontend/index.js"
+  }
+}

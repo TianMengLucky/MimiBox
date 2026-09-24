@@ -1,0 +1,13 @@
+{
+  "id": "anime",
+  "title": "番剧",
+  "emoji": "📺",
+  "description": "每日放送时间表",
+  "category": "video",
+  "abi": 1,
+  "requires": [],
+  "entry": {
+    "backend": "backend.dll",
+    "frontend": "frontend/index.js"
+  }
+}

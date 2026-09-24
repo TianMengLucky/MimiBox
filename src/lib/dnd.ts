@@ -32,14 +32,3 @@ export function readDragJson<T>(
     return null;
   }
 }
-
-/** dragover 时判断是否携带着系统文件（如从资源管理器拖入的图片） */
-export function hasFiles(event: DragEvent): boolean {
-  return Array.from(event.dataTransfer.types).includes("Files");
-}
-
-/** 取出拖入事件里的第一个图片文件；没有则返回 null */
-export function firstImageFile(event: DragEvent): File | null {
-  const file = event.dataTransfer.files[0];
-  return file && file.type.startsWith("image/") ? file : null;
-}

@@ -1,10 +1,12 @@
-<!-- 美美工具箱 README — 粉色治愈系主题（横幅为图片：GitHub 不支持在 Markdown/HTML 中使用内联 CSS 上色） -->
+<!-- 美美工具箱 X README — 粉色治愈系主题（横幅为图片：GitHub 不支持在 Markdown/HTML 中使用内联 CSS 上色） -->
 
 <p align="center">
   <img src="./docs/readme-header.png" alt="美美工具箱 — 粉色治愈系桌面工具箱横幅" width="1000" />
 </p>
 
 > 💡 「美美」是《与你相恋到生命尽头》中一名粉色可爱小女孩。
+>
+> 🧩 本分支（`plugin-architecture`）是应用的**插件化架构版本**：应用更名为 **MimiBox-X**，全部功能拆分为独立插件，从 `Plugins/` 目录运行时动态加载。
 
 ---
 
@@ -19,6 +21,11 @@
         <p style="margin: 4px 0 0; color: #9b8a91; font-size: 0.85rem;">温暖柔和的粉色主题<br />精致毛玻璃效果</p>
       </td>
       <td align="center" width="25%">
+        <div style="font-size: 2rem; margin-bottom: 6px;">🧩</div>
+        <strong style="color: #66535a;">插件化架构</strong>
+        <p style="margin: 4px 0 0; color: #9b8a91; font-size: 0.85rem;">宿主内核 + 独立插件<br />功能即插即用，界面数据驱动</p>
+      </td>
+      <td align="center" width="25%">
         <div style="font-size: 2rem; margin-bottom: 6px;">🖥️</div>
         <strong style="color: #66535a;">跨平台桌面应用</strong>
         <p style="margin: 4px 0 0; color: #9b8a91; font-size: 0.85rem;">基于 Tauri 2<br />支持 Windows / macOS / Linux</p>
@@ -27,11 +34,6 @@
         <div style="font-size: 2rem; margin-bottom: 6px;">⚡</div>
         <strong style="color: #66535a;">轻量高性能</strong>
         <p style="margin: 4px 0 0; color: #9b8a91; font-size: 0.85rem;">Rust 后端驱动<br />体积极小，启动飞快</p>
-      </td>
-      <td align="center" width="25%">
-        <div style="font-size: 2rem; margin-bottom: 6px;">🧩</div>
-        <strong style="color: #66535a;">模块化设计</strong>
-        <p style="margin: 4px 0 0; color: #9b8a91; font-size: 0.85rem;">基于文件路由<br />易于扩展新功能</p>
       </td>
       <td align="center" width="25%">
         <div style="font-size: 2rem; margin-bottom: 6px;">🔐</div>
@@ -44,17 +46,55 @@
 
 ---
 
-## 🎮 功能一览
+## 🧩 插件一览
 
-| 功能 | 说明 |
-| :--- | :--- |
-| 🎁 抽奖 | 自定义奖品（含图片上传、文件名导入）、幸运转盘、抽奖历史 |
-| 🏆 夯到拉 | 图片拖拽排名表（Tier List），支持导出成图分享 |
-| 🏅 赛事预测 | 电竞赛程晋级节点图，选项拖拽编排、比分编辑与多方案保存 |
-| 🎲 博饼 | 中秋传统掷骰游戏，骰子动画与掷骰历史 |
-| 📺 番剧 | Bangumi 每日放送时间表，按星期浏览、评分速览与条目页跳转 |
-| 📚 资料库 | 番剧时间表已上线，更多内容规划中 |
-| ⬆️ 应用内更新 | 设置页一键检查更新，新版本通过 GitHub Releases 自动分发 |
+每个功能都是一个独立插件（Rust cdylib 后端 + esbuild 前端 bundle + `plugin.json` 清单），由宿主在启动时扫描 `Plugins/` 目录动态加载：
+
+| 插件 | 说明 | 依赖 |
+| :--- | :--- | :--- |
+| 🎁 lottery · 抽奖 | 自定义奖品（含图片上传）、幸运转盘、老虎机与抽奖历史 | — |
+| 🏆 tier-list · 夯到拉 | 图片拖拽排名表（Tier List），支持导出成图分享 | — |
+| 🏅 prediction · 赛事预测 | 电竞赛程晋级节点图，选项拖拽编排、比分编辑与多方案保存 | — |
+| ⭐ rating · 评分 | 批量导入选项打 1-10 分，支持方案保存与 `.miz` 导入导出 | — |
+| 🎲 bobing · 博饼 | 中秋传统掷骰游戏，骰子动画、状元彩头判定与掷骰历史 | — |
+| 🖼️ whiteboard · 白板 | 背景图上自由摆放、拖动、缩放贴图 | — |
+| 💬 bilibili-comments · B站评论区 | 查看自己投稿的评论，灌水识别、标记筛选、本地备注与回复 | account |
+| 📺 bilibili-upload · B站投稿 | 视频分片上传、封面上传与一键投稿，实时进度 | account |
+| 🎀 danmaku · 弹幕直播姬 | 连接直播间实时弹幕，独立悬浮窗口展示 | account |
+| 📺 anime · 番剧 | Bangumi 每日放送时间表，注册到资料库 | — |
+
+内置插件随宿主直接加载（不经过 dll）：**account**（Bilibili/抖音多账号管理，向其他插件提供账号凭据服务）、**scheme-io**（`.miz` 方案包导入导出，跨插件共用）。
+
+除随应用分发的插件外，还可以在**设置 → 插件**中把第三方插件导入应用（见[安装第三方插件](#%EF%B8%8F-安装第三方插件)）。
+
+---
+
+## 🏗️ 架构
+
+应用拆分为「宿主内核 + 插件」：
+
+```
+┌─ Rust 宿主（src-tauri）──────────────────────┐
+│ Tauri Builder + 系统托盘 + 6 个官方插件        │
+│ cordis 运行时（生命周期 / 服务依赖 / 事件）      │
+│ 插件加载器：扫描 Plugins/，libloading 加载 dll  │
+│ 动态网关：plugin_invoke / plugin_list          │
+│ mbplugin:// 协议：向窗口提供插件前端 bundle      │
+│ 内置插件：account（账号服务）、scheme-io        │
+├─ Plugins/<id>/ ─────────────────────────────┤
+│ plugin.json  backend.dll  frontend/index.js   │
+└──────────────────────────────────────────────┘
+┌─ 前端宿主（src）─────────────────────────────┐
+│ 功能注册表 → home/library 卡片数据驱动渲染       │
+│ 通用路由 /feature/$plugin、/w/$plugin          │
+│ 共享模块表：插件与宿主共享同一 React 实例        │
+└──────────────────────────────────────────────┘
+```
+
+- **宿主只保留 4 个静态命令**（首启标记、欢迎已读、插件网关、插件清单），其余全部命令经 `plugin_invoke(插件, 命令, 参数)` 动态分发。
+- 插件前端通过 esbuild 打包为 CJS 工厂注入运行，React / HeroUI 等依赖由宿主共享模块表提供，**杜绝双 React**；lucky-canvas、xyflow 等单插件依赖打包进插件自身。
+- 插件清单 `requires: ["account"]` 映射为 cordis 服务依赖：账号服务就绪前，B 站内容类插件自动等待（Pending），就绪后自动收敛为可用。
+- 插件数据沿用应用数据目录下的同名 JSON 文件（`lottery.json`、`accounts.json` 等），升级零数据迁移。
 
 ---
 
@@ -63,12 +103,15 @@
 | 层级 | 技术 |
 | :--- | :--- |
 | 前端框架 | React 19 + TypeScript |
-| 构建工具 | Vite |
+| 构建工具 | Vite（宿主）/ esbuild（插件 bundle） |
 | UI 组件库 | HeroUI React v3 |
 | 样式方案 | Tailwind CSS v4 |
 | 路由 | TanStack React Router |
+| 动效 | motion（framer-motion 继任者） |
+| 前端插件运行时 | @cordisjs/core |
 | 桌面框架 | Tauri 2 |
 | 后端语言 | Rust |
+| 插件运行时 | cordis-rs + libloading（C ABI 动态加载） |
 | 包管理器 | pnpm |
 
 ---
@@ -77,63 +120,44 @@
 
 ```
 MimiBox/
-├── src/                     # 前端源代码
-│   ├── assets/              # 静态资源（图标、背景图）
-│   ├── components/          # React 组件
-│   │   ├── bobing/          # 博饼骰子、规则与历史
-│   │   ├── home/            # 主页功能卡片
-│   │   ├── lottery/         # 抽奖奖品编辑与历史
-│   │   ├── prediction/      # 赛事预测节点图、拖拽与方案存储
-│   │   ├── bangumi/         # Bangumi 每日放送类型
-│   │   ├── settings/        # 设置页应用更新
-│   │   ├── tierlist/        # 夯到拉拖拽排名与导出
-│   │   ├── screen/          # 欢迎页、闲置屏保与空状态
-│   │   ├── CornerDock.tsx   # 左下角悬浮操作坞
-│   │   ├── ErrorFallback.tsx # 错误降级界面
-│   │   ├── FileDropZone.tsx # 通用文件拖入区域
-│   │   ├── TitleBar.tsx     # 无边框窗口标题栏
-│   │   └── image.ts         # 图片处理工具
-│   ├── routes/              # 页面路由（文件路由）
-│   │   ├── __root.tsx       # 根布局
-│   │   ├── index.tsx        # 欢迎入口
-│   │   ├── home.tsx         # 功能分类与入口主页
-│   │   ├── account.tsx      # 多平台账号登录与管理
-│   │   ├── feature/         # 功能内容面板及子路由
-│   │   │   ├── lottery.tsx  # 抽奖转盘
-│   │   │   ├── tier-list.tsx # 夯到拉图片排名
-│   │   │   ├── prediction.tsx # 赛事晋级预测图
-│   │   │   ├── anime.tsx    # 番剧每日放送时间表
-│   │   │   └── bobing.tsx   # 博饼掷骰
-│   │   ├── library.tsx      # 资料库（规划中）
-│   │   ├── settings.tsx     # 设置页
-│   │   └── about.tsx        # 关于页
+├── crates/
+│   └── mimibox-plugin/      # 插件 SDK（宿主与插件共用：C ABI + 命令注册 + JSON 存储）
+├── Plugins/                 # 插件源码与构建产物（每个插件一个目录）
+│   └── <id>/
+│       ├── plugin.json      # 插件清单（id/标题/图标/依赖/入口）
+│       ├── backend/         # Rust cdylib 后端（workspace 成员）
+│       │   └── src/lib.rs   # 实现 PluginBackend，export_plugin! 导出
+│       ├── frontend/        # TS/TSX 前端源码（defineMbPlugin 注册功能）
+│       ├── backend.dll      # 构建产物（git 忽略）
+│       └── frontend/index.js # 构建产物（git 忽略）
+├── src/                     # 前端宿主（外壳 + 运行时 + 核心页）
+│   ├── core/                # 插件运行时：共享模块表、功能注册表、defineMbPlugin、加载器
+│   ├── components/          # 宿主组件（标题栏、账号页、主页卡片、设置等）
+│   ├── routes/              # 页面路由（home/account/settings + /feature/$plugin、/w/$plugin）
+│   ├── lib/                 # tauriInvoke/pluginInvoke 网关入口、格式化与拖拽工具
 │   ├── icons.ts             # Iconify 图标离线子集
-│   ├── main.tsx             # 应用入口
-│   ├── router.tsx           # 路由配置
-│   ├── types/               # 前端类型声明
-│   └── style/               # 页面与组件样式
-├── src-tauri/               # Tauri Rust 后端
+│   └── style/               # 页面样式 + 插件外接样式引入
+├── src-tauri/               # Tauri Rust 宿主
 │   ├── src/
-│   │   ├── account/         # 多账号：Bilibili/抖音登录、凭据存储与头像代理
+│   │   ├── runtime/         # cordis 运行时：命令注册表服务、宿主能力、FFI vtable
+│   │   ├── builtin/         # 内置插件：core（基础设施）、account、scheme-io
+│   │   ├── loader.rs        # 磁盘插件加载器（清单解析 + ABI 校验 + dll 加载）
+│   │   ├── gateway.rs       # 动态网关命令 plugin_invoke / plugin_list
+│   │   ├── account/         # 账号模块（Bilibili/抖音登录，被内置 account 插件复用）
 │   │   ├── douyin_web/      # 抖音 web 扫码登录（协议参数 + 短信 MFA）
 │   │   ├── douyin_signer/   # 抖音 a_bogus 签名 + DTrait 指纹（QuickJS）
-│   │   ├── lottery/         # 抽奖奖品存储
-│   │   ├── tierlist/        # 夯到拉数据存储
-│   │   ├── bobing/          # 博饼数据存储
-│   │   ├── prediction/      # 赛事预测方案存储
-│   │   ├── bangumi/         # Bangumi 每日放送抓取（缓存 30 分钟）
-│   │   ├── lib.rs           # Tauri 应用初始化与命令注册
+│   │   ├── scheme_io.rs     # .miz 方案包读写（内置 scheme-io 插件复用）
+│   │   ├── lib.rs           # Tauri 初始化、mbplugin:// 协议、插件运行时装配
 │   │   └── main.rs          # 桌面应用入口
-│   ├── resources/           # 内嵌资源（抖音 JS SDK、协议参数）
-│   ├── capabilities/        # Tauri 权限声明
+│   ├── capabilities/        # Tauri 权限声明（含弹幕悬浮窗）
 │   ├── icons/               # 应用图标（多平台）
-│   ├── Cargo.toml           # Rust 依赖配置
-│   └── tauri.conf.json      # Tauri 配置
-├── .agents/skills/          # 项目本地 Agent 技能（设计规范、最佳实践等）
-├── scripts/                 # 构建辅助脚本（图标离线子集生成）
-├── package.json             # 前端依赖
-├── tsconfig.json            # TypeScript 配置
-└── vite.config.ts           # Vite 配置
+│   └── tauri.conf.json      # Tauri 配置（resources 打包 Plugins/）
+├── scripts/
+│   ├── build-plugins.mjs    # 插件构建编排（cargo cdylib + esbuild → Plugins/）
+│   ├── watch-plugins.mjs    # 插件前端增量监听
+│   └── generate-icons.mjs   # Iconify 图标离线子集生成
+├── AGENTS.md                # 仓库 Agent 指令（含插件开发约定）
+└── CHANGELOG.md             # 变更日志
 ```
 
 ---
@@ -144,7 +168,7 @@ MimiBox/
 
 - [Node.js](https://nodejs.org/) >= 20.19（推荐使用 22.x LTS，Vite 8 要求）
 - [pnpm](https://pnpm.io/) >= 9（项目锁定版本为 12，见 `package.json` 的 `packageManager`）
-- [Rust](https://www.rust-lang.org/tools/install)（Tauri 编译依赖）
+- [Rust](https://www.rust-lang.org/tools/install)（Tauri 与插件编译依赖）
 - 对应平台的编译工具链（Windows 需要 Visual Studio Build Tools）
 
 ### 安装依赖
@@ -156,32 +180,43 @@ pnpm install
 ### 开发模式
 
 ```bash
+# 首次或插件后端有改动后，先构建插件（dll + 前端 bundle）
+pnpm build:plugins
+
+# 启动完整应用
 pnpm tauri dev
 ```
 
-首次运行会下载 Rust 依赖并编译，需要耐心等待。后续启动会快很多。
+插件前端改动时，另开一个终端运行 `pnpm plugins:watch`，保存后刷新应用窗口即可生效；**Rust dll 改动需要重启应用**（Windows 会锁定已加载的 dll）。
 
 ### 构建生产版本
 
 ```bash
+# 完整构建（tsc + vite + 插件构建），通常由 tauri beforeBuildCommand 自动执行
+pnpm build
+
+# 构建桌面应用安装包（正式发布，需要 TAURI_SIGNING_PRIVATE_KEY，仅 CI 提供）
 pnpm tauri build
+
+# 本地构建完整安装包（关闭更新器签名，无需私钥）
+pnpm tauri:local
 ```
 
-构建产物会输出到 `src-tauri/target/release/` 目录。
+安装包会把 `Plugins/` 目录一并打包（tauri.conf.json 的 `resources`），发布态从资源目录加载插件。
 
 ### 仅前端开发
 
-如果只需要调试前端界面，可以运行：
+如果只需要调试宿主界面，可以运行：
 
 ```bash
 pnpm dev
 ```
 
-然后在浏览器中访问 `http://localhost:1420`。
+然后在浏览器中访问 `http://localhost:1420`（插件仅在 Tauri 环境加载）。
 
 ### 账号登录说明
 
-账号页支持 Bilibili 与抖音两个平台。登录成功后，应用会将多账号所需的 Cookie 凭据保存在 Tauri 应用数据目录的 `accounts.json`，并在下次启动时恢复当前账号。每次进入账号页，Rust 后端都会重新检查各账号的登录状态；头像状态点分别表示凭证有效、已过期或网络异常。头像由后端代理为内嵌图片，避免图片 CDN 的防盗链影响显示。
+账号页支持 Bilibili 与抖音两个平台。登录成功后，应用会将多账号所需的 Cookie 凭据保存在 Tauri 应用数据目录的 `accounts.json`，并在下次启动时恢复当前账号。每次进入账号页，后端都会重新检查各账号的登录状态；头像状态点分别表示凭证有效、已过期或网络异常。头像由后端代理为内嵌图片，避免图片 CDN 的防盗链影响显示。
 
 右键点击当前账号头像可以退出登录，或在独立的网页窗口中打开当前账号。网页登录凭证由 Rust 直接写入隔离的 WebView Cookie Store，不会拼接到 URL，也不会返回给前端脚本。不同账号使用独立的 WebView 配置目录，避免登录状态互相覆盖。
 
@@ -195,6 +230,35 @@ pnpm dev
 
 应用在长时间无操作后会进入日期与时间屏保。点击任意位置或按下任意按键即可返回，不影响当前页面状态。
 
+### 安装第三方插件
+
+在 **设置 → 插件** 中可以把第三方开发的插件导入应用，两种方式：
+
+- **从文件夹导入**：选择一个内含 `plugin.json` 与后端动态库的插件目录（如插件开发仓库的构建产物目录）；
+- **从 `.mip` 插件包导入**：选择 `.mip` 文件（zip 格式的插件分发包，包内根目录或唯一子目录下有 `plugin.json`、`backend.dll` 与可选的 `frontend/index.js`）。
+
+导入时宿主会校验插件清单与 ABI 版本（`abi: 1`），通过后复制到插件存放位置（默认为应用数据目录下的 `plugins/`，可在设置中自定义，见下）。**导入或删除后需要重启应用生效**，设置页提供一键重启按钮。
+
+说明：
+
+- 同一 id 重复导入视为升级，覆盖旧版本；若该插件正在运行（dll 被占用），会提示先重启再导入；
+- 用户导入的插件优先于随应用分发的插件加载——可以用来升级官方插件；
+- 用户导入的插件可在设置中删除；随应用分发的插件不可删除；
+- **插件存放位置可自定义**：设置页「插件存放位置」可改为任意文件夹（切换时已导入的插件自动迁移到新位置），也可一键恢复默认；
+- 插件是信任代码，应用不做沙箱隔离，请只导入可信来源的插件。
+
+---
+
+## 🧑‍💻 插件开发
+
+新增一个插件只需要三步（完整约定见 [AGENTS.md](./AGENTS.md) 的「Plugin architecture」章节）：
+
+1. 创建 `Plugins/<id>/`：`plugin.json` 清单（`requires` 声明依赖如 `["account"]`）、`backend/`（实现 `mimibox_plugin::PluginBackend`，用 `Registry::handle` 注册命令，`export_plugin!` 导出）、`frontend/`（`export default defineMbPlugin({ apply(ctx) { ctx.registerFeature({ component }) } })`）。
+2. 在根 `Cargo.toml` 的 workspace members 与 `scripts/plugin-config.mjs` 的 `PLUGINS` 中登记。
+3. 运行 `pnpm build:plugins` 后启动应用，主页/资料库卡片与 `/feature/<id>` 页面会自动出现。
+
+把插件目录打包为 `.mip` 分发包：将 `plugin.json` + `backend.dll` + `frontend/index.js`（保持相对结构，可带一层根目录）用 zip 压缩并改后缀为 `.mip`，即可通过设置页分发给其他用户。
+
 ---
 
 ## 📜 可用脚本
@@ -202,10 +266,13 @@ pnpm dev
 | 命令 | 说明 |
 | :--- | :--- |
 | `pnpm dev` | 启动 Vite 开发服务器 |
-| `pnpm build` | 构建前端生产版本 |
+| `pnpm build` | 完整构建：tsc + vite + 插件构建 |
+| `pnpm build:plugins` | 构建全部插件（cargo cdylib + esbuild → `Plugins/`） |
+| `pnpm plugins:watch` | 监听插件前端改动并增量重打包 |
 | `pnpm preview` | 预览前端构建结果 |
 | `pnpm tauri dev` | 启动 Tauri 开发模式（含热更新） |
-| `pnpm tauri build` | 构建桌面应用安装包 |
+| `pnpm tauri build` | 构建桌面应用安装包（正式发布，需签名私钥） |
+| `pnpm tauri:local` | 本地构建完整安装包（关闭更新器签名，无需私钥） |
 | `pnpm icons` | 重新生成 Iconify 图标离线子集（新增图标后必须执行，否则线上图标加载失败） |
 
 ---
@@ -249,6 +316,7 @@ pnpm dev
 - [jumpbyte-bot](https://github.com/sisi0318/jumpbyte-bot)
 - [douyin-web-qr-login](https://github.com/Caviar9/douyin-web-qr-login)
 - [bpi-rs](https://github.com/Yuelioi/bpi-rs)
+- [cordis](https://github.com/cordiverse/cordis) / [cordis-rs](https://github.com/dshbox/cordis-rs)（插件化运行时）
 
 ---
 

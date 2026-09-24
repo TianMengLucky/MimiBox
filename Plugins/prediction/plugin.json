@@ -1,0 +1,13 @@
+{
+  "id": "prediction",
+  "title": "赛事预测",
+  "emoji": "🏅",
+  "description": "晋级节点预测图",
+  "category": "video",
+  "abi": 1,
+  "requires": [],
+  "entry": {
+    "backend": "backend.dll",
+    "frontend": "frontend/index.js"
+  }
+}

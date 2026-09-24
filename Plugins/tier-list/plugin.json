@@ -1,0 +1,13 @@
+{
+  "id": "tier-list",
+  "title": "夯到拉",
+  "emoji": "🏆",
+  "description": "图片排名表",
+  "category": "video",
+  "abi": 1,
+  "requires": [],
+  "entry": {
+    "backend": "backend.dll",
+    "frontend": "frontend/index.js"
+  }
+}

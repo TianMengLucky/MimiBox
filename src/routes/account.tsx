@@ -2,7 +2,7 @@ import { Box } from "@apvee/react-layout-kit";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Tooltip } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import { tauriInvoke } from "../lib/tauriInvoke";
+import { pluginInvoke } from "../lib/tauriInvoke";
 import { createFileRoute } from "@tanstack/react-router";
 import { LoginPanel, PlatformMark } from "@components/account/login";
 import { PageLoading } from "@components/screen/PageLoading";
@@ -67,8 +67,8 @@ function AccountRoute() {
   const refresh = useCallback(() => {
     setError("");
     Promise.all([
-      tauriInvoke<AccountStatus>("account_get_status"),
-      tauriInvoke<AccountEntry[]>("account_list"),
+      pluginInvoke<AccountStatus>("account", "account_get_status"),
+      pluginInvoke<AccountEntry[]>("account", "account_list"),
     ])
       .then(([nextStatus, list]) => {
         setStatus(nextStatus);
@@ -159,7 +159,7 @@ function AccountRoute() {
                   onClick={() => {
                     if (!entry.active) {
                       runAction(() =>
-                        tauriInvoke("account_switch", { mid: entry.dedeUserId }),
+                        pluginInvoke("account", "account_switch", { mid: entry.dedeUserId }),
                       );
                     }
                   }}
@@ -239,7 +239,7 @@ function AccountRoute() {
             onClick={() => {
               setContextMenu(null);
               runAction(async () => {
-                const cookie = await tauriInvoke<string>("account_copy_cookie");
+                const cookie = await pluginInvoke<string>("account", "account_copy_cookie");
                 await navigator.clipboard.writeText(cookie);
                 setNotice("Cookie 已复制到剪贴板");
                 setTimeout(() => setNotice(""), 2500);
@@ -258,8 +258,8 @@ function AccountRoute() {
               setContextMenu(null);
               runAction(() =>
                 contextMenu.platform === "douyin"
-                  ? tauriInvoke("douyin_open_web")
-                  : tauriInvoke("account_open_web"),
+                  ? pluginInvoke("account", "douyin_open_web")
+                  : pluginInvoke("account", "account_open_web"),
               );
             }}
           >
@@ -273,7 +273,7 @@ function AccountRoute() {
             disabled={busy}
             onClick={() => {
               setContextMenu(null);
-              runAction(() => tauriInvoke("account_logout"));
+              runAction(() => pluginInvoke("account", "account_logout"));
             }}
           >
             退出登录

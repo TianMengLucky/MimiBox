@@ -1,0 +1,19 @@
+[package]
+name = "mimibox-plugin-danmaku"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "弹幕直播姬插件后端：直播间弹幕连接、协议解析与独立窗口"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+mimibox-plugin = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { version = "0.12", features = ["json", "gzip", "brotli"] }
+tokio = { version = "1", features = ["rt-multi-thread", "time", "sync", "macros"] }
+tokio-tungstenite = { version = "0.30.0", features = ["rustls-tls-webpki-roots"] }
+futures-util = { version = "0.3.34", default-features = false, features = ["sink", "std"] }
+brotli = "9.0.0"

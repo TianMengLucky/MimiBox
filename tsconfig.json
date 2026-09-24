@@ -25,9 +25,11 @@
       "@assets/*": ["./src/assets/*"],
       "@components/*": ["./src/components/*"],
       "@style/*": ["./src/style/*"],
-      "@lucky-canvas/react": ["./src/types/lucky-canvas.d.ts"]
+      "@lib/*": ["./src/lib/*"],
+      "@lucky-canvas/react": ["./src/types/lucky-canvas.d.ts"],
+      "mb-host": ["./src/core/plugin-api.ts"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "Plugins/*/frontend"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -1,0 +1,13 @@
+{
+  "id": "lottery",
+  "title": "抽奖",
+  "emoji": "🎁",
+  "description": "幸运转盘",
+  "category": "fun",
+  "abi": 1,
+  "requires": [],
+  "entry": {
+    "backend": "backend.dll",
+    "frontend": "frontend/index.js"
+  }
+}

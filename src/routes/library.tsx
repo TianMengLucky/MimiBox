@@ -1,6 +1,9 @@
+import { useSyncExternalStore } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import FeatureCard from "@components/home/FeatureCard";
 import { CardGrid, PageShell } from "@components/home/PageShell";
+import { featureRegistry } from "../core/registry";
+import { pluginRuntime } from "../core/runtime";
 
 export const Route = createFileRoute("/library")({
   component: LibraryRoute,
@@ -11,29 +14,35 @@ type LibraryEntry = {
   title: string;
   emoji: string;
   description?: string;
-  /** 目标路由；缺省时渲染为「敬请期待」占位卡片 */
-  to?: "/feature/anime";
+  /** plugin：经通用路由 /feature/$plugin；placeholder：「敬请期待」占位卡 */
+  source: "plugin" | "placeholder";
 };
 
-/** 资料库入口列表：新增内容时在这里加一项 */
-const LIBRARY_LIST: LibraryEntry[] = [
-  {
-    key: "anime",
-    title: "番剧",
-    emoji: "📺",
-    description: "每日放送时间表",
-    to: "/feature/anime",
-  },
-  {
-    key: "coming-soon",
-    title: "敬请期待",
-    emoji: "✦",
-    description: "更多内容陆续上线",
-  },
-];
+/** 「敬请期待」占位卡（保留在宿主） */
+const COMING_SOON: LibraryEntry = {
+  key: "coming-soon",
+  title: "敬请期待",
+  emoji: "✦",
+  description: "更多内容陆续上线",
+  source: "placeholder",
+};
 
 function LibraryRoute() {
   const navigate = useNavigate();
+  useSyncExternalStore(featureRegistry.subscribe, featureRegistry.getVersion);
+  useSyncExternalStore(pluginRuntime.subscribe, pluginRuntime.getState);
+
+  // 已插件化功能（注册到资料库的插件）+ 敬请期待占位
+  const entries: LibraryEntry[] = [
+    ...featureRegistry.list("library").map((entry): LibraryEntry => ({
+      key: entry.manifest.id,
+      title: entry.manifest.title,
+      emoji: entry.manifest.emoji || "🧩",
+      description: entry.manifest.description || undefined,
+      source: "plugin",
+    })),
+    COMING_SOON,
+  ];
 
   return (
     // 页面外壳与卡片网格与主页共享（PageShell/CardGrid），布局由 layout-kit 提供
@@ -46,14 +55,22 @@ function LibraryRoute() {
       </header>
 
       <CardGrid label="资料库列表">
-        {LIBRARY_LIST.map(({ key, title, emoji, description, to }) => (
-          <li key={key}>
+        {entries.map((entry) => (
+          <li key={entry.key}>
             <FeatureCard
-              title={title}
-              emoji={emoji}
-              description={description}
-              placeholder={!to}
-              onPress={to ? () => navigate({ to }) : undefined}
+              title={entry.title}
+              emoji={entry.emoji}
+              description={entry.description}
+              placeholder={entry.source === "placeholder"}
+              onPress={
+                entry.source === "plugin"
+                  ? () =>
+                      navigate({
+                        to: "/feature/$plugin",
+                        params: { plugin: entry.key },
+                      })
+                  : undefined
+              }
             />
           </li>
         ))}

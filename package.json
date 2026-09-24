@@ -1,12 +1,14 @@
 {
   "name": "mimibox",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1-x",
   "license": "GPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && pnpm build:plugins",
+    "build:plugins": "node scripts/build-plugins.mjs",
+    "plugins:watch": "node scripts/watch-plugins.mjs",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:local": "tauri build --config src-tauri/tauri.local.json",
@@ -14,6 +16,7 @@
   },
   "dependencies": {
     "@apvee/react-layout-kit": "^1.2.0",
+    "@cordisjs/core": "3.18.1",
     "@dagrejs/dagre": "^3.1.1",
     "@heroui/react": "^3.2.5",
     "@heroui/styles": "^3.2.5",
@@ -42,6 +45,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "esbuild": "^0.28.2",
     "oxc-transform-react": "^0.148.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~7.0.2",

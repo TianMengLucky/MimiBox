@@ -11,12 +11,16 @@ node_modules
 dist
 dist-ssr
 *.local
+# 本地构建配置（tauri:local 用）需提交，豁免上面的 *.local 规则
+!src-tauri/tauri.local.json
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
+desktop.ini
 *.suo
 *.ntvs*
 *.njsproj
@@ -33,3 +37,12 @@ dist-ssr
 
 # Tauri updater 签名私钥（公钥 mimibox.key.pub 已进 tauri.conf.json，可提交）
 src-tauri/keys/
+
+# Rust workspace（根 Cargo.toml）构建产物
+/target/
+
+# 插件构建产物（源码 plugin.json / backend/ / frontend/*.tsx 仍提交）
+Plugins/*/backend.dll
+Plugins/*/frontend/index.js
+# 插件导入的暂存目录（位于用户插件目录，防御性忽略）
+.import-staging-*/
