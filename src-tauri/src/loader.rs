@@ -32,7 +32,8 @@ pub struct PluginManifest {
     pub emoji: String,
     #[serde(default)]
     pub description: String,
-    /// 首页卡片分类：video（视频制作）/ fun（娱乐功能）
+    /// 首页卡片分类：插件可自定义任意 key（未登记的类别以声明值作为
+    /// 页签标签；内置 video=视频制作、fun=娱乐功能），缺省归入 fun
     #[serde(default)]
     pub category: String,
     /// 插件 ABI 版本，必须与宿主一致才会加载

@@ -33,7 +33,7 @@ pub struct PluginInfo {
     pub title: String,
     pub emoji: String,
     pub description: String,
-    /// 首页卡片分类：video（视频制作）/ fun（娱乐功能）
+    /// 首页卡片分类（插件可自定义任意 key，见 PluginManifest::category）
     pub category: String,
     /// 依赖的宿主服务（如 "account"）
     pub requires: Vec<String>,
