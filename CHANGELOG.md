@@ -5,6 +5,15 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.2.5-x] - 2026-09-25
+
+> 注：安装包/应用内版本号为 `0.2.5`（X 产品线使用纯数字版本号，与主分支的区分由产品名 MimiBox-X 与发布渠道承担）。插件分发包无变化，维持 `0.2.3`。
+
+### Added
+
+- 主页功能类别由插件自定义：`plugin.json` 的 `category` 支持任意值并动态生成页签（内置 `video`=视频制作、`fun`=娱乐功能，未登记的类别以声明值作为标签）；「敬请期待」占位卡在所有类别页显示
+- 支持导入源码插件包：包内含 `backend/Cargo.toml` 与/或 `frontend/index.tsx` 源码而缺产物时导入现场编译——前端由应用内置的 esbuild 独立二进制打包（无需 Node），后端调用本机 `cargo build --release`（需 Rust 工具链，缺失时给出明确提示）；导入过程经进度事件展示编译阶段
+
 ## [0.2.4-x] - 2026-09-25
 
 > 注：安装包/应用内版本号为 `0.2.4`（X 产品线使用纯数字版本号，与主分支的区分由产品名 MimiBox-X 与发布渠道承担）。插件分发包无变化，维持 `0.2.3`。
@@ -135,7 +144,8 @@
 - 网络层由 wreq 迁移到 reqwest
 - 许可证确定为 GPLv3，README 添加免责声明
 
-[Unreleased]: https://github.com/TianMengLucky/MimiBox/compare/v0.2.4-x...HEAD
+[Unreleased]: https://github.com/TianMengLucky/MimiBox/compare/v0.2.5-x...HEAD
+[0.2.5-x]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.5-x
 [0.2.4-x]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.4-x
 [0.2.3-x]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.3-x
 [0.2.2-x]: https://github.com/TianMengLucky/MimiBox/releases/tag/v0.2.2-x
