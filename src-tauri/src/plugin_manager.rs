@@ -16,11 +16,10 @@ use tauri::{AppHandle, Manager};
 use crate::loader::{user_plugins_dir, valid_id, PluginManifest};
 use mimibox_plugin::MB_ABI_VERSION;
 
-/// 复制插件目录时排除的分发无关文件/目录（Rust 源码、构建缓存等）
-const EXCLUDE_NAMES: &[&str] = &[
-    "backend", "target", ".git", "node_modules", "__MACOSX", ".DS_Store", "Cargo.toml",
-    "Cargo.lock",
-];
+/// 复制/解压插件包时排除的构建缓存与系统垃圾。注意：源码分发包的
+/// `backend/` 目录与 `Cargo.toml` 是包正文（现场编译用），不能排除；
+/// `backend/target` 等构建缓存由 "target" 规则覆盖。
+const EXCLUDE_NAMES: &[&str] = &["target", ".git", "node_modules", "__MACOSX", ".DS_Store"];
 
 /// mip 包内条目的公共前缀
 struct MipLayout {
@@ -190,8 +189,10 @@ pub struct ImportOutcome {
     pub installed_path: String,
 }
 
-/// 读取并校验插件目录的清单：id 合法、ABI 匹配、后端库存在
-fn read_manifest(plugin_dir: &Path) -> Result<PluginManifest, String> {
+/// 读取并校验插件目录的清单：id 合法、ABI 匹配、后端入口非空。
+/// 不检查产物文件——源码分发包导入时产物尚不存在，编译在
+/// [`crate::import_build::ensure_built`] 进行。
+fn parse_manifest(plugin_dir: &Path) -> Result<PluginManifest, String> {
     let text = fs::read_to_string(plugin_dir.join("plugin.json"))
         .map_err(|e| format!("缺少或无法读取 plugin.json: {e}"))?;
     let manifest: PluginManifest =
@@ -208,10 +209,15 @@ fn read_manifest(plugin_dir: &Path) -> Result<PluginManifest, String> {
     if manifest.entry.backend.is_empty() {
         return Err("清单缺少 entry.backend（后端动态库入口）".to_string());
     }
+    Ok(manifest)
+}
+
+/// 校验后端动态库产物已存在（编译/复制完成后调用）
+fn verify_backend(plugin_dir: &Path, manifest: &PluginManifest) -> Result<(), String> {
     if !plugin_dir.join(&manifest.entry.backend).is_file() {
         return Err(format!("后端库缺失: {}", manifest.entry.backend));
     }
-    Ok(manifest)
+    Ok(())
 }
 
 /// 目标插件目录：用户目录/<id>；已存在（升级导入）时清空旧内容。
@@ -249,19 +255,30 @@ fn copy_dir_contents(source: &Path, target: &Path) -> Result<(), String> {
     Ok(())
 }
 
-/// 从文件夹导入：校验 `<folder>/plugin.json` 与后端库后，整体复制到用户插件目录
+/// 从文件夹导入：校验 `<folder>/plugin.json` 后整体复制到用户插件目录；
+/// 含源码（backend/Cargo.toml、frontend/index.tsx）且缺产物时现场编译
 #[tauri::command]
-pub fn plugin_import_folder(app: AppHandle, path: String) -> Result<ImportOutcome, String> {
+pub async fn plugin_import_folder(app: AppHandle, path: String) -> Result<ImportOutcome, String> {
+    tauri::async_runtime::spawn_blocking(move || import_folder_impl(app, path))
+        .await
+        .map_err(|e| format!("导入任务执行失败: {e}"))?
+}
+
+fn import_folder_impl(app: AppHandle, path: String) -> Result<ImportOutcome, String> {
     let source = PathBuf::from(&path);
     if !source.is_dir() {
         return Err("插件文件夹不存在，请重新选择".to_string());
     }
-    let manifest = read_manifest(&source)?;
+    let manifest = parse_manifest(&source)?;
     let user_dir = effective_user_dir(&app)?;
     let target = prepare_target(&user_dir, &manifest.id)?;
     copy_dir_contents(&source, &target)?;
     // 复制后复核清单（复制过程中文件损坏的兜底校验）
-    read_manifest(&target)?;
+    parse_manifest(&target)?;
+    // 源码分发包现场编译缺失产物（含预构建产物的包直接跳过）
+    let build_dir = user_dir.join(format!(".mb-build-{}", std::process::id()));
+    crate::import_build::ensure_built(&app, &target, &manifest, &build_dir)?;
+    verify_backend(&target, &manifest)?;
     Ok(ImportOutcome {
         manifest,
         installed_path: target.display().to_string(),
@@ -306,9 +323,16 @@ fn detect_mip_layout<R: Read + std::io::Seek>(
     }
 }
 
-/// 从 .mip 包（zip）导入：探测布局 → 解压到暂存目录 → 校验清单 → 落位
+/// 从 .mip 包（zip）导入：探测布局 → 解压到暂存目录 → 校验清单 →
+/// 源码现场编译 → 落位
 #[tauri::command]
-pub fn plugin_import_mip(app: AppHandle, path: String) -> Result<ImportOutcome, String> {
+pub async fn plugin_import_mip(app: AppHandle, path: String) -> Result<ImportOutcome, String> {
+    tauri::async_runtime::spawn_blocking(move || import_mip_impl(app, path))
+        .await
+        .map_err(|e| format!("导入任务执行失败: {e}"))?
+}
+
+fn import_mip_impl(app: AppHandle, path: String) -> Result<ImportOutcome, String> {
     let file = fs::File::open(&path).map_err(|e| format!("无法打开插件包: {e}"))?;
     let mut zip = zip::ZipArchive::new(file)
         .map_err(|_| "不是有效的 zip 插件包".to_string())?;
@@ -359,7 +383,7 @@ pub fn plugin_import_mip(app: AppHandle, path: String) -> Result<ImportOutcome, 
                 .map_err(|e| format!("读取包内 {name} 失败: {e}"))?;
             fs::write(&dest, buffer).map_err(|e| format!("写入 {dest:?} 失败: {e}"))?;
         }
-        read_manifest(&staging)
+        parse_manifest(&staging)
     })();
 
     let manifest = match result {
@@ -369,6 +393,17 @@ pub fn plugin_import_mip(app: AppHandle, path: String) -> Result<ImportOutcome, 
             return Err(e);
         }
     };
+
+    // 源码分发包现场编译缺失产物（含预构建产物的包直接跳过）
+    let build_dir = user_dir.join(format!(".mb-build-{}", std::process::id()));
+    if let Err(e) = crate::import_build::ensure_built(&app, &staging, &manifest, &build_dir) {
+        let _ = fs::remove_dir_all(&staging);
+        return Err(e);
+    }
+    if let Err(e) = verify_backend(&staging, &manifest) {
+        let _ = fs::remove_dir_all(&staging);
+        return Err(e);
+    }
 
     // 校验通过：落位（同 id 视为升级，覆盖旧内容）
     let target = user_dir.join(&manifest.id);
@@ -443,7 +478,8 @@ fn cleanup_trash_dir(trash: &Path) {
     let _ = fs::remove_dir(trash);
 }
 
-/// 启动时清理上次删除操作留下的 `.trash-*` 隔离目录（此时 dll 尚未加载）
+/// 启动时清理上次导入/删除操作留下的暂存目录（`.trash-*` 隔离目录与
+/// `.mb-build-*` 编译缓存；此时 dll 尚未加载，可安全删除）
 pub fn cleanup_user_dir_trash(app: &AppHandle) {
     let Ok(user_dir) = effective_user_dir(app) else {
         return;
@@ -453,7 +489,7 @@ pub fn cleanup_user_dir_trash(app: &AppHandle) {
     };
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();
-        if name.starts_with(".trash-") {
+        if name.starts_with(".trash-") || name.starts_with(".mb-build-") {
             let _ = fs::remove_dir_all(entry.path());
         }
     }

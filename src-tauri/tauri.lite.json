@@ -5,7 +5,7 @@
   },
   "bundle": {
     "createUpdaterArtifacts": false,
-    "resources": ["icons/file-miz.ico", "icons/file-mip.ico"]
+    "resources": ["resources/esbuild.exe", "icons/file-miz.ico", "icons/file-mip.ico"]
   },
   "plugins": {
     "updater": {

@@ -3,6 +3,7 @@ pub mod builtin;
 pub mod douyin_signer;
 pub mod douyin_web;
 pub mod gateway;
+pub mod import_build;
 pub mod loader;
 pub mod plugin_manager;
 mod scheme_store;

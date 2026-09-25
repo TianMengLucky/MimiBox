@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { AnimatePresence, motion } from "motion/react";
+import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { tauriInvoke } from "../../lib/tauriInvoke";
@@ -41,6 +42,8 @@ export function PluginsSection() {
   const [notice, setNotice] = useState<string | null>(null);
   /** 当前 notice 是否需要重启应用才能生效（决定是否展示「立即重启」按钮） */
   const [needsRestart, setNeedsRestart] = useState(false);
+  /** 源码包导入时宿主推送的编译进度文本 */
+  const [stage, setStage] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -49,6 +52,26 @@ export function PluginsSection() {
     setNotice(text);
     setNeedsRestart(restart);
   }, []);
+
+  // 源码包导入时的现场编译可能耗时较长：展示宿主推送的进度文本
+  useEffect(() => {
+    if (!busy) {
+      setStage(null);
+      return;
+    }
+    let cancelled = false;
+    let unlisten: (() => void) | undefined;
+    listen<string>("import-progress", (event) => {
+      if (!cancelled) setStage(event.payload);
+    }).then((u) => {
+      if (cancelled) u();
+      else unlisten = u;
+    });
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [busy]);
 
   const refresh = useCallback(() => {
     tauriInvoke<MbPluginManifest[]>("plugin_list", undefined, { defaultValue: [] })
@@ -245,6 +268,11 @@ export function PluginsSection() {
         </div>
 
         {/* 导入 / 删除结果 */}
+        {busy && (
+          <p className="m-0 py-3 text-xs text-[#9b8a91]" aria-live="polite">
+            {stage ?? "正在导入…"}
+          </p>
+        )}
         <AnimatePresence initial={false} mode="wait">
           {notice && (
             <motion.div

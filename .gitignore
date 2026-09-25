@@ -47,3 +47,6 @@ Plugins/*/frontend/index.js
 Plugins/*.mip
 # 插件导入的暂存目录（位于用户插件目录，防御性忽略）
 .import-staging-*/
+
+# esbuild 随包分发资源（pnpm build 由 scripts/copy-esbuild.mjs 生成）
+src-tauri/resources/
