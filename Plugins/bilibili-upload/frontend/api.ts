@@ -47,7 +47,7 @@ export function createBilibiliUploadApi(ctx: MbPluginContext): BilibiliUploadApi
     startUpload: (params) => ctx.invoke<SubmitOutcome>("bilibili_upload_start", { params }),
     cancelUpload: () => ctx.invoke<void>("bilibili_upload_cancel"),
     onProgress: (handler) => ctx.listen<UploadProgress>("bilibili-upload-progress", handler),
-    // 共享模块表未提供 @tauri-apps/plugin-opener 的 JS 封装（esbuild 亦外置
+    // 共享模块表未提供 @tauri-apps/plugin-opener 的 JS 封装（打包时同样外置
     // @tauri-apps/*），改为直调其底层命令；入参与 JS 封装 openUrl 一致，
     // https URL 已由 capabilities 的 opener:default 覆盖
     openOutcomeUrl: (url) => tauriInvoke<void>("plugin:opener|open_url", { url }),

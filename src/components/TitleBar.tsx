@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useRouterState } from "@tanstack/react-router";
 import appIcon from "@assets/app-icon.png";
 import { hasTauri } from "../lib/tauriInvoke";
+import { useAppVersion } from "../lib/useAppVersion";
 
 function MinimizeGlyph() {
   return <Icon icon="mdi:window-minimize" width="14" height="14" aria-hidden="true" />;
@@ -23,19 +24,11 @@ function CloseGlyph() {
 
 export function TitleBar() {
   const [maximized, setMaximized] = useState(false);
-  const [version, setVersion] = useState("v0.1.0");
+  const version = useAppVersion();
 
   // 欢迎页保持纯净：不显示左上角品牌卡片与右上角窗口控制
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isWelcome = pathname === "/";
-
-  useEffect(() => {
-    if (!hasTauri) return;
-    void import("@tauri-apps/api/app")
-      .then(({ getVersion }) => getVersion())
-      .then((value) => setVersion(`v${value}`))
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (!hasTauri) return;

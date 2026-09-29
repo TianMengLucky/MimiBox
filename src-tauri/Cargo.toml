@@ -33,6 +33,8 @@ reqwest = { version = "0.12", features = ["cookies", "json", "gzip", "brotli"] }
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt", "rt-multi-thread", "sync", "time"] }
 # 插件化运行时：cordis 生命周期/服务依赖 + 插件 SDK + dll 动态加载
 mimibox-plugin = { workspace = true }
+# 插件前端打包器（Oxc）：导入源码插件包时现场编译前端 bundle
+mb-bundler = { path = "../crates/mb-bundler" }
 cordis-rs = "0.8"
 libloading = "0.8"
 qrcode = "0.14.1"

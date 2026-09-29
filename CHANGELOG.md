@@ -5,6 +5,28 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Added
+
+- 插件管理独立成页：新增「插件管理」页（角落 Dock「插件」入口，设置页可跳转），集中管理插件导入、已加载清单与存放位置；支持把 `.mip` 插件包、后端动态库、前端 zip 直接拖进应用窗口导入（可多文件，文件字节经 raw IPC 上传宿主），插件文件夹经目录对话框导入
+- 插件支持单侧形态：清单 `entry.backend` 与 `entry.frontend` 至少填一个即可——纯前端插件（无 dll，不注册命令）与纯后端插件均可正常加载
+- 后端动态库与前端 zip 可分别导入：同 id 自动合并补齐为完整插件，展示信息优先取自产物自带的自述
+- 后端动态库导入支持读取 SDK `export_plugin!` 生成的内嵌清单接口（`mb_plugin_manifest`），无需随附 `plugin.json`
+- 前端 bundle 支持自述信息：`defineMbPlugin` 定义可携带 `meta`（标题/图标/描述/分类/版本），导入前端 zip 时于 WebView 内读取后随导入请求传给宿主；内置插件已全部声明
+
+### Changed
+
+- 插件前端打包器由随应用分发的 esbuild 独立二进制改为自研 Rust 打包器 **mb-bundler**（基于 Oxc 工具链，`crates/mb-bundler`）：`pnpm build:plugins`、`pnpm plugins:watch` 与应用内源码插件现场编译共用同一实现，打包行为一致且安装包体积更小
+- 源码插件包现场编译适配单侧形态：缺失 backend 或 frontend 入口时整段跳过对应编译与校验
+- x-latest 发行版改为正式 Release，发布后自动取消仓库「Latest」标记：主分支更新源依赖 `releases/latest` 解析，避免其用户误拉 X 构建的更新包
+- 屏保钟面刷新间隔调整为 1 秒（秒级显示足够），日期/时间格式化器提升为模块级，消除无效重渲染与重复构造
+
+### Removed
+
+- 移除 esbuild 依赖（npm 包与随包分发的 `esbuild.exe`）及配套拷贝脚本，插件前端 bundle 改由 mb-bundler 生成
+- 移除设置页内嵌的插件管理区块（由独立插件管理页替代）
+
 ## [0.2.5-x] - 2026-09-25
 
 > 注：安装包/应用内版本号为 `0.2.5`（X 产品线使用纯数字版本号，与主分支的区分由产品名 MimiBox-X 与发布渠道承担）。插件分发包无变化，维持 `0.2.3`。

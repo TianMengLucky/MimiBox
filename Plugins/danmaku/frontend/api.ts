@@ -16,7 +16,7 @@ export interface AccountEntry {
   credentialStatus: "valid" | "expired" | "unknown";
 }
 
-/** Tauri 内部桥：@tauri-apps/api/window 不在宿主共享模块表里（esbuild 外置
+/** Tauri 内部桥：@tauri-apps/api/window 不在宿主共享模块表里（打包时外置
  *  "@tauri-apps/*" 会在运行时 require 失败），窗口控制退回内部 invoke 桥——
  *  它与 @tauri-apps/api/core 的 invoke 等价；窗口 label 取自宿主注入的
  *  metadata（弹幕窗口固定为 "danmaku"，与 capabilities/danmaku.json 的

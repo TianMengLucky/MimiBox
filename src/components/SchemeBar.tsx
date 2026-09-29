@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
 import { Button, Label, ListBox, Select } from "@heroui/react";
 import { Icon } from "@iconify/react";
+import { useConfirmClear } from "@lib/useConfirmClear";
 
 /** 方案管理条：切换活动方案 / 新建（复制当前内容）/ 删除，抽奖与夯到拉共用 */
 export function SchemeBar<T extends { id: string; name: string }>({
@@ -22,20 +22,12 @@ export function SchemeBar<T extends { id: string; name: string }>({
   onCreate: () => void;
   onDelete: () => void;
 }) {
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const resetTimer = useRef<number | undefined>(undefined);
-
-  // 方案切换或数量变化时退出“确认删除”态
-  useEffect(() => {
-    setConfirmingDelete(false);
-    return () => window.clearTimeout(resetTimer.current);
-  }, [activeId, schemes.length]);
-
-  const armDelete = () => {
-    setConfirmingDelete(true);
-    window.clearTimeout(resetTimer.current);
-    resetTimer.current = window.setTimeout(() => setConfirmingDelete(false), 3000);
-  };
+  // 两步确认删除：切换方案或数量变化时自动退出确认态
+  const { confirming: confirmingDelete, confirm } = useConfirmClear(
+    onDelete,
+    3000,
+    `${activeId}:${schemes.length}`,
+  );
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -77,15 +69,7 @@ export function SchemeBar<T extends { id: string; name: string }>({
         variant={confirmingDelete ? "danger" : "tertiary"}
         isDisabled={disabled}
         aria-label={confirmingDelete ? "再次点击确认删除方案" : "删除当前方案"}
-        onPress={() => {
-          if (confirmingDelete) {
-            window.clearTimeout(resetTimer.current);
-            setConfirmingDelete(false);
-            onDelete();
-          } else {
-            armDelete();
-          }
-        }}
+        onPress={confirm}
       >
         <Icon icon="lucide:trash-2" width="16" height="16" aria-hidden="true" />
         {confirmingDelete ? "确认删除？" : "删除方案"}

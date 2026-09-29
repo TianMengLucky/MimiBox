@@ -6,7 +6,7 @@ export const hasTauri =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 /** 非 Tauri 环境下调用命令时抛出，页面可据此展示友好提示 */
-export class TauriRequiredError extends Error {
+class TauriRequiredError extends Error {
   constructor(command: string) {
     super("此功能需要在 MimiBox 应用内使用");
     this.name = "TauriRequiredError";

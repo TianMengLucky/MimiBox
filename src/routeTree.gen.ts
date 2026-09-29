@@ -15,6 +15,7 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as FeatureRouteRouteImport } from './routes/feature/route'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as LibraryRouteImport } from './routes/library'
+import { Route as PluginsRouteImport } from './routes/plugins'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TauriRequiredRouteImport } from './routes/tauri-required'
 import { Route as FeatureIndexRouteImport } from './routes/feature/index'
@@ -51,6 +52,11 @@ const LibraryRoute = LibraryRouteImport.update({
   path: '/library',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PluginsRoute = PluginsRouteImport.update({
+  id: '/plugins',
+  path: '/plugins',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AccountRoute
   '/home': typeof HomeRoute
   '/library': typeof LibraryRoute
+  '/plugins': typeof PluginsRoute
   '/settings': typeof SettingsRoute
   '/tauri-required': typeof TauriRequiredRoute
   '/feature/$plugin': typeof FeaturePluginRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/account': typeof AccountRoute
   '/home': typeof HomeRoute
   '/library': typeof LibraryRoute
+  '/plugins': typeof PluginsRoute
   '/settings': typeof SettingsRoute
   '/tauri-required': typeof TauriRequiredRoute
   '/feature/$plugin': typeof FeaturePluginRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/account': typeof AccountRoute
   '/home': typeof HomeRoute
   '/library': typeof LibraryRoute
+  '/plugins': typeof PluginsRoute
   '/settings': typeof SettingsRoute
   '/tauri-required': typeof TauriRequiredRoute
   '/feature/$plugin': typeof FeaturePluginRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/home'
     | '/library'
+    | '/plugins'
     | '/settings'
     | '/tauri-required'
     | '/feature/$plugin'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/home'
     | '/library'
+    | '/plugins'
     | '/settings'
     | '/tauri-required'
     | '/feature/$plugin'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/home'
     | '/library'
+    | '/plugins'
     | '/settings'
     | '/tauri-required'
     | '/feature/$plugin'
@@ -164,6 +176,7 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRoute
   HomeRoute: typeof HomeRoute
   LibraryRoute: typeof LibraryRoute
+  PluginsRoute: typeof PluginsRoute
   SettingsRoute: typeof SettingsRoute
   TauriRequiredRoute: typeof TauriRequiredRoute
   WPluginRoute: typeof WPluginRoute
@@ -211,6 +224,13 @@ declare module '@tanstack/react-router' {
       path: '/library'
       fullPath: '/library'
       preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plugins': {
+      id: '/plugins'
+      path: '/plugins'
+      fullPath: '/plugins'
+      preLoaderRoute: typeof PluginsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -272,6 +292,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRoute: AccountRoute,
   HomeRoute: HomeRoute,
   LibraryRoute: LibraryRoute,
+  PluginsRoute: PluginsRoute,
   SettingsRoute: SettingsRoute,
   TauriRequiredRoute: TauriRequiredRoute,
   WPluginRoute: WPluginRoute,

@@ -37,14 +37,16 @@
   cordis-rs 0.8）、磁盘插件加载器（`loader.rs`，libloading）、动态网关命令
   `plugin_invoke`/`plugin_list`、`mbplugin://` 协议（向窗口提供插件前端 bundle），
   以及两个内置插件 account（账号服务，发布 `account` 就绪标记）与 scheme-io。
-  静态命令仅剩 `is_first_launch`/`mark_welcome_seen` + 两个网关命令。
+  静态命令仅剩首启/欢迎标记、两个网关命令与插件导入管理
+  （`import_artifact.rs` + `plugin_manager.rs`），功能命令全部经网关动态分发。
 - **插件（Plugins/<id>/）**：每个功能一个插件 = `plugin.json`（清单，abi=1，
   `requires` 声明依赖如 `["account"]`，未就绪时 cordis 保持 Pending）+
   `backend/`（Rust cdylib，workspace 成员，实现 `mimibox_plugin::PluginBackend`，
-  `export_plugin!` 导出 C ABI）+ `frontend/`（TS/TSX，esbuild 打成 CJS 工厂）。
+  `export_plugin!` 导出 C ABI）+ `frontend/`（TS/TSX，mb-bundler 打成 CJS 工厂）。
   构建产物 `backend.dll` 与 `frontend/index.js` 由 `pnpm build:plugins` 生成
   （git 忽略），前端 bundle 的 react/HeroUI 等依赖经宿主共享模块表
-  （`src/core/shared.ts`）require，单一 React 实例。
+  （`src/core/shared.ts`）require，单一 React 实例。entry.backend 与
+  entry.frontend 至少填一个：单侧（如纯前端）也可构成插件。
 - **前端宿主运行时（src/core/）**：功能注册表（registry）+ 插件加载器
   （runtime，@cordisjs/core 管生命周期）+ 插件 API（`defineMbPlugin` /
   `ctx.registerFeature`/`ctx.invoke`/`ctx.listen`）。home/library 卡片与
@@ -58,12 +60,14 @@
   - 数据文件沿用 `store::load/save`（SDK 内置，放应用数据目录，文件名不变
     即无迁移）；插件需要的宿主能力（数据目录/事件/凭据/开窗口/资源管理器
     定位）走 `HostApi`，缺能力时先扩展 SDK trait + vtable + HostImpl 三处。
-  - 第三方插件分发：用户可在设置页从文件夹或 `.mip` 包（zip）导入插件，
-    落到用户插件目录（默认应用数据目录 `plugins/`，可在设置页自定义并
-    自动迁移，优先于内置目录加载；`plugin_manager.rs` 的
-    `plugin_import_folder/import_mip/remove/get_dir/set_dir` 命令，
-    生效目录以 `effective_user_dir` 为准）。修改加载/导入逻辑时保持
-    zip-slip 防护与 ABI 校验。
+  - 第三方插件分发：用户可在「插件管理」页（`/plugins`，设置页与角落 Dock
+    有入口）把插件文件夹、`.mip` 包（zip）、后端动态库或前端 zip 拖入/选择
+    导入（统一文件接口按类型分发），落到用户插件目录（默认应用数据目录
+    `plugins/`，可在该页自定义并自动迁移，优先于内置目录加载；
+    `import_artifact.rs` 的 `plugin_import_file`/`plugin_import_dropped` 与
+    `plugin_manager.rs` 的 `plugin_remove/get_dir/set_dir` 命令，生效目录以
+    `effective_user_dir` 为准）。修改加载/导入逻辑时保持 zip-slip 防护与
+    ABI 校验。
   - 插件的复杂外接 CSS 放 `Plugins/<id>/frontend/*.css` 并在宿主
     `src/style/index.css` `@import`；插件类名靠 `@source "../../Plugins/*/frontend"`
     进宿主样式表，插件源码不要 import css。

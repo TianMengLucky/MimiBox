@@ -1,0 +1,25 @@
+[package]
+name = "mb-bundler"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+
+[dependencies]
+# Oxc Rust 工具链：解析 / 变换（TS 剥离 + JSX 自动运行时）/ 代码生成，
+# 在宿主内把插件前端源码打成 CJS 工厂 bundle（替代随包分发的 esbuild.exe）
+oxc_allocator = "0.152"
+oxc_ast = "0.152"
+oxc_parser = { version = "0.152", features = ["mutate_tokens"] }
+oxc_semantic = "0.152"
+oxc_transformer = "0.152"
+oxc_codegen = "0.152"
+oxc_span = "0.152"
+serde_json = "1"
+
+[lib]
+name = "mb_bundler"
+path = "src/lib.rs"
+
+[[bin]]
+name = "mb-bundler"
+path = "src/main.rs"

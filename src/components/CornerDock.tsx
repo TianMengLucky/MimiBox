@@ -8,7 +8,8 @@ type DockPath =
   | "/library"
   | "/about"
   | "/settings"
-  | "/account";
+  | "/account"
+  | "/plugins";
 
 type DockAction = {
   key: string;
@@ -18,6 +19,12 @@ type DockAction = {
 };
 
 const actions: DockAction[] = [
+  {
+    key: "plugins",
+    label: "插件",
+    to: "/plugins",
+    icon: <Icon icon="lucide:puzzle" width="20" height="20" aria-hidden="true" />,
+  },
   {
     key: "about",
     label: "关于",

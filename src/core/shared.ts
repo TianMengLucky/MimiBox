@@ -1,6 +1,6 @@
 /** 共享模块注册表：宿主向插件 bundle 提供的 require 解析表。
  *
- * 插件前端经 esbuild 以 CJS 工厂打包，react / HeroUI 等依赖不进 bundle，
+ * 插件前端经 mb-bundler 以 CJS 工厂打包，react / HeroUI 等依赖不进 bundle，
  * 运行时通过 `hostRequire(name)` 解析到宿主的同一模块实例——
  * 经典微前端共享 React 方案，杜绝双 React。
  * 单插件专属依赖（lucky-canvas、xyflow 等）打包进插件自身。
@@ -37,9 +37,7 @@ import { defineMbPlugin } from "./plugin-api";
 
 declare global {
   interface Window {
-    /** 宿主提供的共享模块表（插件 require 解析） */
-    __mb_shared?: Record<string, unknown>;
-    /** 插件 CJS 工厂（esbuild banner 注入注册） */
+    /** 插件 CJS 工厂（mb-bundler 打包时注入注册） */
     __mb_plugins?: Record<
       string,
       (
@@ -84,11 +82,6 @@ const SHARED_MODULES: Record<string, unknown> = {
   // 插件 API
   "mb-host": { defineMbPlugin },
 };
-
-/** 安装全局共享模块表（插件 bundle 的 require 由此解析） */
-export function installSharedModules(): void {
-  window.__mb_shared = SHARED_MODULES;
-}
 
 /** 插件 bundle 的 require 实现 */
 export function hostRequire(name: string): unknown {

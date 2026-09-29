@@ -4,6 +4,13 @@ import RatingPage from "./RatingPage";
 import { createRatingStore } from "./store";
 
 export default defineMbPlugin({
+  meta: {
+    title: "评分",
+    emoji: "⭐",
+    description: "批量打 1-10 分",
+    category: "video",
+    version: "0.2.3",
+  },
   apply(ctx) {
     const store = createRatingStore(ctx);
     ctx.registerFeature({

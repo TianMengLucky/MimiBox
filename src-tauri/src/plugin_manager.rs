@@ -19,7 +19,17 @@ use mimibox_plugin::MB_ABI_VERSION;
 /// 复制/解压插件包时排除的构建缓存与系统垃圾。注意：源码分发包的
 /// `backend/` 目录与 `Cargo.toml` 是包正文（现场编译用），不能排除；
 /// `backend/target` 等构建缓存由 "target" 规则覆盖。
-const EXCLUDE_NAMES: &[&str] = &["target", ".git", "node_modules", "__MACOSX", ".DS_Store"];
+const EXCLUDE_NAMES: &[&str] =
+    &["target", ".git", "node_modules", "__MACOSX", ".DS_Store"];
+
+/// 路径（或单个路径段）是否命中排除规则（逐段、大小写不敏感）
+pub(crate) fn is_excluded_entry(name: &str) -> bool {
+    name.split('/').any(|seg| {
+        EXCLUDE_NAMES
+            .iter()
+            .any(|ex| seg.eq_ignore_ascii_case(ex))
+    })
+}
 
 /// mip 包内条目的公共前缀
 struct MipLayout {
@@ -189,10 +199,10 @@ pub struct ImportOutcome {
     pub installed_path: String,
 }
 
-/// 读取并校验插件目录的清单：id 合法、ABI 匹配、后端入口非空。
-/// 不检查产物文件——源码分发包导入时产物尚不存在，编译在
+/// 读取并校验插件目录的清单：id 合法、ABI 匹配、backend/frontend 入口
+/// 至少有一个。不检查产物文件——源码分发包导入时产物尚不存在，编译在
 /// [`crate::import_build::ensure_built`] 进行。
-fn parse_manifest(plugin_dir: &Path) -> Result<PluginManifest, String> {
+pub(crate) fn parse_manifest(plugin_dir: &Path) -> Result<PluginManifest, String> {
     let text = fs::read_to_string(plugin_dir.join("plugin.json"))
         .map_err(|e| format!("缺少或无法读取 plugin.json: {e}"))?;
     let manifest: PluginManifest =
@@ -206,14 +216,21 @@ fn parse_manifest(plugin_dir: &Path) -> Result<PluginManifest, String> {
             manifest.abi
         ));
     }
-    if manifest.entry.backend.is_empty() {
-        return Err("清单缺少 entry.backend（后端动态库入口）".to_string());
+    if manifest.entry.backend.is_empty() && manifest.entry.frontend.is_empty() {
+        return Err(
+            "清单缺少入口：entry.backend 与 entry.frontend 至少填一个（单独一个后端或一个前端即可）"
+                .to_string(),
+        );
     }
     Ok(manifest)
 }
 
-/// 校验后端动态库产物已存在（编译/复制完成后调用）
-fn verify_backend(plugin_dir: &Path, manifest: &PluginManifest) -> Result<(), String> {
+/// 校验后端动态库产物已存在（编译/复制完成后调用）。
+/// 纯前端插件没有后端入口，直接通过。
+pub(crate) fn verify_backend(plugin_dir: &Path, manifest: &PluginManifest) -> Result<(), String> {
+    if manifest.entry.backend.is_empty() {
+        return Ok(());
+    }
     if !plugin_dir.join(&manifest.entry.backend).is_file() {
         return Err(format!("后端库缺失: {}", manifest.entry.backend));
     }
@@ -235,11 +252,11 @@ fn prepare_target(user_dir: &Path, id: &str) -> Result<PathBuf, String> {
 }
 
 /// 递归复制目录内容，跳过分发无关文件/目录（EXCLUDE_NAMES）
-fn copy_dir_contents(source: &Path, target: &Path) -> Result<(), String> {
+pub(crate) fn copy_dir_contents(source: &Path, target: &Path) -> Result<(), String> {
     for entry in fs::read_dir(source).map_err(|e| format!("无法读取 {source:?}: {e}"))? {
         let entry = entry.map_err(|e| format!("读取目录失败: {e}"))?;
         let name = entry.file_name().to_string_lossy().into_owned();
-        if EXCLUDE_NAMES.iter().any(|ex| name.eq_ignore_ascii_case(ex)) {
+        if is_excluded_entry(&name) {
             continue;
         }
         let dest = target.join(&name);
@@ -256,15 +273,9 @@ fn copy_dir_contents(source: &Path, target: &Path) -> Result<(), String> {
 }
 
 /// 从文件夹导入：校验 `<folder>/plugin.json` 后整体复制到用户插件目录；
-/// 含源码（backend/Cargo.toml、frontend/index.tsx）且缺产物时现场编译
-#[tauri::command]
-pub async fn plugin_import_folder(app: AppHandle, path: String) -> Result<ImportOutcome, String> {
-    tauri::async_runtime::spawn_blocking(move || import_folder_impl(app, path))
-        .await
-        .map_err(|e| format!("导入任务执行失败: {e}"))?
-}
-
-fn import_folder_impl(app: AppHandle, path: String) -> Result<ImportOutcome, String> {
+/// 含源码（backend/Cargo.toml、frontend/index.tsx）且缺产物时现场编译。
+/// 由 [`crate::import_artifact::plugin_import_file`] 按导入类型分发调用。
+pub(crate) fn import_folder_impl(app: AppHandle, path: String) -> Result<ImportOutcome, String> {
     let source = PathBuf::from(&path);
     if !source.is_dir() {
         return Err("插件文件夹不存在，请重新选择".to_string());
@@ -286,7 +297,7 @@ fn import_folder_impl(app: AppHandle, path: String) -> Result<ImportOutcome, Str
 }
 
 /// 规范化 zip 条目路径并防 zip-slip：拒绝绝对路径与 `..` 上跳
-fn safe_entry_name(name: &str) -> Option<String> {
+pub(crate) fn safe_entry_name(name: &str) -> Option<String> {
     let name = name.replace('\\', "/");
     if name.starts_with('/') || name.contains(':') || name.split('/').any(|seg| seg == "..") {
         return None;
@@ -324,15 +335,9 @@ fn detect_mip_layout<R: Read + std::io::Seek>(
 }
 
 /// 从 .mip 包（zip）导入：探测布局 → 解压到暂存目录 → 校验清单 →
-/// 源码现场编译 → 落位
-#[tauri::command]
-pub async fn plugin_import_mip(app: AppHandle, path: String) -> Result<ImportOutcome, String> {
-    tauri::async_runtime::spawn_blocking(move || import_mip_impl(app, path))
-        .await
-        .map_err(|e| format!("导入任务执行失败: {e}"))?
-}
-
-fn import_mip_impl(app: AppHandle, path: String) -> Result<ImportOutcome, String> {
+/// 源码现场编译 → 落位。由 [`crate::import_artifact::plugin_import_file`]
+/// 按导入类型分发调用。
+pub(crate) fn import_mip_impl(app: AppHandle, path: String) -> Result<ImportOutcome, String> {
     let file = fs::File::open(&path).map_err(|e| format!("无法打开插件包: {e}"))?;
     let mut zip = zip::ZipArchive::new(file)
         .map_err(|_| "不是有效的 zip 插件包".to_string())?;
@@ -361,11 +366,7 @@ fn import_mip_impl(app: AppHandle, path: String) -> Result<ImportOutcome, String
                 continue;
             }
             // 跳过分发无关内容
-            let segments: Vec<&str> = relative.split('/').collect();
-            if segments
-                .iter()
-                .any(|seg| EXCLUDE_NAMES.iter().any(|ex| seg.eq_ignore_ascii_case(ex)))
-            {
+            if is_excluded_entry(relative) {
                 continue;
             }
             let dest = staging.join(relative);

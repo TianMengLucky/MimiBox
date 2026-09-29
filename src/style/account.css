@@ -25,27 +25,6 @@
   align-items: center;
 }
 
-.account-avatar {
-  width: 84px;
-  height: 84px;
-  border-radius: 50%;
-  object-fit: cover;
-  box-shadow: 0 6px 18px rgb(245 179 201 / 45%);
-}
-
-.account-name {
-  margin: 14px 0 0;
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #66535a;
-}
-
-.account-mid {
-  margin: 4px 0 14px;
-  font-size: 0.85rem;
-  color: #9b8a91;
-}
-
 .account-title {
   margin: 0;
   font-size: 1.3rem;

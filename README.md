@@ -48,7 +48,7 @@
 
 ## 🧩 插件一览
 
-每个功能都是一个独立插件（Rust cdylib 后端 + esbuild 前端 bundle + `plugin.json` 清单），由宿主在启动时扫描 `Plugins/` 目录动态加载：
+每个功能都是一个独立插件（Rust cdylib 后端 + CJS 前端 bundle + `plugin.json` 清单），由宿主在启动时扫描 `Plugins/` 目录动态加载：
 
 | 插件 | 说明 | 依赖 |
 | :--- | :--- | :--- |
@@ -65,7 +65,7 @@
 
 内置插件随宿主直接加载（不经过 dll）：**account**（Bilibili/抖音多账号管理，向其他插件提供账号凭据服务）、**scheme-io**（`.miz` 方案包导入导出，跨插件共用）。
 
-除随应用分发的插件外，还可以在**设置 → 插件**中把第三方插件导入应用（见[安装第三方插件](#%EF%B8%8F-安装第三方插件)）。
+除随应用分发的插件外，还可以在**插件管理**页（角落 Dock 的「插件」入口，或 设置 → 插件管理）把第三方插件导入应用（见[安装第三方插件](#%EF%B8%8F-安装第三方插件)）。
 
 ---
 
@@ -92,8 +92,9 @@
 ```
 
 - **宿主只保留 4 个静态命令**（首启标记、欢迎已读、插件网关、插件清单），其余全部命令经 `plugin_invoke(插件, 命令, 参数)` 动态分发。
-- 插件前端通过 esbuild 打包为 CJS 工厂注入运行，React / HeroUI 等依赖由宿主共享模块表提供，**杜绝双 React**；lucky-canvas、xyflow 等单插件依赖打包进插件自身。
+- 插件前端由内置 Rust 打包器 **mb-bundler**（Oxc 工具链）打包为 CJS 工厂注入运行，React / HeroUI 等依赖由宿主共享模块表提供，**杜绝双 React**；lucky-canvas、xyflow 等单插件依赖打包进插件自身。
 - 插件清单 `requires: ["account"]` 映射为 cordis 服务依赖：账号服务就绪前，B 站内容类插件自动等待（Pending），就绪后自动收敛为可用。
+- 插件支持**单侧形态**：`entry.backend` 与 `entry.frontend` 至少填一个——纯前端插件（无 dll）只注入 bundle，纯后端插件只注册命令；两种产物也可分别导入后自动合并。
 - 插件数据沿用应用数据目录下的同名 JSON 文件（`lottery.json`、`accounts.json` 等），升级零数据迁移。
 
 ---
@@ -103,7 +104,7 @@
 | 层级 | 技术 |
 | :--- | :--- |
 | 前端框架 | React 19 + TypeScript |
-| 构建工具 | Vite（宿主）/ esbuild（插件 bundle） |
+| 构建工具 | Vite（宿主）/ mb-bundler·Oxc（插件 bundle） |
 | UI 组件库 | HeroUI React v3 |
 | 样式方案 | Tailwind CSS v4 |
 | 路由 | TanStack React Router |
@@ -121,7 +122,8 @@
 ```
 MimiBox/
 ├── crates/
-│   └── mimibox-plugin/      # 插件 SDK（宿主与插件共用：C ABI + 命令注册 + JSON 存储）
+│   ├── mimibox-plugin/      # 插件 SDK（宿主与插件共用：C ABI + 命令注册 + JSON 存储）
+│   └── mb-bundler/          # 插件前端打包器（Oxc：TS/TSX → CJS 工厂 bundle）
 ├── Plugins/                 # 插件源码与构建产物（每个插件一个目录）
 │   └── <id>/
 │       ├── plugin.json      # 插件清单（id/标题/图标/依赖/入口）
@@ -133,7 +135,7 @@ MimiBox/
 ├── src/                     # 前端宿主（外壳 + 运行时 + 核心页）
 │   ├── core/                # 插件运行时：共享模块表、功能注册表、defineMbPlugin、加载器
 │   ├── components/          # 宿主组件（标题栏、账号页、主页卡片、设置等）
-│   ├── routes/              # 页面路由（home/account/settings + /feature/$plugin、/w/$plugin）
+│   ├── routes/              # 页面路由（home/account/settings/plugins + /feature/$plugin、/w/$plugin）
 │   ├── lib/                 # tauriInvoke/pluginInvoke 网关入口、格式化与拖拽工具
 │   ├── icons.ts             # Iconify 图标离线子集
 │   └── style/               # 页面样式 + 插件外接样式引入
@@ -142,6 +144,8 @@ MimiBox/
 │   │   ├── runtime/         # cordis 运行时：命令注册表服务、宿主能力、FFI vtable
 │   │   ├── builtin/         # 内置插件：core（基础设施）、account、scheme-io
 │   │   ├── loader.rs        # 磁盘插件加载器（清单解析 + ABI 校验 + dll 加载）
+│   │   ├── import_artifact.rs # 插件导入统一文件接口（文件夹/.mip/动态库/前端 zip 按类型分发）
+│   │   ├── import_build.rs  # 源码插件包现场编译（cargo + mb-bundler）
 │   │   ├── gateway.rs       # 动态网关命令 plugin_invoke / plugin_list
 │   │   ├── account/         # 账号模块（Bilibili/抖音登录，被内置 account 插件复用）
 │   │   ├── douyin_web/      # 抖音 web 扫码登录（协议参数 + 短信 MFA）
@@ -153,7 +157,7 @@ MimiBox/
 │   ├── icons/               # 应用图标（多平台）
 │   └── tauri.conf.json      # Tauri 配置（resources 打包 Plugins/）
 ├── scripts/
-│   ├── build-plugins.mjs    # 插件构建编排（cargo cdylib + esbuild → Plugins/）
+│   ├── build-plugins.mjs    # 插件构建编排（cargo cdylib + mb-bundler → Plugins/）
 │   ├── watch-plugins.mjs    # 插件前端增量监听
 │   └── generate-icons.mjs   # Iconify 图标离线子集生成
 ├── AGENTS.md                # 仓库 Agent 指令（含插件开发约定）
@@ -232,12 +236,16 @@ pnpm dev
 
 ### 安装第三方插件
 
-在 **设置 → 插件** 中可以把第三方开发的插件导入应用，两种方式：
+在**插件管理**页可以把第三方开发的插件导入应用。最直接的方式是把文件**拖进应用窗口**（可一次拖入多个），或点击拖拽区选择文件：
 
-- **从文件夹导入**：选择一个内含 `plugin.json` 的插件目录（开发仓库的构建产物目录或源码目录均可）；
-- **从 `.mip` 插件包导入**：选择 `.mip` 文件（zip 格式的插件分发包，包内根目录或唯一子目录下有 `plugin.json`、`backend.dll` 与可选的 `frontend/index.js`）。
+- **`.mip` 插件包**：zip 格式的插件分发包，包内根目录或唯一子目录下有 `plugin.json`、`backend.dll` 与可选的 `frontend/index.js`；
+- **后端动态库**（`.dll`）：只含后端产物的插件，插件信息优先读取库内 `export_plugin!` 生成的内嵌清单接口，未提供时按文件名派生；
+- **前端 zip**：只含前端 bundle 的压缩包，插件自述信息从 bundle 的 `meta` 声明读取（未声明时按注册 id 派生）；
+- **插件文件夹**：点击区内「导入插件文件夹」选择一个内含 `plugin.json` 的目录（开发仓库的构建产物目录或源码目录均可）。
 
-**源码分发包**：包内含 `backend/Cargo.toml`（Rust 源码）与/或 `frontend/index.tsx`（前端源码）而缺少产物时，导入过程会现场编译——前端由应用内置的 esbuild 打包（无需 Node），后端调用本机 `cargo build --release`（**需要装有 Rust 工具链**：cargo + MSVC 生成工具，缺失时给出明确提示）；源码 backend 需为自包含 cargo 工程（依赖走 crates.io 或包内 vendored path）。
+宿主按文件类型自动识别分发；后端动态库与前端 zip 可分别导入，同 id 自动合并补齐为完整插件。
+
+**源码分发包**：包内含 `backend/Cargo.toml`（Rust 源码）与/或 `frontend/index.tsx`（前端源码）而缺少产物时，导入过程会现场编译——前端由应用内置的 Rust 打包器 mb-bundler（Oxc 工具链）进程内打包（无需 Node），后端调用本机 `cargo build --release`（**需要装有 Rust 工具链**：cargo + MSVC 生成工具，缺失时给出明确提示）；源码 backend 需为自包含 cargo 工程（依赖走 crates.io 或包内 vendored path）。
 
 导入时宿主会校验插件清单与 ABI 版本（`abi: 1`），通过后复制到插件存放位置（默认为应用数据目录下的 `plugins/`，可在设置中自定义，见下）。**导入新插件即时生效**：宿主自动热加载并广播事件，主页/资料库卡片与功能页即时出现，无需重启；删除插件同样热卸载、即时生效；升级/替换同 id 插件受 Windows 动态库占用限制，仍需重启应用（设置页在需要时会提供一键重启按钮）。
 
@@ -245,8 +253,8 @@ pnpm dev
 
 - 同一 id 重复导入视为升级，覆盖旧版本；若该插件正在运行（dll 被占用），会提示先重启再导入；
 - 用户导入的插件优先于随应用分发的插件加载——可以用来升级官方插件；
-- 用户导入的插件可在设置中删除；随应用分发的插件不可删除；
-- **插件存放位置可自定义**：设置页「插件存放位置」可改为任意文件夹（切换时已导入的插件自动迁移到新位置），也可一键恢复默认；
+- 用户导入的插件可在插件管理页删除；随应用分发的插件不可删除；
+- **插件存放位置可自定义**：插件管理页「插件存放位置」可改为任意文件夹（切换时已导入的插件自动迁移到新位置），也可一键恢复默认；
 - 插件是信任代码，应用不做沙箱隔离，请只导入可信来源的插件；
 - 安装包会注册 `.mip`（插件包）与 `.miz`（方案包）的 Windows 文件类型图标，资源管理器中可直接辨认这两种文件。
 
@@ -279,7 +287,7 @@ CI（tag 触发）每次产出两类安装包：
 | :--- | :--- |
 | `pnpm dev` | 启动 Vite 开发服务器 |
 | `pnpm build` | 完整构建：tsc + vite + 插件构建 |
-| `pnpm build:plugins` | 构建全部插件（cargo cdylib + esbuild → `Plugins/`） |
+| `pnpm build:plugins` | 构建全部插件（cargo cdylib + mb-bundler → `Plugins/`） |
 | `pnpm plugins:watch` | 监听插件前端改动并增量重打包 |
 | `pnpm preview` | 预览前端构建结果 |
 | `pnpm tauri dev` | 启动 Tauri 开发模式（含热更新） |

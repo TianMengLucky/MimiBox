@@ -1,10 +1,11 @@
 //! 插件源码现场编译：导入含源码的插件包时，在用户机器上构建运行时产物。
 //!
-//! 触发条件（产物缺失才编译，含预构建产物的包直接跳过）：
+//! 触发条件（产物缺失才编译，含预构建产物的包直接跳过；单独一个后端或
+//! 一个前端即可构成插件，另一侧为空时整段跳过）：
 //! - `backend/Cargo.toml` 存在且缺少 `entry.backend`（如 backend.dll）
 //!   → `cargo build --release`，需要用户机器装有 Rust 工具链（cargo + MSVC）
 //! - `frontend/index.tsx|.ts` 存在且缺少 `entry.frontend`（如 frontend/index.js）
-//!   → 内置 esbuild（随应用分发的独立二进制）打包，参数与 CI 构建一致
+//!   → 进程内调用 mb-bundler（Oxc Rust 打包器）打包，与 CI 构建同一实现
 //!
 //! 源码包要求 backend 是自包含 cargo 工程（依赖走 crates.io 或包内 vendored
 //! path），前端入口约定为 `frontend/index.tsx`。插件是信任代码，不做沙箱。
@@ -12,8 +13,7 @@
 use std::path::Path;
 use std::process::Command;
 
-use serde_json::json;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 use crate::loader::PluginManifest;
 
@@ -29,24 +29,6 @@ fn spawn_command(mut command: Command) -> Command {
     }
     command
 }
-
-/// 前端打包的外置依赖：与 scripts/plugin-config.mjs 的 EXTERNAL 保持一致
-/// （运行时经宿主共享模块表 hostRequire 提供）
-const EXTERNALS: &[&str] = &[
-    "react",
-    "react-dom",
-    "react-dom/client",
-    "react/jsx-runtime",
-    "@heroui/react",
-    "@iconify/react",
-    "@apvee/react-layout-kit",
-    "motion/react",
-    "@tanstack/react-router",
-    "@tauri-apps/*",
-    "@lib/*",
-    "@components/*",
-    "mb-host",
-];
 
 fn emit_progress(app: &AppHandle, text: &str) {
     use tauri::Emitter;
@@ -68,18 +50,21 @@ pub(crate) fn ensure_built(
     manifest: &PluginManifest,
     build_dir: &Path,
 ) -> Result<(), String> {
-    // 后端源码 → cargo 编译（产物缺失时）
-    let backend_src = dir.join("backend");
-    if backend_src.join("Cargo.toml").is_file()
-        && !dir.join(&manifest.entry.backend).is_file()
-    {
-        build_backend_crate(app, &backend_src, build_dir, dir, &manifest.entry.backend)?;
-    }
-    if !dir.join(&manifest.entry.backend).is_file() {
-        return Err(format!("后端库缺失: {}", manifest.entry.backend));
+    // 后端源码 → cargo 编译（产物缺失时）。纯前端插件没有 backend 入口，
+    // 跳过整段后端编译与校验。
+    if !manifest.entry.backend.is_empty() {
+        let backend_src = dir.join("backend");
+        if backend_src.join("Cargo.toml").is_file()
+            && !dir.join(&manifest.entry.backend).is_file()
+        {
+            build_backend_crate(app, &backend_src, build_dir, dir, &manifest.entry.backend)?;
+        }
+        if !dir.join(&manifest.entry.backend).is_file() {
+            return Err(format!("后端库缺失: {}", manifest.entry.backend));
+        }
     }
 
-    // 前端源码 → 内置 esbuild 打包（产物缺失时）
+    // 前端源码 → mb-bundler（Oxc）进程内打包（产物缺失时）
     if !manifest.entry.frontend.is_empty()
         && !dir.join(&manifest.entry.frontend).is_file()
     {
@@ -169,59 +154,19 @@ fn fs_read_dir_dlls(dir: &Path) -> Result<Vec<std::path::PathBuf>, String> {
         .collect())
 }
 
-/// 用内置 esbuild 打包前端源码（参数与 CI 构建一致：CJS 工厂注册到
-/// window.__mb_plugins，外置依赖经宿主共享模块表提供）
+/// 用 mb-bundler（Oxc Rust 打包器）进程内打包前端源码，与 CI 构建同一实现：
+/// CJS 工厂注册到 window.__mb_plugins，共享依赖外置经宿主 hostRequire 提供
 fn build_frontend_bundle(
     app: &AppHandle,
     entry_src: &Path,
     out_file: &Path,
     id: &str,
 ) -> Result<(), String> {
-    let esbuild = app
-        .path()
-        .resource_dir()
-        .map_err(|e| format!("无法解析资源目录: {e}"))?
-        .join("resources")
-        .join(if cfg!(windows) { "esbuild.exe" } else { "esbuild" });
-    if !esbuild.is_file() {
-        return Err(format!(
-            "应用缺少内置的 esbuild（{}），无法编译前端源码",
-            esbuild.display()
-        ));
-    }
-
     emit_progress(app, "正在打包插件前端…");
-    // 与 scripts/plugin-config.mjs 的 banner/footer 一致：CJS 工厂注册
-    let banner = format!(
-        "window.__mb_plugins=window.__mb_plugins||{{}};window.__mb_plugins[{}]=function(require,module,exports){{",
-        json!(id)
-    );
-
-    let mut command = spawn_command(Command::new(&esbuild));
-    command
-        .arg(entry_src)
-        .arg("--bundle")
-        .arg("--format=cjs")
-        .arg("--jsx=automatic")
-        .arg("--target=es2022")
-        .arg("--loader:.css=empty")
-        .arg("--define:import.meta.env.DEV=false");
-    for external in EXTERNALS {
-        command.arg(format!("--external:{external}"));
-    }
-    command
-        .arg(format!("--banner:js={banner}"))
-        .arg("--footer:js=}")
-        .arg(format!("--outfile={}", out_file.display()));
-
-    let output = command
-        .output()
-        .map_err(|e| format!("无法启动 esbuild: {e}"))?;
-    if !output.status.success() {
-        return Err(format!(
-            "插件前端打包失败：\n{}",
-            tail_lines(&String::from_utf8_lossy(&output.stderr), 40)
-        ));
-    }
-    Ok(())
+    mb_bundler::bundle(mb_bundler::BundleOptions {
+        entry: entry_src,
+        id,
+        out: out_file,
+    })
+    .map_err(|e| format!("插件前端打包失败：{e}"))
 }

@@ -39,7 +39,6 @@
       "../Plugins/*/plugin.json",
       "../Plugins/*/backend.dll",
       "../Plugins/*/frontend/index.js",
-      "resources/esbuild.exe",
       "icons/file-miz.ico",
       "icons/file-mip.ico"
     ],

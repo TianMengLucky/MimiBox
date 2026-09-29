@@ -1,10 +1,10 @@
 import { Box, Flex } from "@apvee/react-layout-kit";
-import { useEffect, useState } from "react";
 import { Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { createFileRoute } from "@tanstack/react-router";
 import appIcon from "@assets/app-icon.png";
 import { hasTauri } from "../lib/tauriInvoke";
+import { useAppVersion } from "../lib/useAppVersion";
 
 const GITHUB_URL = "https://github.com/TianMengLucky/MimiBox";
 
@@ -14,15 +14,7 @@ export const Route = createFileRoute("/about")({
 
 /** 关于页：应用信息与开源信息；检查更新的完整流程统一放在设置页，这里不再重复入口 */
 function AboutRoute() {
-  const [version, setVersion] = useState("v0.1.0");
-
-  useEffect(() => {
-    if (!hasTauri) return;
-    void import("@tauri-apps/api/app")
-      .then(({ getVersion }) => getVersion())
-      .then((value) => setVersion(`v${value}`))
-      .catch(() => {});
-  }, []);
+  const version = useAppVersion();
 
   const openGitHub = async () => {
     if (hasTauri) {

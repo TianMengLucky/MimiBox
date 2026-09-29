@@ -35,8 +35,21 @@ export interface MbPluginContext {
   registerFeature(spec: MbFeatureSpec): void;
 }
 
+/** 插件自述信息：bundle 在 defineMbPlugin 定义中声明，宿主导入
+ * 前端 zip 时经 QuickJS 调用 bundle 工厂接口读取 */
+export interface MbPluginMeta {
+  title?: string;
+  emoji?: string;
+  description?: string;
+  /** 首页卡片分类 key（未登记的类别以声明值作为页签标签） */
+  category?: string;
+  version?: string;
+}
+
 /** 插件前端定义：bundle 入口 `export default defineMbPlugin({...})` */
 export interface MbPluginDef {
+  /** 插件自述信息（缺省时宿主以 banner 注册 id / 文件名回退派生） */
+  meta?: MbPluginMeta;
   apply: (ctx: MbPluginContext) => void | Promise<void>;
 }
 

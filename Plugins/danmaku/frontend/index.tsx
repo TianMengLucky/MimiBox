@@ -5,6 +5,13 @@ import DanmakuWindowPage from "./DanmakuWindowPage";
 import { createDanmakuApi } from "./api";
 
 export default defineMbPlugin({
+  meta: {
+    title: "弹幕直播姬",
+    emoji: "🎀",
+    description: "连接直播间实时弹幕",
+    category: "video",
+    version: "0.2.3",
+  },
   apply(ctx) {
     const api = createDanmakuApi(ctx);
     ctx.registerFeature({

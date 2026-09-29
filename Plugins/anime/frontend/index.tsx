@@ -4,6 +4,13 @@ import AnimePage from "./AnimePage";
 import { createAnimeApi } from "./api";
 
 export default defineMbPlugin({
+  meta: {
+    title: "番剧",
+    emoji: "📺",
+    description: "每日放送时间表",
+    category: "video",
+    version: "0.2.3",
+  },
   apply(ctx) {
     const api = createAnimeApi(ctx);
     ctx.registerFeature({

@@ -14,7 +14,7 @@ export interface AnimeApi {
 export function createAnimeApi(ctx: MbPluginContext): AnimeApi {
   return {
     calendar: () => ctx.invoke<BangumiWeekday[]>("bangumi_calendar"),
-    // 共享模块表未提供 @tauri-apps/plugin-opener 的 JS 封装（esbuild 亦外置
+    // 共享模块表未提供 @tauri-apps/plugin-opener 的 JS 封装（打包时同样外置
     // @tauri-apps/*），有 Tauri 时直调其底层命令；入参与 JS 封装 openUrl 一致，
     // https URL 已由 capabilities 的 opener:default 覆盖
     openItem: async (url) => {

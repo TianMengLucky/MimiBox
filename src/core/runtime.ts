@@ -13,7 +13,7 @@ import { createPluginContext } from "./plugin-api";
 import { featureRegistry } from "./registry";
 import type { MbPluginDef } from "./plugin-api";
 import type { MbPluginManifest } from "./types";
-import { hostRequire, installSharedModules } from "./shared";
+import { hostRequire } from "./shared";
 
 /** 运行时状态：loading（清单/脚本加载中）/ ready（全部插件处理完毕） */
 type RuntimeState = "loading" | "ready";
@@ -139,7 +139,6 @@ async function syncPlugins(): Promise<void> {
 /** 启动插件运行时（main.tsx 调用一次；不阻塞首屏渲染） */
 export async function startPluginRuntime(): Promise<void> {
   if (state === "ready") return;
-  installSharedModules();
 
   try {
     const manifests = await listPlugins();

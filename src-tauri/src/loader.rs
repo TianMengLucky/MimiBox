@@ -4,6 +4,7 @@
 //! 目录约定：`Plugins/<id>/` 下有 `plugin.json`（清单）、
 //! `backend/`（Rust 源码，workspace 成员）与构建产物
 //! `backend.dll` + `frontend/index.js`（由 `scripts/build-plugins.mjs` 生成）。
+//! 后端与前端入口可单独存在：纯前端插件没有 dll，只注入 bundle。
 //! 扫描按目录优先级合并：**用户导入目录（应用数据目录 plugins/）覆盖内置
 //! 目录**（开发态仓库根 `Plugins/`、发布态资源目录）——同名 id 只加载一份，
 //! 允许用户用导入的插件升级/替换随应用分发的版本。
@@ -48,11 +49,12 @@ pub struct PluginManifest {
     pub entry: PluginEntry,
 }
 
-/// 插件入口文件（相对插件目录）
+/// 插件入口文件（相对插件目录）。backend 与 frontend 至少填一个：
+/// 单独一个后端或一个前端即可构成插件。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginEntry {
-    /// 后端动态库（如 "backend.dll"）
+    /// 后端动态库（如 "backend.dll"），留空表示纯前端插件
     #[serde(default)]
     pub backend: String,
     /// 前端 bundle（如 "frontend/index.js"），留空表示纯后端插件
@@ -69,9 +71,9 @@ pub(crate) struct LoadedPlugin {
     /// 保底引用：插件停止后由运行时 retired 列表继续持有，避免
     /// libloading Drop 触发 FreeLibrary（插件内部线程存活时卸载代码
     /// 不安全）。dll 文件随进程退出释放；目录删除用「改名隔离 +
-    /// 启动清理」兜底。
+    /// 启动清理」兜底。纯前端插件无后端库，为 None。
     #[allow(dead_code)]
-    pub(crate) lib: Arc<PluginLibrary>,
+    pub(crate) lib: Option<Arc<PluginLibrary>>,
 }
 
 /// 内置插件目录：开发态取仓库根 `Plugins/`（编译期定位，发布态取资源目录）。
@@ -93,7 +95,7 @@ pub fn builtin_plugins_dir(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 /// 用户导入插件目录（应用数据目录 `plugins/`，始终可写；
-/// `plugin_import_folder` / `plugin_import_mip` 把第三方插件复制到这里）
+/// `plugin_import_file` 把第三方插件复制到这里）
 pub fn user_plugins_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = crate::scheme_store::data_dir(app)?.join("plugins");
     if !dir.exists() {
@@ -233,31 +235,33 @@ async fn load_one(
             manifest.abi
         ));
     }
-    if manifest.entry.backend.is_empty() {
-        return Err("清单缺少 entry.backend".to_string());
+    if manifest.entry.backend.is_empty() && manifest.entry.frontend.is_empty() {
+        return Err("清单缺少入口：entry.backend 与 entry.frontend 至少填一个".to_string());
     }
-    if !plugin_dir.join(&manifest.entry.backend).is_file() {
-        return Err(format!(
-            "后端库缺失: {}",
-            manifest.entry.backend
-        ));
-    }
-
-    let lib = Arc::new(PluginLibrary::new(&plugin_dir.join(&manifest.entry.backend))?);
-    let abi = lib.abi_version()?;
-    if abi != MB_ABI_VERSION {
-        return Err(format!("dll ABI 版本不匹配（{abi}，宿主 {MB_ABI_VERSION}）"));
-    }
-    let commands = lib.declare(crate::runtime::vtable::vtable())?;
+    // 单侧插件：entry.backend 留空 = 纯前端插件（无 dll，不注册命令）；
+    // entry.frontend 留空 = 纯后端插件。
+    let (lib, commands) = if manifest.entry.backend.is_empty() {
+        (None, Vec::new())
+    } else {
+        let backend_path = plugin_dir.join(&manifest.entry.backend);
+        if !backend_path.is_file() {
+            return Err(format!("后端库缺失: {}", manifest.entry.backend));
+        }
+        let lib = Arc::new(PluginLibrary::new(&backend_path)?);
+        let abi = lib.abi_version()?;
+        if abi != MB_ABI_VERSION {
+            return Err(format!("dll ABI 版本不匹配（{abi}，宿主 {MB_ABI_VERSION}）"));
+        }
+        let commands = lib.declare(crate::runtime::vtable::vtable())?;
+        (Some(Arc::clone(&lib)), commands)
+    };
 
     let manifest_clone = manifest.clone();
     let user_installed = plugin_dir.starts_with(user_dir);
-    // 保底引用留给 LoadedPlugin：运行中绝不 FreeLibrary（retired 持有）
-    let lib_for_retire = Arc::clone(&lib);
     let plugin = DiskPlugin {
         manifest,
         commands,
-        lib,
+        lib: lib.clone(),
     };
     let plugin_id = manifest_clone.id.clone();
     let handle = root
@@ -268,6 +272,6 @@ async fn load_one(
         manifest: manifest_clone,
         user_installed,
         handle,
-        lib: lib_for_retire,
+        lib,
     })
 }

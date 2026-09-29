@@ -5,7 +5,7 @@ import { mergeSchemes } from "./schemeTransfer/io";
 
 /** 方案数据命令调用实现：宿主页用缺省的 tauriInvoke，
  *  插件页传入 MbPluginContext.invoke（经网关限定插件名）。 */
-export type SchemeInvoke = (
+type SchemeInvoke = (
   command: string,
   args?: Record<string, unknown>,
   options?: { defaultValue?: unknown },

@@ -3,6 +3,7 @@ pub mod builtin;
 pub mod douyin_signer;
 pub mod douyin_web;
 pub mod gateway;
+pub mod import_artifact;
 pub mod import_build;
 pub mod loader;
 pub mod plugin_manager;
@@ -124,8 +125,8 @@ pub fn run() {
             mark_welcome_seen,
             gateway::plugin_invoke,
             gateway::plugin_list,
-            plugin_manager::plugin_import_folder,
-            plugin_manager::plugin_import_mip,
+            import_artifact::plugin_import_file,
+            import_artifact::plugin_import_dropped,
             plugin_manager::plugin_reload,
             plugin_manager::plugin_remove,
             plugin_manager::plugin_get_dir,

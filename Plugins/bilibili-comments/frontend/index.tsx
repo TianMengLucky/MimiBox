@@ -4,6 +4,13 @@ import BilibiliCommentsPage from "./BilibiliCommentsPage";
 import { createBilibiliCommentsApi } from "./api";
 
 export default defineMbPlugin({
+  meta: {
+    title: "B站评论区",
+    emoji: "💬",
+    description: "查看并筛选投稿评论",
+    category: "video",
+    version: "0.2.3",
+  },
   apply(ctx) {
     const api = createBilibiliCommentsApi(ctx);
     ctx.registerFeature({

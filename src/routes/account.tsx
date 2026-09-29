@@ -1,5 +1,5 @@
 import { Box } from "@apvee/react-layout-kit";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Tooltip } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { pluginInvoke } from "../lib/tauriInvoke";
@@ -58,6 +58,14 @@ function AccountRoute() {
   const [busy, setBusy] = useState(false);
   // 右键菜单里的轻量操作反馈（如"Cookie 已复制"）
   const [notice, setNotice] = useState("");
+  /** 自动清除 notice 的定时器（重设前先清旧、卸载时清理） */
+  const noticeTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(noticeTimer.current), []);
+  const showNotice = useCallback((text: string) => {
+    window.clearTimeout(noticeTimer.current);
+    setNotice(text);
+    noticeTimer.current = window.setTimeout(() => setNotice(""), 2500);
+  }, []);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -241,8 +249,7 @@ function AccountRoute() {
               runAction(async () => {
                 const cookie = await pluginInvoke<string>("account", "account_copy_cookie");
                 await navigator.clipboard.writeText(cookie);
-                setNotice("Cookie 已复制到剪贴板");
-                setTimeout(() => setNotice(""), 2500);
+                showNotice("Cookie 已复制到剪贴板");
               });
             }}
           >

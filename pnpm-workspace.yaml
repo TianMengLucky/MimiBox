@@ -1,3 +1,5 @@
 # pnpm 11+ 的构建脚本批准策略（onlyBuiltDependencies 已废弃，被 allowBuilds 取代）
+# 插件前端打包已改用 Rust 工具 mb-bundler（见 crates/mb-bundler）；esbuild 仅作为
+# vite 的传递依赖保留，其 postinstall 仍需批准
 allowBuilds:
   esbuild: true

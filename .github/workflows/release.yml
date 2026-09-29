@@ -4,9 +4,13 @@ name: release
 # - `vX.Y.Z`        → 主分支（main）：构建 mimibox，发布到 tag 对应的 Release，
 #                      更新源走 releases/latest/download/latest.json
 # - `vX.Y.Z-x`      → 插件化分支（plugin-architecture）：构建 MimiBox-X，
-#                      发布到固定 tag `x-latest` 的 prerelease Release（资产每次覆盖），
-#                      更新源走 releases/download/x-latest/latest.json，
-#                      与主分支的 releases/latest 互不干扰
+#                      发布到固定 tag `x-latest` 的正式 Release（非预发布，
+#                      资产每次覆盖），更新源走
+#                      releases/download/x-latest/latest.json；
+#                      发布后用 gh release edit --latest=false 取消「Latest」
+#                      标记——主分支更新源依赖 releases/latest 解析，若
+#                      x-latest 被标记为 Latest，主分支用户会拉到 X 构建，
+#                      两条产品线由此互不干扰
 # 两个变体共用同一 tag 前缀 `v*`，由 tag 是否以 `-x` 结尾在步骤内分流。
 #
 # 增量规则：
@@ -38,12 +42,10 @@ jobs:
             echo "variant=x" >> "$GITHUB_OUTPUT"
             echo "tag_name=x-latest" >> "$GITHUB_OUTPUT"
             echo "release_name=MimiBox-X $GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
-            echo "prerelease=true" >> "$GITHUB_OUTPUT"
           else
             echo "variant=main" >> "$GITHUB_OUTPUT"
             echo "tag_name=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
             echo "release_name=MimiBox $GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
           cat "$GITHUB_OUTPUT"
 
@@ -148,7 +150,7 @@ jobs:
           releaseName: ${{ steps.variant.outputs.release_name }}
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
-          prerelease: ${{ steps.variant.outputs.prerelease == 'true' }}
+          prerelease: false
 
       # Lite 版：productName 区分文件名；resources 清空（RFC 7396 数组替换）
       # 不内置插件；跳过前端重复构建（dist 已由完整版构建生成）与更新器
@@ -163,7 +165,7 @@ jobs:
           releaseName: ${{ steps.variant.outputs.release_name }}
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
-          prerelease: ${{ steps.variant.outputs.prerelease == 'true' }}
+          prerelease: false
 
       # 插件增量发布：只重建并上传 version 有变化的 .mip（始终执行——
       # 插件可与本体独立发版）
@@ -180,6 +182,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release edit "${{ steps.variant.outputs.tag_name }}" --notes-file release_notes.md -R "$GITHUB_REPOSITORY"
+
+      # x-latest 已是正式 Release（非预发布），但不得抢占仓库「Latest」标记：
+      # 主分支更新源走 releases/latest/download/latest.json，x-latest 若被
+      # 标记为 Latest，主分支用户的更新检查会命中 X 构建的 latest.json。
+      # tauri-action 创建非预发布 Release 时默认标记 Latest，这里固定取消
+      # （无论本次是否重建本体都执行，覆盖此前以预发布创建过的存量 Release）
+      - name: Keep x-latest out of the repo Latest badge
+        if: steps.variant.outputs.variant == 'x'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ steps.variant.outputs.tag_name }}" --latest=false -R "$GITHUB_REPOSITORY"
 
       # 固定 Release（x-latest）跨 tag 复用：清理文件名带旧版本号的安装包资产，
       # 避免不同版本资源混在一起（latest.json 与 *.mip 文件名不带版本，不受影响）

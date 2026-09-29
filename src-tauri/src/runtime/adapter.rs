@@ -100,6 +100,21 @@ impl PluginLibrary {
         Ok(unsafe { f() })
     }
 
+    /// 调用插件的 `mb_plugin_manifest` 导出接口读取内嵌清单 JSON
+    /// （SDK `export_plugin!` 宏的 manifest 形式生成；未提供时返回 None）
+    pub(crate) fn manifest_json(&self) -> Option<String> {
+        unsafe {
+            let f: libloading::Symbol<unsafe extern "C" fn() -> *const c_char> =
+                self.0.get(b"mb_plugin_manifest\0").ok()?;
+            let ptr = f();
+            if ptr.is_null() {
+                None
+            } else {
+                Some(CStr::from_ptr(ptr).to_string_lossy().into_owned())
+            }
+        }
+    }
+
     /// 执行插件注册（mb_plugin_register），返回声明的命令清单
     pub(crate) fn declare(&self, vtable: *const HostVTable) -> Result<Vec<String>, String> {
         unsafe {
@@ -191,11 +206,12 @@ fn parse_envelope_text(text: &str) -> Result<Value, String> {
 // ---------------------------------------------------------------------------
 
 /// 磁盘插件：命令经 FFI 桥转发进插件 dll（插件在自己的 tokio runtime 执行）。
+/// 纯前端插件没有 dll（lib 为 None、commands 为空），只登记清单供前端注入。
 pub(crate) struct DiskPlugin {
     pub manifest: crate::loader::PluginManifest,
     /// 注册时声明的命令清单
     pub commands: Vec<String>,
-    pub lib: Arc<PluginLibrary>,
+    pub lib: Option<Arc<PluginLibrary>>,
 }
 
 impl Plugin for DiskPlugin {
@@ -222,11 +238,13 @@ impl Plugin for DiskPlugin {
 
     async fn apply(&self, ctx: Context, _input: &()) -> Result<(), RuntimeError> {
         let mut handlers: HashMap<String, BoxedHandler> = HashMap::new();
-        for command in &self.commands {
-            handlers.insert(
-                command.clone(),
-                make_disk_handler(self.lib.clone(), command.clone()),
-            );
+        if let Some(lib) = &self.lib {
+            for command in &self.commands {
+                handlers.insert(
+                    command.clone(),
+                    make_disk_handler(lib.clone(), command.clone()),
+                );
+            }
         }
         apply_commands(&ctx, &self.manifest.id, handlers).await
     }

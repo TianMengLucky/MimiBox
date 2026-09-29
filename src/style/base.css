@@ -1,8 +1,6 @@
-@import "tailwindcss";
-@import "@heroui/styles";
-
 /* 全局元素级默认样式放在 @layer base 中：
-   工具类（utilities 层）和页面级 class 可以按层级正常覆盖它们 */
+   工具类（utilities 层）和页面级 class 可以按层级正常覆盖它们。
+   本文件由 index.css 引入，tailwind / heroui 的 @import 只在 index.css 做一次。 */
 @layer base {
   :root {
     font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;

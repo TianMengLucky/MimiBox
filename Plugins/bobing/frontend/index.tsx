@@ -4,6 +4,13 @@ import BobingPage from "./BobingPage";
 import { createBobingStore } from "./store";
 
 export default defineMbPlugin({
+  meta: {
+    title: "博饼",
+    emoji: "🎲",
+    description: "掷骰夺状元",
+    category: "fun",
+    version: "0.2.3",
+  },
   apply(ctx) {
     const store = createBobingStore(ctx);
     ctx.registerFeature({

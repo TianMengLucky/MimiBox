@@ -1,6 +1,11 @@
 // 插件构建共享配置：build-plugins.mjs 与 watch-plugins.mjs 共用。
+// 前端打包由 Rust 工具 mb-bundler（Oxc）完成，见 crates/mb-bundler。
 
+import { execFileSync } from "node:child_process";
 import path from "node:path";
+
+const repoRoot = path.resolve(import.meta.dirname, "..");
+const pluginsRoot = path.join(repoRoot, "Plugins");
 
 /** 全部磁盘插件清单（迁移完成一个加一个；与根 Cargo.toml workspace 成员对应） */
 export const PLUGINS = [
@@ -16,41 +21,13 @@ export const PLUGINS = [
   { id: "anime", crate: "mimibox-plugin-anime", frontend: true },
 ];
 
-/** esbuild 外置依赖：与 src/core/shared.ts 的共享模块表一一对应 */
-export const EXTERNAL = [
-  "react",
-  "react-dom",
-  "react-dom/client",
-  "react/jsx-runtime",
-  "@heroui/react",
-  "@iconify/react",
-  "@apvee/react-layout-kit",
-  "motion/react",
-  "@tanstack/react-router",
-  "@tauri-apps/*",
-  "@lib/*",
-  "@components/*",
-  "mb-host",
-];
-
-/** 单插件前端 esbuild 选项（bundle 以 CJS 工厂注册到 window.__mb_plugins） */
-export function esbuildFrontendOptions(id) {
-  return {
-    entryPoints: [path.join("Plugins", id, "frontend", "index.tsx")],
-    outfile: path.join("Plugins", id, "frontend", "index.js"),
-    bundle: true,
-    format: "cjs",
-    jsx: "automatic",
-    target: "es2022",
-    external: EXTERNAL,
-    // 插件样式全部使用宿主样式表（Tailwind @source 扫描 Plugins 源码），
-    // 插件源码里不应 import css；保险起见按空实现处理
-    loader: { ".css": "empty" },
-    // CJS 输出没有 import.meta：以常量替换 DEV 分支（死代码消除）
-    define: { "import.meta.env.DEV": "false" },
-    banner: {
-      js: `window.__mb_plugins=window.__mb_plugins||{};window.__mb_plugins[${JSON.stringify(id)}]=function(require,module,exports){`,
-    },
-    footer: { js: "}" },
-  };
+/** 前端打包：调用 Rust 工具 mb-bundler（与 CI、应用内现场编译同一实现） */
+export function bundleFrontend(plugin) {
+  const entry = path.join(pluginsRoot, plugin.id, "frontend", "index.tsx");
+  const outfile = path.join(pluginsRoot, plugin.id, "frontend", "index.js");
+  execFileSync(
+    "cargo",
+    ["run", "--release", "-p", "mb-bundler", "--bin", "mb-bundler", "--", entry, plugin.id, outfile],
+    { cwd: repoRoot, stdio: "inherit" },
+  );
 }

@@ -1,20 +1,19 @@
 #!/usr/bin/env node
-// 插件构建编排：逐插件编译 Rust cdylib + esbuild 打包前端 → 产物拷进 Plugins/<id>/。
+// 插件构建编排：逐插件编译 Rust cdylib + mb-bundler（Oxc）打包前端 → 产物拷进 Plugins/<id>/。
 //
 // 产物布局（运行时由宿主加载）：
 //   Plugins/<id>/backend.dll          ← target/release/<crate>.dll
-//   Plugins/<id>/frontend/index.js    ← esbuild CJS 工厂（react 等依赖外置经宿主 require）
+//   Plugins/<id>/frontend/index.js    ← CJS 工厂 bundle（react 等依赖外置经宿主 require）
 //
 // 开发：`pnpm build:plugins` 手动构建，或 `pnpm plugins:watch` 增量监听前端改动
 // （Rust dll 改动需重启应用，Windows 下已加载的 dll 无法覆盖）。
 
-import { build } from "esbuild";
-import { zipSync } from "fflate";
 import { execSync } from "node:child_process";
+import { zipSync } from "fflate";
 import fs from "node:fs";
 import path from "node:path";
 
-import { PLUGINS, esbuildFrontendOptions } from "./plugin-config.mjs";
+import { bundleFrontend, PLUGINS } from "./plugin-config.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const pluginsRoot = path.join(repoRoot, "Plugins");
@@ -34,9 +33,8 @@ function buildBackend(plugin) {
   console.log(`[plugin:${plugin.id}] backend.dll 已更新`);
 }
 
-async function buildFrontend(plugin) {
-  const options = esbuildFrontendOptions(plugin.id);
-  await build({ ...options, logLevel: "info" });
+function buildFrontend(plugin) {
+  bundleFrontend(plugin);
   console.log(`[plugin:${plugin.id}] frontend/index.js 已更新`);
 }
 
@@ -92,7 +90,7 @@ for (const plugin of targets) {
   console.log(`\n===== 构建插件 ${plugin.id} =====`);
   buildBackend(plugin);
   if (plugin.frontend) {
-    await buildFrontend(plugin);
+    buildFrontend(plugin);
   }
   packMip(plugin);
 }
